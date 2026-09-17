@@ -27,10 +27,10 @@ $ tooluse-screener "nmap localhost"
 ask: Command is not in the shared allow list
 ```
 
-One refused command denies the whole line. Every command on it has to be
-vouched for before any of it is allowed, and anything left over is the
-agent's own question to ask. The exit code carries the same answer: 0
-allowed, 1 denied, 2 to ask.
+The screener checks each requested command against its
+[policy](#configuration) where a single denial blocks an entire compound
+command. The exit code carries the same answer: 0 allowed, 1 denied, 2
+to ask.
 
 ## Installation
 
