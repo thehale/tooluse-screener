@@ -1,6 +1,7 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
+// Package git reads a git command past its global options.
 package git
 
 import (
@@ -15,21 +16,26 @@ type Invocation struct {
 	Subcommand  string
 	Arguments   []string
 	Directories []string
+	Global      []string
 }
 
+// Read returns an Invocation with no subcommand for a command that is
+// not git's.
 func Read(command string) Invocation {
 	words := afterEnvironmentAssignments(strings.Fields(command))
 	if len(words) == 0 || words[0] != "git" {
 		return Invocation{}
 	}
-	directories, spoken := afterGlobalOptions(words[1:])
-	return spokenAs(spoken, directories)
+	directories, global, spoken := afterGlobalOptions(words[1:])
+	return spokenAs(spoken, directories, global)
 }
 
 func (i Invocation) IsA(subcommand string) bool {
 	return i.Subcommand != "" && i.Subcommand == subcommand
 }
 
+// Carries counts an option anywhere, since git permutes them, and a
+// bare word only first, where it is git's own word.
 func (i Invocation) Carries(words []string) bool {
 	return lists.Every(words, i.carries)
 }
@@ -71,15 +77,16 @@ func isDigit(letter byte) bool {
 	return '0' <= letter && letter <= '9'
 }
 
-func afterGlobalOptions(words []string) (directories, spoken []string) {
+func afterGlobalOptions(words []string) (directories, global, spoken []string) {
 	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
 		option, value, joined := strings.Cut(words[0], "=")
 		if pointsAtADirectory(option) {
 			directories = append(directories, directoryFrom(value, joined, words))
 		}
+		global = append(global, option)
 		words = words[stride(option, joined, len(words)):]
 	}
-	return directories, words
+	return directories, global, words
 }
 
 func pointsAtADirectory(option string) bool {
@@ -110,9 +117,14 @@ func takesAValue(option string) bool {
 	return slices.Contains(withValues, option)
 }
 
-func spokenAs(spoken, directories []string) Invocation {
+func spokenAs(spoken, directories, global []string) Invocation {
 	if len(spoken) == 0 {
-		return Invocation{Directories: directories}
+		return Invocation{Directories: directories, Global: global}
 	}
-	return Invocation{Subcommand: spoken[0], Arguments: spoken[1:], Directories: directories}
+	return Invocation{
+		Subcommand:  spoken[0],
+		Arguments:   spoken[1:],
+		Directories: directories,
+		Global:      global,
+	}
 }

@@ -14,19 +14,33 @@ import (
 // Landing knows the branch only for the plainest spelling: a remote,
 // one refspec, and options that leave both alone.
 func Landing(i Invocation) (branch string, known bool) {
-	remote, refspec, plain := pushed(i.Arguments)
+	remote, refspec := pushed(i)
 	branch = branchOf(refspec)
-	return branch, i.IsA("push") && plain && remoteName.MatchString(remote) && branch != ""
+	return branch, remoteName.MatchString(remote) && branch != ""
 }
 
-func pushed(arguments []string) (remote, refspec string, plain bool) {
-	options, words := partitioned(arguments)
+func pushed(i Invocation) (remote, refspec string) {
+	options, words := partitioned(i.Arguments)
 	switch {
-	case len(words) != 2 || !lists.Every(options, leavesTheLandingAlone):
-		return "", "", false
+	case i.IsA("push") && len(words) == 2 && leaveTheLandingAlone(options, i.Global):
+		return words[0], words[1]
 	default:
-		return words[0], words[1], true
+		return "", ""
 	}
+}
+
+func leaveTheLandingAlone(options, global []string) bool {
+	return lists.Every(options, changesNeitherEnd) &&
+		lists.Every(global, onlyChangesDirectory)
+}
+
+func changesNeitherEnd(option string) bool {
+	spoken := []string{"-u", "--set-upstream", "-q", "--quiet", "-v", "--verbose", "--progress"}
+	return slices.Contains(spoken, option)
+}
+
+func onlyChangesDirectory(option string) bool {
+	return option == "-C"
 }
 
 func partitioned(arguments []string) (options, words []string) {
@@ -38,11 +52,6 @@ func partitioned(arguments []string) (options, words []string) {
 		}
 	}
 	return options, words
-}
-
-func leavesTheLandingAlone(option string) bool {
-	spoken := []string{"-u", "--set-upstream", "-q", "--quiet", "-v", "--verbose", "--progress"}
-	return slices.Contains(spoken, option)
 }
 
 func branchOf(refspec string) string {
