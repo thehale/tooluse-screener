@@ -24,6 +24,8 @@ function main() {
 		check "YAML: Format" "bin/yamlformat --fix"
 		check "Markdown: Lint" "bin/markdownlint --fix"
 		check "License" "bin/lawyer --fix"
+		check "Go: Format" "gofmt -w ."
+		check "Go: Lint" "golangci-lint run --fix"
 
 		# check "Category: Action" "bin/your-script"
 	else
@@ -40,6 +42,10 @@ function main() {
 		check "License" "bin/lawyer"
 		check "Secrets" "gitleaks git --no-banner --redact"
 		check "Dependencies" "osv-scanner scan source --recursive --allow-no-lockfiles ."
+		check "Go: Format" "bin/gofmtcheck"
+		check "Go: Vet" "go vet ./..."
+		check "Go: Lint" "golangci-lint run"
+		check "Go: Test" "go test -race -cover ./..."
 
 		# check "Category: Action" "bin/your-script"
 	fi

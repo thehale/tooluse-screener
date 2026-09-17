@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+#
+# Usage: bin/gofmtcheck
+#
+# gofmt -l lists what it would reformat and still exits 0. Name the files
+# and fail, so CI notices.
+
+set -euo pipefail
+
+main() {
+	local unformatted
+	unformatted="$(gofmt -l .)"
+
+	if [[ -n "$unformatted" ]]; then
+		echo "Not formatted with gofmt:"
+		echo "$unformatted"
+		exit 1
+	fi
+}
+
+main "$@"
