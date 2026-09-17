@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+#
+# Usage: bin/publish [--dry-run]
+#
+# Tag the commit you mean to release, then run this. Pushing the tag is
+# what publishes: the Release workflow builds the binaries from it.
+
+set -euo pipefail
+
+# shellcheck source=bin/lib/colors
+source "$(dirname "${BASH_SOURCE[0]}")/lib/colors"
+
+BRANCH="main"
+RELEASE_TAG="^v[0-9]+\.[0-9]+\.[0-9]+$"
+
+main() {
+	refuse_automation
+	confirm_branch
+	confirm_clean_tree
+	confirm_release_tag
+	confirm_declared_origin
+	confirm_unpublished
+	bin/ci
+	publish "$@"
+}
+
+refuse_automation() {
+	if [[ -n "${CI:-}" ]]; then
+		refuse "CI publishes nothing. Run bin/publish from a workstation."
+	fi
+}
+
+refuse() {
+	red "$1" >&2
+	exit 1
+}
+
+confirm_branch() {
+	local branch
+	branch="$(git rev-parse --abbrev-ref HEAD)"
+
+	if [[ "$branch" != "$BRANCH" ]]; then
+		refuse "On $branch. A release is published from $BRANCH."
+	fi
+}
+
+confirm_clean_tree() {
+	if [[ -n "$(git status --porcelain)" ]]; then
+		refuse "The working tree has changes. Commit them or put them aside."
+	fi
+}
+
+confirm_release_tag() {
+	if [[ -z "$(release_tag)" ]]; then
+		refuse "HEAD carries no vX.Y.Z tag. Tag the commit you mean to release."
+	fi
+}
+
+release_tag() {
+	git tag --points-at HEAD | grep --extended-regexp "$RELEASE_TAG" | head --lines 1 || true
+}
+
+confirm_declared_origin() {
+	local remote declared
+	remote="$(origin_path)"
+	declared="$(module_path)"
+
+	if [[ "$declared" != "$remote" ]]; then
+		refuse "go.mod module $declared is not origin $remote."
+	fi
+}
+
+# origin_path returns origin as a module path would spell it, from
+# either an ssh or an https remote.
+origin_path() {
+	local remote
+	remote="$(git remote get-url origin)"
+	remote="${remote%.git}"
+	remote="${remote#*@}"
+	remote="${remote#*://}"
+	echo "${remote/:/\/}"
+}
+
+module_path() {
+	sed --quiet --regexp-extended 's%^module (.*)$%\1%p' go.mod
+}
+
+# A tag origin already carries was released from whatever it named then,
+# which nothing here can change by pushing it again.
+confirm_unpublished() {
+	local tag
+	tag="$(release_tag)"
+
+	if [[ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]]; then
+		refuse "origin already carries $tag. Tag the next version instead."
+	fi
+}
+
+publish() {
+	local tag
+	tag="$(release_tag)"
+
+	yellow "Publishing $(module_path) $tag"
+	git push "$@" origin "refs/tags/$tag"
+	green "Pushed $tag. The Release workflow builds it from here."
+}
+
+main "$@"

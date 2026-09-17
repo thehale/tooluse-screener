@@ -1,6 +1,7 @@
 [tools]
 go = "1.26.8"
 "aqua:golangci/golangci-lint" = "2.13.2"
+"aqua:goreleaser/goreleaser" = "2.18.1"
 "aqua:hashicorp/copywrite" = "0.25.3"
 "github:thehale/bashorder" = "0.1.0"
 actionlint = "1.7.12"

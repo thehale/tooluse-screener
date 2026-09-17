@@ -46,6 +46,7 @@ function main() {
 		check "Go: Vet" "go vet ./..."
 		check "Go: Lint" "golangci-lint run"
 		check "Go: Test" "go test -race -cover ./..."
+		check "Go: Build" "goreleaser build --snapshot --clean"
 
 		# check "Category: Action" "bin/your-script"
 	fi
