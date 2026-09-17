@@ -1,0 +1,54 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+#
+# git, and a few things nobody wants run by accident. A machine's own
+# policy file replaces this one.
+
+allowed:
+  - git add
+  - git branch
+  - git checkout
+  - git cherry-pick
+  - git commit
+  - git diff
+  - git log
+  - git rebase
+  - git reset
+  - git restore
+  - git show
+  - git stash
+  - git status
+  - git worktree
+
+  - description: Reading git config
+    commands:
+      - git config get
+      - git config list
+      - git config --get
+      - git config --get-all
+      - git config --get-regexp
+      - git config --list
+      - git config -l
+
+denied:
+  - description: Emptying a whole tree
+    patterns:
+      - '^rm -(rf|fr) /$'
+      - '^rm -(rf|fr) ~$'
+
+  - description: Writing git config
+    commands:
+      - git config set
+      - git config unset
+      - git config --unset
+      - git config --unset-all
+      - git config --edit
+      - git config --replace-all
+      - git config --add
+      - git config --rename-section
+      - git config --remove-section
+
+  - description: A publish script, named or run from any path
+    reason: Publishing is the operator's to approve and to run.
+    patterns:
+      - '^(\S*/)?publish(\.sh)?(\s|$)'
