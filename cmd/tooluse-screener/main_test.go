@@ -54,7 +54,7 @@ func TestCheckingOneCommand(t *testing.T) {
 
 func TestSayingWhatItIs(t *testing.T) {
 	t.Run("asking for help is not an error, however it is asked", func(t *testing.T) {
-		for _, asking := range [][]string{{"help"}, {"-h"}, {"-help"}, {"--help"}} {
+		for _, asking := range [][]string{{"help"}, {"-h"}, {"--help"}} {
 			out, code := ran(t, asking...)
 			if code != 0 {
 				t.Errorf("%q exited %d, wanted 0", asking, code)
@@ -70,6 +70,19 @@ func TestSayingWhatItIs(t *testing.T) {
 		for _, flag := range []string{"--hook", "--version", "--config-file"} {
 			if !strings.Contains(out, flag) {
 				t.Errorf("help does not mention %s", flag)
+			}
+		}
+	})
+
+	t.Run("one dash is not how a flag is spelled", func(t *testing.T) {
+		for _, wrong := range []string{"-hook", "-version", "-config-file", "-help"} {
+			var out, complaints bytes.Buffer
+			code := run([]string{wrong}, strings.NewReader(""), &out, &complaints)
+			if code != usageError {
+				t.Errorf("%s exited %d, wanted %d", wrong, code, usageError)
+			}
+			if !strings.Contains(complaints.String(), "Write -"+wrong) {
+				t.Errorf("%s was not told how to spell it: %q", wrong, complaints.String())
 			}
 		}
 	})

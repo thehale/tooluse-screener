@@ -33,33 +33,78 @@ func main() {
 }
 
 func run(arguments []string, in io.Reader, out, complaints io.Writer) int {
-	asked := flag.NewFlagSet(name, flag.ContinueOnError)
-	asked.SetOutput(complaints)
-	asked.Usage = func() {}
-	answering := asked.Bool("hook", false, "Answer a hook payload read on stdin.")
-	reporting := asked.Bool("version", false, "Print the version and exit.")
-	path := asked.String("config-file", "", "Policy file to ask, before "+policy.Variable+" and this machine's own.")
+	asked := reading(complaints)
+	spelled := asFlags(arguments)
 
-	switch err := asked.Parse(asFlags(arguments)); {
+	switch wrong := misspelled(spelled); {
+	case wrong != "":
+		return misspelling(asked.flags, complaints, wrong)
+	default:
+		return asked.answer(spelled, in, out, complaints)
+	}
+}
+
+type options struct {
+	flags     *flag.FlagSet
+	answering *bool
+	reporting *bool
+	path      *string
+}
+
+func reading(complaints io.Writer) options {
+	flags := flag.NewFlagSet(name, flag.ContinueOnError)
+	flags.SetOutput(complaints)
+	flags.Usage = func() {}
+
+	return options{
+		flags:     flags,
+		answering: flags.Bool("hook", false, "Answer a hook payload read on stdin."),
+		reporting: flags.Bool("version", false, "Print the version and exit."),
+		path:      flags.String("config-file", "", "Policy file to ask, before "+policy.Variable+" and this machine's own."),
+	}
+}
+
+func (o options) answer(spelled []string, in io.Reader, out, complaints io.Writer) int {
+	switch err := o.flags.Parse(spelled); {
 	case errors.Is(err, flag.ErrHelp):
-		usage(asked, out)
+		usage(o.flags, out)
 		return 0
 	case err != nil:
-		usage(asked, complaints)
+		usage(o.flags, complaints)
 		return usageError
-	case *reporting:
+	case *o.reporting:
 		_, _ = fmt.Fprintln(out, name, version())
 		return 0
-	case *answering:
-		return hook.Main(in, out, complaints, checking(*path))
+	case *o.answering:
+		return hook.Main(in, out, complaints, checking(*o.path))
 	default:
-		return checkOne(asked, out, complaints, *path)
+		return checkOne(o.flags, out, complaints, *o.path)
 	}
 }
 
 const name = "tooluse-screener"
 
 const usageError = 64
+
+func misspelled(arguments []string) string {
+	for _, one := range arguments {
+		switch {
+		case one == "--" || !strings.HasPrefix(one, "-"):
+			return ""
+		case one == "-h" || strings.HasPrefix(one, "--"):
+			continue
+		default:
+			return one
+		}
+	}
+	return ""
+}
+
+func misspelling(asked *flag.FlagSet, complaints io.Writer, wrong string) int {
+	_, _ = fmt.Fprintf(complaints, "%s: %s is not a flag. Write -%s.\n", name, wrong, wrong)
+	usage(asked, complaints)
+	return usageError
+}
 
 func asFlags(arguments []string) []string {
 	switch {
