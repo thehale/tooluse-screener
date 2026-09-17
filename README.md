@@ -16,14 +16,21 @@ One Bash command policy, shared by every coding agent.
 ```console
 $ tooluse-screener "git status"
 allow: Every command is allowed: git status
-$ tooluse-screener "ls && cat foo"
-allow: Every command is allowed: ls, cat
+
+$ tooluse-screener "git commit -m 'a message' && git status"
+allow: Every command is allowed: git commit, git status
+
+$ tooluse-screener "rm -rf /"
+deny: Command matches a denied rule: Emptying a whole tree
+
 $ tooluse-screener "nmap localhost"
 ask: Command is not in the shared allow list
 ```
 
-Deny if *any* command in the line is refused, allow if *every* one is
-vouched for, ask otherwise. The exit code repeats the decision: 0, 1, 2.
+One refused command denies the whole line. Every command on it has to be
+vouched for before any of it is allowed, and anything left over is the
+agent's own question to ask. The exit code carries the same answer: 0
+allowed, 1 denied, 2 to ask.
 
 ## Installation
 
