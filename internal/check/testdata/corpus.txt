@@ -1,0 +1,56 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+#
+# Every line is a verdict and the command it is the verdict for, read
+# against testdata/policy.yaml. One command per kind of question, and a
+# pair only where the pair is the question. Changing how anything is
+# matched means writing down here which answers changed.
+
+# A denied command
+deny    dd if=/dev/zero of=/dev/sda
+
+# A denied pattern
+deny    rm -rf /
+
+# A denied git subcommand, however the command is spelled
+deny    git push origin main
+
+# An allowed command
+allow   ls -la
+
+# Assignments in front of a command are passed over to reach it, hide
+# nothing from a denial, and count only where they really are
+# assignments: `a-b` is no name a shell would take, so that command is
+# `a-b=1` and not `ls`.
+allow   A=1 B=2 ls -la
+deny    ENV=1 dd if=/dev/zero of=/dev/sda
+ask     a-b=1 ls -la
+
+# A program whose name merely opens with one the policy names
+ask     lsblk
+
+# A command the policy says nothing about
+ask     nmap localhost
+
+# A dangerous command behind a program that runs it
+deny    bash bin/publish
+
+# A safe command reading a file named after a dangerous one. `cat`
+# accounts for the program and not the file, so it answers for neither
+# of these commands whole and takes neither denial off the table.
+deny    cat bin/publish
+deny    cat dd
+
+# A denied command named inside code handed to an interpreter the
+# policy allows
+deny    python3 -c "__import__('os').system('dd if=/dev/zero of=/dev/sda')"
+
+# A line is denied for any one command, allowed only for every one of
+# them, and asked about for anything in between
+deny    ls && dd if=/dev/zero of=/dev/sda
+allow   ls && cat notes.txt
+ask     nmap localhost && ls -la
+
+# A repository reached into has to be one the policy trusts
+allow   git -C /work status
+ask     git -C /elsewhere status

@@ -1,0 +1,17 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+
+denied:
+  - dd
+  - bin/publish
+  - git push
+  - patterns: ['^rm -(rf|fr) /$']
+
+allowed:
+  - ls
+  - cat
+  - python3
+  - git status
