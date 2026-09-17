@@ -67,7 +67,7 @@ func TestSayingWhatItIs(t *testing.T) {
 
 	t.Run("help lists every flag it takes", func(t *testing.T) {
 		out, _ := ran(t, "help")
-		for _, flag := range []string{"-hook", "-version", "-config-file"} {
+		for _, flag := range []string{"--hook", "--version", "--config-file"} {
 			if !strings.Contains(out, flag) {
 				t.Errorf("help does not mention %s", flag)
 			}

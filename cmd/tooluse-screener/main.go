@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/hook"
@@ -109,6 +110,16 @@ func checking(path string) hook.Checking {
 func usage(asked *flag.FlagSet, writing io.Writer) {
 	_, _ = fmt.Fprintln(writing, "Check a Bash command against the shared agent permission policy.")
 	_, _ = fmt.Fprintln(writing, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n       tooluse-screener help\n\nFlags:")
-	asked.SetOutput(writing)
-	asked.PrintDefaults()
+	flags(asked, writing)
+}
+
+func flags(asked *flag.FlagSet, writing io.Writer) {
+	asked.VisitAll(func(one *flag.Flag) {
+		placeholder, purpose := flag.UnquoteUsage(one)
+		_, _ = fmt.Fprintf(writing, "  %s\n        %s\n", named(one, placeholder), purpose)
+	})
+}
+
+func named(one *flag.Flag, placeholder string) string {
+	return strings.TrimSpace("--" + one.Name + " " + placeholder)
 }
