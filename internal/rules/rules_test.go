@@ -195,6 +195,12 @@ func TestGitSubcommandDirectories(t *testing.T) {
 		matches(t, true, within("~"), "git -C "+home+" status")
 	})
 
+	t.Run("a repository named instead of entered is judged the same way", func(t *testing.T) {
+		matches(t, true, within(root), "git --git-dir="+filepath.Join(root, ".git")+" status")
+		matches(t, false, within(root), "git --git-dir=/elsewhere/.git status")
+		matches(t, false, within(root), "git --work-tree /elsewhere status")
+	})
+
 	t.Run("with within it still matches a command with no directory", func(t *testing.T) {
 		matches(t, true, within(root), "git status")
 	})

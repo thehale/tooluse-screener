@@ -84,6 +84,12 @@ func TestDirectories(t *testing.T) {
 		subcommand(t, "git -C /a -C /b status", "status")
 	})
 
+	t.Run("a repository named instead of entered", func(t *testing.T) {
+		pointed(t, "git --git-dir=/tmp/foo/.git status", "/tmp/foo/.git")
+		pointed(t, "git --work-tree /tmp/foo status", "/tmp/foo")
+		pointed(t, "git --git-dir=/a/.git --work-tree=/b status", "/a/.git", "/b")
+	})
+
 	t.Run("a command with no directories", func(t *testing.T) {
 		pointed(t, "git status")
 	})

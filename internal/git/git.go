@@ -79,12 +79,17 @@ func isDigit(letter byte) bool {
 func afterGlobalOptions(words []string) (directories, spoken []string) {
 	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
 		option, value, joined := strings.Cut(words[0], "=")
-		if option == "-C" {
+		if pointsAtADirectory(option) {
 			directories = append(directories, directoryFrom(value, joined, words))
 		}
 		words = words[stride(option, joined, len(words)):]
 	}
 	return directories, words
+}
+
+func pointsAtADirectory(option string) bool {
+	pointing := []string{"-C", "--git-dir", "--work-tree"}
+	return slices.Contains(pointing, option)
 }
 
 func directoryFrom(value string, joined bool, words []string) string {
