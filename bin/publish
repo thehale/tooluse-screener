@@ -149,9 +149,17 @@ rehearse() {
 }
 
 release() {
+	confirm_credentials
+
 	yellow "Publishing $(module_path) $(release_tag)"
-	goreleaser release --clean
+	GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token)}" goreleaser release --clean
 	green "Published $(release_tag)"
+}
+
+confirm_credentials() {
+	if [[ -z "${GITHUB_TOKEN:-}" ]] && ! gh auth token >/dev/null 2>&1; then
+		refuse "Nothing here can authenticate to GitHub. Run gh auth login, or export GITHUB_TOKEN."
+	fi
 }
 
 main "$@"

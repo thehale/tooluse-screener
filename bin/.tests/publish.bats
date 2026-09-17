@@ -26,8 +26,10 @@ setup() {
 
 unpublishable() {
 	mkdir --parents "$BATS_TEST_TMPDIR/stub"
-	printf '#!/usr/bin/env bash\necho "the tests do not publish" >&2\nexit 1\n' >"$BATS_TEST_TMPDIR/stub/goreleaser"
-	chmod +x "$BATS_TEST_TMPDIR/stub/goreleaser"
+	for reaching in goreleaser gh; do
+		printf '#!/usr/bin/env bash\necho "the tests do not publish" >&2\nexit 1\n' >"$BATS_TEST_TMPDIR/stub/$reaching"
+		chmod +x "$BATS_TEST_TMPDIR/stub/$reaching"
+	done
 }
 
 release_history() {
