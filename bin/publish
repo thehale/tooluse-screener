@@ -2,10 +2,7 @@
 # Copyright (c) Joseph Hale, 2026
 # SPDX-License-Identifier: MPL-2.0
 #
-# Usage: bin/publish [--dry-run]
-#
-# Tag the commit you mean to release, then run this. Pushing the tag is
-# what publishes: the Release workflow builds the binaries from it.
+# Usage: bin/publish [goreleaser flags]
 
 set -euo pipefail
 
@@ -17,12 +14,13 @@ RELEASE_TAG="^v[0-9]+\.[0-9]+\.[0-9]+$"
 
 main() {
 	refuse_automation
+	confirm_checks
 	confirm_branch
 	confirm_clean_tree
 	confirm_release_tag
 	confirm_declared_origin
-	confirm_unpublished
-	bin/ci
+	confirm_pushed_branch
+	confirm_pushed_tag
 	publish "$@"
 }
 
@@ -35,6 +33,12 @@ refuse_automation() {
 refuse() {
 	red "$1" >&2
 	exit 1
+}
+
+confirm_checks() {
+	if ! bin/ci; then
+		refuse "bin/ci failed. A release is cut from a checkout that passes."
+	fi
 }
 
 confirm_branch() {
@@ -72,8 +76,6 @@ confirm_declared_origin() {
 	fi
 }
 
-# origin_path returns origin as a module path would spell it, from
-# either an ssh or an https remote.
 origin_path() {
 	local remote
 	remote="$(git remote get-url origin)"
@@ -87,14 +89,34 @@ module_path() {
 	sed --quiet --regexp-extended 's%^module (.*)$%\1%p' go.mod
 }
 
-# A tag origin already carries was released from whatever it named then,
-# which nothing here can change by pushing it again.
-confirm_unpublished() {
-	local tag
-	tag="$(release_tag)"
+confirm_pushed_branch() {
+	local pushed
+	pushed="$(remote_object "refs/heads/$BRANCH")"
 
-	if [[ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]]; then
-		refuse "origin already carries $tag. Tag the next version instead."
+	if [[ -z "$pushed" ]]; then
+		refuse "origin has no $BRANCH. A release nobody can fetch is not a release."
+	fi
+
+	if [[ "$pushed" != "$(git rev-parse "HEAD^{}")" ]]; then
+		refuse "origin/$BRANCH is a different commit. Send $BRANCH there first."
+	fi
+}
+
+remote_object() {
+	git ls-remote origin "$1" | cut --fields 1 | tail --lines 1
+}
+
+confirm_pushed_tag() {
+	local tag pushed
+	tag="$(release_tag)"
+	pushed="$(remote_object "refs/tags/$tag")"
+
+	if [[ -z "$pushed" ]]; then
+		refuse "origin has no $tag. Send the tag there first."
+	fi
+
+	if [[ "$pushed" != "$(git rev-parse "refs/tags/$tag^{}")" ]]; then
+		refuse "origin's $tag names a different commit than the local $tag."
 	fi
 }
 
@@ -103,8 +125,8 @@ publish() {
 	tag="$(release_tag)"
 
 	yellow "Publishing $(module_path) $tag"
-	git push "$@" origin "refs/tags/$tag"
-	green "Pushed $tag. The Release workflow builds it from here."
+	goreleaser release --clean "$@"
+	green "Published $tag"
 }
 
 main "$@"
