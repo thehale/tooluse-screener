@@ -21,6 +21,7 @@ main() {
 	confirm_declared_origin
 	confirm_pushed_branch
 	confirm_pushed_tag
+	confirm_release_config
 	publish "$@"
 }
 
@@ -117,6 +118,12 @@ confirm_pushed_tag() {
 
 	if [[ "$pushed" != "$(git rev-parse "refs/tags/$tag^{}")" ]]; then
 		refuse "origin's $tag names a different commit than the local $tag."
+	fi
+}
+
+confirm_release_config() {
+	if ! goreleaser check; then
+		refuse "goreleaser check failed. A release is cut from a configuration that validates."
 	fi
 }
 

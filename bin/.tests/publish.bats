@@ -150,6 +150,16 @@ serve() {
 	[[ "$output" == *"names a different commit"* ]]
 }
 
+@test "refuses to publish a release configuration that does not validate" {
+	git tag "v$VERSION"
+	serve
+
+	run "$RELEASE"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"goreleaser check failed"* ]]
+}
+
 @test "refuses to publish when go.mod points away from origin" {
 	git tag "v$VERSION"
 	serve
