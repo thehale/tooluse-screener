@@ -1,8 +1,6 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Package check knows nothing about which commands are refused. That is
-// a [policy.Policy].
 package check
 
 import (
@@ -32,8 +30,6 @@ func (v Verdict) String() string {
 	return fmt.Sprintf("%s: %s", v.Decision, v.Reason)
 }
 
-// Evaluate denies a line for one denied command, and allows it only
-// where every command is allowed. Denials are read first.
 func Evaluate(line string, p policy.Policy) Verdict {
 	found := command.All(line)
 	refused := refusals(p.Denied, found)

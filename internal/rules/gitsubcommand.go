@@ -10,8 +10,6 @@ import (
 	"github.com/thehale/tooluse-screener/internal/git"
 )
 
-// GitSubcommand matches a subcommand however the command is spelled,
-// and having narrows it to one given particular arguments.
 type GitSubcommand struct {
 	described
 	subcommand string

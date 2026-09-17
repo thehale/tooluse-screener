@@ -1,21 +1,6 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Package hook answers an agent before it runs a Bash command.
-//
-// It reads the agent's hook payload from stdin and writes back the
-// envelope that agent expects for that event:
-//
-//	| Event               | allow          | deny           | ask       |
-//	| ------------------- | -------------- | -------------- | --------- |
-//	| `PreToolUse`        | allow envelope | block envelope | no output |
-//	| `PermissionRequest` | allow envelope | deny envelope  | no output |
-//
-// No output means "no opinion", and the agent prompts as it normally
-// would. A block carries its reason on stderr as well as in the
-// envelope, because Codex reads it there and ignores a denial without
-// it. Codex enforces a denial only on `PreToolUse`, so it calls this on
-// both events.
 package hook
 
 import (
@@ -30,7 +15,6 @@ type Payload map[string]any
 
 type Checking func(line string) check.Verdict
 
-// Decide returns false for a payload holding no Bash command.
 func Decide(payload Payload, checking Checking) (check.Verdict, bool) {
 	command, asked := bashCommandIn(payload)
 	if !asked {
@@ -39,7 +23,6 @@ func Decide(payload Payload, checking Checking) (check.Verdict, bool) {
 	return checking(command), true
 }
 
-// Respond returns a nil envelope where the agent is to be told nothing.
 func Respond(payload Payload, verdict check.Verdict) (envelope map[string]any, code int) {
 	switch event(payload) {
 	case "PermissionRequest":

@@ -1,17 +1,6 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Command tooluse-screener asks the policy about a Bash command.
-//
-//	> tooluse-screener "<command>"
-//	decision: reason
-//
-// It exits 0 for allow, 1 for deny and 2 for ask.
-//
-// With --hook it is what an agent's settings point at: it reads a hook
-// payload on stdin and answers in the shape that agent expects.
-//
-// `help` and `--version` say what it is and which build this is.
 package main
 
 import (

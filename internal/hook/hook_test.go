@@ -92,6 +92,46 @@ func TestAPolicyThatFails(t *testing.T) {
 	})
 }
 
+func TestWhatEachEventAnswersWith(t *testing.T) {
+	answers := []struct {
+		event    string
+		verdict  check.Verdict
+		envelope string
+		code     int
+	}{
+		{"PreToolUse", allow, "allow", 0},
+		{"PreToolUse", deny, "block", 2},
+		{"PreToolUse", ask, "", 0},
+		{"PermissionRequest", allow, "allow", 0},
+		{"PermissionRequest", deny, "deny", 0},
+		{"PermissionRequest", ask, "", 0},
+	}
+
+	for _, wanted := range answers {
+		t.Run(wanted.event+" "+string(wanted.verdict.Decision), func(t *testing.T) {
+			payload := claude("git status", wanted.event)
+			switch wanted.envelope {
+			case "":
+				quiet(t, payload, wanted.verdict, wanted.code)
+			default:
+				envelope, code := answered(t, payload, wanted.verdict)
+				spoke(t, envelope, wanted.envelope)
+				if code != wanted.code {
+					t.Errorf("exit %d, wanted %d", code, wanted.code)
+				}
+			}
+		})
+	}
+}
+
+func spoke(t *testing.T, envelope map[string]any, wanted string) {
+	t.Helper()
+	spelled, _ := json.Marshal(envelope)
+	if !strings.Contains(string(spelled), `"`+wanted+`"`) {
+		t.Errorf("%s does not answer %q", spelled, wanted)
+	}
+}
+
 func TestClaudePreToolUse(t *testing.T) {
 	t.Run("an allowed command gets an allow envelope", func(t *testing.T) {
 		envelope, code := answered(t, claude("ls", "PreToolUse"), allow)

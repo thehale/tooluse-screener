@@ -42,7 +42,12 @@ Point each agent's Bash hook at `tooluse-screener --hook`, which reads
 the payload on stdin and answers in the shape that agent expects —
 `PreToolUse` for Claude Code, and both `PreToolUse` and
 `PermissionRequest` for Codex, which only enforces a denial on the
-first.
+first. A refusal is written to stderr as well as into the envelope,
+because Codex ignores one that carries no reason there.
+
+Commands are matched as text rather than parsed as a shell, so quoting
+defeats the matching. A policy is a guard rail for an agent that means
+well, not a sandbox for one that does not.
 
 ## Configuration
 

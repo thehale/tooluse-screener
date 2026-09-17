@@ -5,7 +5,6 @@ package rules
 
 import "strings"
 
-// Prefix ends at a word boundary: `ls` matches `ls -la`, not `lsblk`.
 type Prefix struct {
 	described
 	text string

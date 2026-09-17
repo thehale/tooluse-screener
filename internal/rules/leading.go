@@ -5,8 +5,6 @@ package rules
 
 import "regexp"
 
-// Leading anchors its expression to the start of a command, ending at a
-// word boundary.
 type Leading struct {
 	described
 	opening *regexp.Regexp

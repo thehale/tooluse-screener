@@ -1,7 +1,6 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Package git reads a git command past its global options.
 package git
 
 import (
@@ -18,8 +17,6 @@ type Invocation struct {
 	Directories []string
 }
 
-// Read returns an Invocation with no subcommand for a command that is
-// not git's.
 func Read(command string) Invocation {
 	words := afterEnvironmentAssignments(strings.Fields(command))
 	if len(words) == 0 || words[0] != "git" {
@@ -33,8 +30,6 @@ func (i Invocation) IsA(subcommand string) bool {
 	return i.Subcommand != "" && i.Subcommand == subcommand
 }
 
-// Carries counts an option anywhere, since git permutes them, and a
-// bare word only first, where it is git's own word.
 func (i Invocation) Carries(words []string) bool {
 	return lists.Every(words, i.carries)
 }

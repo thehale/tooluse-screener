@@ -3,9 +3,6 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # Usage: bin/gofmtcheck
-#
-# gofmt -l lists what it would reformat and still exits 0. Name the files
-# and fail, so CI notices.
 
 set -euo pipefail
 

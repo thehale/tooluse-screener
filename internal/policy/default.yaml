@@ -1,8 +1,5 @@
 # Copyright (c) Joseph Hale, 2026
 # SPDX-License-Identifier: MPL-2.0
-#
-# git, and a few things nobody wants run by accident. A machine's own
-# policy file replaces this one.
 
 allowed:
   - git add

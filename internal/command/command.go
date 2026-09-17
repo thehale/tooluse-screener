@@ -1,17 +1,12 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-// Package command matches text rather than parsing a shell, so quoting
-// defeats it. It is the seam one would replace with a real parser.
 package command
 
 import "strings"
 
-// Unquotable stands in for a lifted-out substitution. No shell word can
-// hold it, so `ls$(cat foo)blk` cannot read as `ls`.
 const Unquotable = "\x00"
 
-// All returns the commands outermost first.
 func All(text string) []string {
 	var found []string
 	for _, written := range split(joinedLines(text)) {

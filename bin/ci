@@ -26,8 +26,6 @@ function main() {
 		check "License" "bin/lawyer --fix"
 		check "Go: Format" "gofmt -w ."
 		check "Go: Lint" "golangci-lint run --fix"
-
-		# check "Category: Action" "bin/your-script"
 	else
 		check "Bash: Shebang" "filelike bash | bin/shebang '#!/usr/bin/env bash'"
 		check "Bash: Syntax" "filelike bash | xargs -n1 bash -n"
@@ -47,8 +45,6 @@ function main() {
 		check "Go: Lint" "golangci-lint run"
 		check "Go: Test" "go test -race -cover ./..."
 		check "Go: Build" "goreleaser build --snapshot --clean"
-
-		# check "Category: Action" "bin/your-script"
 	fi
 
 	summarize "$(elapsed "$started")"

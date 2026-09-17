@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 )
 
-// Chosen prefers the policy named, then the one $TOOLUSE_SCREENER_POLICY_FILE
-// names, then this machine's own, then the built-in one. Each replaces the
-// one before it whole, so the one that answers is the only one read.
 func Chosen(named string) (Policy, error) {
 	path, err := preferred(named)
 	switch {

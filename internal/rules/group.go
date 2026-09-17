@@ -19,7 +19,6 @@ func (g Group) Matches(command string) bool {
 	return lists.Some(g.rules, func(rule Rule) bool { return rule.Matches(command) })
 }
 
-// Matching returns the rules inside this one that matched, not this one.
 func (g Group) Matching(command string) []Rule {
 	var matched []Rule
 	for _, rule := range g.rules {
