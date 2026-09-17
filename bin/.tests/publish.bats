@@ -61,6 +61,20 @@ serve() {
 	[[ "$output" == *"CI publishes nothing"* ]]
 }
 
+@test "refuses an argument it does not take" {
+	run "$RELEASE" --dryrun
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"not an argument this takes"* ]]
+}
+
+@test "refuses a rehearsal on a checkout that cannot be published" {
+	run "$RELEASE" --dry-run
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"no vX.Y.Z tag"* ]]
+}
+
 @test "refuses to publish a checkout whose checks fail" {
 	checks "exit 1"
 

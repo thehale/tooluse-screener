@@ -2,7 +2,7 @@
 # Copyright (c) Joseph Hale, 2026
 # SPDX-License-Identifier: MPL-2.0
 #
-# Usage: bin/publish [goreleaser flags]
+# Usage: bin/publish [--dry-run]
 
 set -euo pipefail
 
@@ -14,6 +14,7 @@ RELEASE_TAG="^v[0-9]+\.[0-9]+\.[0-9]+$"
 
 main() {
 	refuse_automation
+	confirm_arguments "$@"
 	confirm_checks
 	confirm_branch
 	confirm_clean_tree
@@ -34,6 +35,12 @@ refuse_automation() {
 refuse() {
 	red "$1" >&2
 	exit 1
+}
+
+confirm_arguments() {
+	if [[ $# -gt 0 && "$1" != "--dry-run" ]]; then
+		refuse "$1 is not an argument this takes. Usage: bin/publish [--dry-run]"
+	fi
 }
 
 confirm_checks() {
@@ -128,12 +135,23 @@ confirm_release_config() {
 }
 
 publish() {
-	local tag
-	tag="$(release_tag)"
+	if [[ "${1:-}" == "--dry-run" ]]; then
+		rehearse
+	else
+		release
+	fi
+}
 
-	yellow "Publishing $(module_path) $tag"
-	goreleaser release --clean "$@"
-	green "Published $tag"
+rehearse() {
+	yellow "Rehearsing $(module_path) $(release_tag)"
+	goreleaser release --clean --skip=publish
+	green "Rehearsed $(release_tag). Nothing left this machine."
+}
+
+release() {
+	yellow "Publishing $(module_path) $(release_tag)"
+	goreleaser release --clean
+	green "Published $(release_tag)"
 }
 
 main "$@"
