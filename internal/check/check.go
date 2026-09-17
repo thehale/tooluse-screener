@@ -32,7 +32,7 @@ func (v Verdict) String() string {
 
 func Evaluate(line string, p policy.Policy) Verdict {
 	found := command.All(line)
-	refused := refusals(p.Denied, found)
+	refused := refusals(p, found)
 	permitted := permissions(p.Allowed, found)
 
 	switch {
@@ -47,12 +47,27 @@ func Evaluate(line string, p policy.Policy) Verdict {
 
 var undecided = Verdict{Ask, "Command is not in the shared allow list"}
 
-func refusals(denied rules.Group, found []string) []rules.Rule {
+func refusals(p policy.Policy, found []string) []rules.Rule {
 	var matched []rules.Rule
 	for _, one := range found {
-		matched = append(matched, denied.Matching(one)...)
+		matched = append(matched, standing(p.Denied.Matching(one), p.Allowed, one)...)
 	}
 	return matched
+}
+
+func standing(denials []rules.Rule, allowed rules.Group, line string) []rules.Rule {
+	var matched []rules.Rule
+	for _, rule := range denials {
+		if !accountsForAll(allowed, line) || accountsForAll(rule, line) {
+			matched = append(matched, rule)
+		}
+	}
+	return matched
+}
+
+func accountsForAll(rule rules.Rule, line string) bool {
+	spoken := command.Spoken(line)
+	return spoken != "" && rule.Span(line) == len(spoken)
 }
 
 func permissions(allowed rules.Group, found []string) [][]rules.Rule {

@@ -4,9 +4,9 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
-	"github.com/thehale/tooluse-screener/internal/directories"
 	"github.com/thehale/tooluse-screener/internal/git"
 )
 
@@ -14,29 +14,51 @@ type GitSubcommand struct {
 	described
 	subcommand string
 	having     []string
-	within     []string
-	anywhere   bool
 }
 
 func NewGitSubcommand(subcommand string, having []string, note, description string) Rule {
-	return GitSubcommand{described{note, description}, subcommand, having, nil, true}
-}
-
-func NewGitSubcommandWithin(subcommand string, having, roots []string, note, description string) Rule {
-	return GitSubcommand{described{note, description}, subcommand, having, roots, false}
+	return GitSubcommand{described{note, description}, subcommand, having}
 }
 
 func (g GitSubcommand) Matches(command string) bool {
 	invocation := git.Read(command)
-	return invocation.IsA(g.subcommand) &&
-		invocation.Carries(g.having) &&
-		g.trusts(invocation.Directories)
+	return invocation.IsA(g.subcommand) && invocation.Carries(g.having)
 }
 
-func (g GitSubcommand) trusts(paths []string) bool {
-	return g.anywhere || directories.AllUnder(paths, g.within)
+func (g GitSubcommand) At(command string) int {
+	switch {
+	case g.Matches(command):
+		return 0
+	default:
+		return -1
+	}
+}
+
+func (g GitSubcommand) Span(command string) int {
+	switch {
+	case g.Matches(command):
+		return past(command, append([]string{g.subcommand}, g.having...))
+	default:
+		return 0
+	}
+}
+
+func past(command string, wanted []string) int {
+	end, at := 0, 0
+	for _, word := range strings.Fields(command) {
+		at = strings.Index(command[at:], word) + at
+		if slices.Contains(wanted, word) {
+			end = max(end, at+len(word))
+		}
+		at += len(word)
+	}
+	return end
+}
+
+func (g GitSubcommand) required() string {
+	return strings.Join(append([]string{"git", g.subcommand}, g.having...), " ")
 }
 
 func (g GitSubcommand) String() string {
-	return g.describes(strings.Join(append([]string{"git", g.subcommand}, g.having...), " "))
+	return g.describes(g.required())
 }

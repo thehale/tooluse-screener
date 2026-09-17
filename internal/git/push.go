@@ -11,8 +11,6 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-// Landing knows the branch only for the plainest spelling: a remote,
-// one refspec, and options that leave both alone.
 func Landing(i Invocation) (branch string, known bool) {
 	remote, refspec := pushed(i)
 	branch = branchOf(refspec)

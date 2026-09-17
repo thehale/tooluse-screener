@@ -146,6 +146,100 @@ func TestTrustedDirectories(t *testing.T) {
 	})
 }
 
+func TestOnlyDirs(t *testing.T) {
+	root := t.TempDir()
+	here, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("a command with no directory of its own is judged where it runs", func(t *testing.T) {
+		matches(t, true, parsed(t, "allowed:\n  - commands: ls\n    only:\n      dirs: ["+here+"]\n").Allowed, "ls -la")
+		matches(t, false, parsed(t, "allowed:\n  - commands: ls\n    only:\n      dirs: ["+root+"]\n").Allowed, "ls -la")
+	})
+
+	t.Run("a git command is judged by the directory it names", func(t *testing.T) {
+		allowed := parsed(t, "trusted_git_directories: ["+root+"]\nallowed:\n  - patterns: ['^git -C \\S+ status$']\n    only:\n      dirs: ["+root+"]\n").Allowed
+		matches(t, true, allowed, "git -C "+root+" status")
+		matches(t, false, allowed, "git -C /elsewhere status")
+	})
+
+	t.Run("restricts a denial the same way", func(t *testing.T) {
+		denied := parsed(t, "denied:\n  - commands: git status\n    only:\n      dirs: ["+root+"]\n").Denied
+		matches(t, true, denied, "git -C "+root+" status")
+		matches(t, false, denied, "git -C /elsewhere status")
+	})
+
+	t.Run("an allowed git command still answers to trusted_git_directories as well", func(t *testing.T) {
+		written := "allowed:\n  - commands: git status\n    only:\n      dirs: [" + root + "]\n"
+		matches(t, false, parsed(t, written).Allowed, "git -C "+root+" status")
+		matches(t, true, parsed(t, "trusted_git_directories: ["+root+"]\n"+written).Allowed, "git -C "+root+" status")
+	})
+}
+
+func TestOnlyBranches(t *testing.T) {
+	root := t.TempDir()
+	written := "trusted_git_directories: [" + root + "]\n" +
+		"denied:\n  - description: Pushing\n    commands: git push\n" +
+		"allowed:\n  - description: Pushing where CI can run it\n" +
+		"    patterns: ['^git (-C \\S+ )?push origin \\S+$']\n" +
+		"    only:\n      dirs: [" + root + "]\n      branches: [{not: [main, master, trunk]}]\n"
+
+	t.Run("lets a branch outside the list through", func(t *testing.T) {
+		allowed := parsed(t, written).Allowed
+		matches(t, true, allowed, "git -C "+root+" push origin topic")
+		matches(t, true, allowed, "git -C "+root+" push origin HEAD:topic")
+	})
+
+	t.Run("holds back every spelling of one inside it", func(t *testing.T) {
+		allowed := parsed(t, written).Allowed
+		matches(t, false, allowed, "git -C "+root+" push origin main")
+		matches(t, false, allowed, "git -C "+root+" push origin HEAD:main")
+		matches(t, false, allowed, "git -C "+root+" push origin refs/heads/trunk")
+		matches(t, false, allowed, "git -C "+root+" push origin MASTER")
+	})
+
+	t.Run("holds back a landing it cannot read at all", func(t *testing.T) {
+		allowed := parsed(t, written).Allowed
+		matches(t, false, allowed, "git -C "+root+" push origin +topic:main")
+		matches(t, false, allowed, "git -C /elsewhere push origin topic")
+	})
+
+	t.Run("the command is named by the rule, never implied by the restriction", func(t *testing.T) {
+		refuses(t, "allowed:\n  - description: nothing to match\n    only:\n      dirs: [/approved]\n", "commands` or `patterns")
+	})
+
+	t.Run("one name may be written without a list", func(t *testing.T) {
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}]\n").Allowed
+		matches(t, true, allowed, "git push origin topic")
+		matches(t, false, allowed, "git push origin main")
+	})
+
+	t.Run("several conditions all have to hold", func(t *testing.T) {
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}, {not: [release]}]\n").Allowed
+		matches(t, true, allowed, "git push origin topic")
+		matches(t, false, allowed, "git push origin main")
+		matches(t, false, allowed, "git push origin release")
+	})
+
+	t.Run("a branch named plainly is one the push may land on", func(t *testing.T) {
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, release]\n").Allowed
+		matches(t, true, allowed, "git push origin ci-fix")
+		matches(t, true, allowed, "git push origin release")
+		matches(t, false, allowed, "git push origin main")
+		matches(t, false, allowed, "git push origin anything-else")
+	})
+
+	t.Run("names and exclusions both have to hold", func(t *testing.T) {
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, {not: ci-fix}]\n").Allowed
+		matches(t, false, allowed, "git push origin ci-fix")
+	})
+
+	t.Run("a condition saying nothing is refused", func(t *testing.T) {
+		refuses(t, "allowed:\n  - commands: git push\n    only:\n      branches: [{}]\n", "a branch is a name, or a mapping with `not`")
+	})
+}
+
 func TestWhatIsRefused(t *testing.T) {
 	t.Run("an entry with neither commands nor patterns", func(t *testing.T) {
 		refuses(t, "denied:\n  - reason: advice with nothing to advise on\n", "commands` or `patterns")

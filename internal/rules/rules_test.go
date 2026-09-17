@@ -12,8 +12,8 @@ import (
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
-func TestSubstring(t *testing.T) {
-	deploying := rules.NewSubstring("deploy now", "", "")
+func TestWords(t *testing.T) {
+	deploying := rules.NewWords("deploy now", "", "")
 
 	t.Run("matches a command containing it", func(t *testing.T) {
 		matches(t, true, deploying, "deploy now")
@@ -28,12 +28,12 @@ func TestSubstring(t *testing.T) {
 	})
 
 	t.Run("its text is literal", func(t *testing.T) {
-		matches(t, true, rules.NewSubstring("a.c", "", ""), "a.c")
-		matches(t, false, rules.NewSubstring("a.c", "", ""), "abc")
+		matches(t, true, rules.NewWords("a.c", "", ""), "a.c")
+		matches(t, false, rules.NewWords("a.c", "", ""), "abc")
 	})
 
 	t.Run("an empty rule matches nothing", func(t *testing.T) {
-		matches(t, false, rules.NewSubstring("", "", ""), "anything")
+		matches(t, false, rules.NewWords("", "", ""), "anything")
 	})
 }
 
@@ -56,14 +56,11 @@ func TestPattern(t *testing.T) {
 		if _, err := rules.NewPattern("([", "", ""); err == nil {
 			t.Error("wanted an error")
 		}
-		if _, err := rules.NewLeading("([", "", ""); err == nil {
-			t.Error("wanted an error")
-		}
 	})
 }
 
-func TestPrefix(t *testing.T) {
-	listing := rules.NewPrefix("ls", "", "")
+func TestOpening(t *testing.T) {
+	listing := rules.NewOpening(rules.NewWords("ls", "", ""))
 
 	t.Run("matches the bare command", func(t *testing.T) {
 		matches(t, true, listing, "ls")
@@ -82,11 +79,11 @@ func TestPrefix(t *testing.T) {
 	})
 
 	t.Run("its text is literal", func(t *testing.T) {
-		matches(t, false, rules.NewPrefix("ls|cat", "", ""), "cat foo")
+		matches(t, false, rules.NewOpening(rules.NewWords("ls|cat", "", "")), "cat foo")
 	})
 
 	t.Run("an empty rule matches nothing", func(t *testing.T) {
-		matches(t, false, rules.NewPrefix("", "", ""), "anything")
+		matches(t, false, rules.NewOpening(rules.NewWords("", "", "")), "anything")
 	})
 }
 
@@ -101,6 +98,13 @@ func TestLeading(t *testing.T) {
 
 	t.Run("ends at a word boundary", func(t *testing.T) {
 		matches(t, false, leading(t, "ls", "", ""), "lsblk")
+		matches(t, false, leading(t, "ls|cat", "", ""), "catalog foo")
+	})
+
+	t.Run("an expression anchored to the end means the end of the command", func(t *testing.T) {
+		exactly := leading(t, `echo \S+$`, "", "")
+		matches(t, true, exactly, "echo hi")
+		matches(t, false, exactly, "echo hi there")
 	})
 }
 
@@ -152,10 +156,10 @@ func TestGitSubcommandArguments(t *testing.T) {
 	})
 }
 
-func TestGitSubcommandDirectories(t *testing.T) {
+func TestReaching(t *testing.T) {
 	root := t.TempDir()
 	within := func(roots ...string) rules.Rule {
-		return rules.NewGitSubcommandWithin("status", nil, roots, "", "")
+		return rules.NewReaching(rules.NewGitSubcommand("status", nil, "", ""), roots)
 	}
 
 	t.Run("without within it matches wherever it points", func(t *testing.T) {
@@ -211,8 +215,95 @@ func TestGitSubcommandDirectories(t *testing.T) {
 	})
 }
 
+func TestRestricted(t *testing.T) {
+	root := t.TempDir()
+	pushing := rules.NewGitSubcommand("push", nil, "Open a pull request.", "")
+	onto := func(heldBack ...string) rules.Rule {
+		return rules.NewRestricted(pushing, []string{root}, rules.Branches{NotOnto: heldBack})
+	}
+
+	t.Run("matches a branch the command names", func(t *testing.T) {
+		matches(t, true, onto("main"), "git -C "+root+" push origin topic")
+	})
+
+	t.Run("does not match one held back, however it is written", func(t *testing.T) {
+		matches(t, false, onto("main"), "git -C "+root+" push origin main")
+		matches(t, false, onto("main"), "git -C "+root+" push origin HEAD:main")
+		matches(t, false, onto("main"), "git -C "+root+" push origin MAIN")
+	})
+
+	t.Run("does not match a spelling that hides where it lands", func(t *testing.T) {
+		matches(t, false, onto("main"), "git -C "+root+" push")
+		matches(t, false, onto("main"), "git -C "+root+" push --force origin topic")
+	})
+
+	t.Run("does not match outside the dirs it is given", func(t *testing.T) {
+		matches(t, false, onto("main"), "git -C /elsewhere push origin topic")
+		matches(t, false, rules.NewRestricted(pushing, []string{"/nowhere"}, rules.Branches{}), "git -C "+root+" push origin topic")
+	})
+
+	t.Run("a command naming no directory is judged where it runs", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		matches(t, true, rules.NewRestricted(pushing, []string{here}, rules.Branches{}), "git push origin topic")
+		matches(t, false, rules.NewRestricted(pushing, []string{root}, rules.Branches{}), "git push origin topic")
+	})
+
+	t.Run("an unrestricted rule is left as it was", func(t *testing.T) {
+		matches(t, true, rules.NewRestricted(pushing, nil, rules.Branches{}), "git -C /anywhere push")
+	})
+
+	t.Run("speaks for the rule it restricts", func(t *testing.T) {
+		named(t, onto("main"), "git push")
+		if onto("main").Note() != "Open a pull request." {
+			t.Errorf("Note() = %q", onto("main").Note())
+		}
+	})
+}
+
+func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
+	t.Run("a rule that does not match accounts for nothing", func(t *testing.T) {
+		spans(t, 0, rules.NewOpening(rules.NewWords("ls", "", "")), "cat foo")
+		spans(t, 0, pattern(t, `\bnever\b`, "", ""), "always")
+	})
+
+	t.Run("a text rule accounts for its own text", func(t *testing.T) {
+		spans(t, 2, rules.NewOpening(rules.NewWords("ls", "", "")), "ls -la")
+		spans(t, 13, rules.NewWords("chezmoi apply", "", ""), "sudo chezmoi apply --force")
+	})
+
+	t.Run("an expression accounts for what it matched", func(t *testing.T) {
+		spans(t, 7, pattern(t, `ls|cat foo`, "", ""), "cat foo bar")
+		spans(t, 3, leading(t, "ls|cat", "", ""), "cat foo")
+	})
+
+	t.Run("a git subcommand accounts for the command through the words it requires", func(t *testing.T) {
+		spans(t, 8, rules.NewGitSubcommand("push", nil, "", ""), "git push origin topic")
+		spans(t, 22, rules.NewGitSubcommand("push", nil, "", ""), "git -C /elsewhere push origin topic")
+		spans(t, 18, rules.NewGitSubcommand("config", []string{"--unset"}, "", ""), "git config --unset user.name")
+	})
+
+	t.Run("a restricted rule accounts for what the rule it restricts did", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		naming := leading(t, `git push origin \S+$`, "", "")
+		landing := rules.NewRestricted(naming, []string{here}, rules.Branches{NotOnto: []string{"main"}})
+		spans(t, len("git push origin topic"), landing, "git push origin topic")
+		spans(t, 0, landing, "git push origin main")
+	})
+
+	t.Run("a group accounts for the widest of its rules", func(t *testing.T) {
+		both := rules.NewGroup("", rules.NewOpening(rules.NewWords("git", "", "")), rules.NewOpening(rules.NewWords("git push", "", "")))
+		spans(t, 8, both, "git push origin topic")
+	})
+}
+
 func TestGroup(t *testing.T) {
-	listing, reading := rules.NewPrefix("ls", "", ""), rules.NewPrefix("cat", "", "")
+	listing, reading := rules.NewOpening(rules.NewWords("ls", "", "")), rules.NewOpening(rules.NewWords("cat", "", ""))
 
 	t.Run("matches when one of its rules does", func(t *testing.T) {
 		matches(t, true, rules.NewGroup("", listing, reading), "cat foo")
@@ -231,7 +322,7 @@ func TestGroup(t *testing.T) {
 	})
 
 	t.Run("it lists every rule that matched", func(t *testing.T) {
-		narrow := rules.NewPrefix("ls -la", "", "")
+		narrow := rules.NewOpening(rules.NewWords("ls -la", "", ""))
 		matched(t, rules.NewGroup("", listing, narrow), "ls -la", listing, narrow)
 	})
 
@@ -258,7 +349,7 @@ func TestWhatARuleSaysAboutItself(t *testing.T) {
 	})
 
 	t.Run("a note is advice, kept apart from the name", func(t *testing.T) {
-		rule := rules.NewPrefix("ls", "Ask a human first.", "")
+		rule := rules.NewOpening(rules.NewWords("ls", "Ask a human first.", ""))
 		if rule.Note() != "Ask a human first." {
 			t.Errorf("Note() = %q", rule.Note())
 		}
@@ -277,17 +368,20 @@ func pattern(t *testing.T, expression, note, description string) rules.Rule {
 
 func leading(t *testing.T, expression, note, description string) rules.Rule {
 	t.Helper()
-	rule, err := rules.NewLeading(expression, note, description)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return rule
+	return rules.NewOpening(pattern(t, expression, note, description))
 }
 
 func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
 	t.Helper()
 	if got := rule.Matches(command); got != wanted {
 		t.Errorf("%s matching %q = %v, wanted %v", rule, command, got, wanted)
+	}
+}
+
+func spans(t *testing.T, wanted int, rule rules.Rule, command string) {
+	t.Helper()
+	if got := rule.Span(command); got != wanted {
+		t.Errorf("%s spanning %q = %d, wanted %d", rule, command, got, wanted)
 	}
 }
 

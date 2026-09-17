@@ -5,6 +5,8 @@ package rules
 
 type Rule interface {
 	Matches(command string) bool
+	At(command string) int
+	Span(command string) int
 	Note() string
 	String() string
 }

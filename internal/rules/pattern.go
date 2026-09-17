@@ -20,7 +20,33 @@ func NewPattern(expression, note, description string) (Rule, error) {
 }
 
 func (p Pattern) Matches(command string) bool {
-	return p.expression.MatchString(command)
+	return p.At(command) >= 0
+}
+
+func (p Pattern) At(command string) int {
+	return opened(p.expression.FindStringIndex(command))
+}
+
+func opened(at []int) int {
+	switch at {
+	case nil:
+		return -1
+	default:
+		return at[0]
+	}
+}
+
+func (p Pattern) Span(command string) int {
+	return spanned(p.expression.FindStringIndex(command))
+}
+
+func spanned(at []int) int {
+	switch at {
+	case nil:
+		return 0
+	default:
+		return at[1] - at[0]
+	}
 }
 
 func (p Pattern) String() string {

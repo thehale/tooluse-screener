@@ -40,3 +40,21 @@ func matchingOne(rule Rule, command string) []Rule {
 func (g Group) String() string {
 	return g.describes(g.name)
 }
+
+func (g Group) At(command string) int {
+	earliest := -1
+	for _, rule := range g.rules {
+		if at := rule.At(command); at >= 0 && (earliest < 0 || at < earliest) {
+			earliest = at
+		}
+	}
+	return earliest
+}
+
+func (g Group) Span(command string) int {
+	widest := 0
+	for _, rule := range g.rules {
+		widest = max(widest, rule.Span(command))
+	}
+	return widest
+}
