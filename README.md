@@ -1,17 +1,92 @@
 <div align="center">
 
-# Template
+# tooluse-screener
 
-A starting point for new projects.
+One Bash command policy, shared by every coding agent.
 
 <!-- BADGES -->
-[![License: MPL-2.0](https://badgen.net/github/license/thehale/template)](https://github.com/thehale/template/blob/main/LICENSE)
+[![License: MPL-2.0](https://badgen.net/github/license/thehale/tooluse-screener)](https://github.com/thehale/tooluse-screener/blob/main/LICENSE)
 [![Sponsor thehale on GitHub](https://badgen.net/badge/icon/Sponsor/pink?icon=github&label)](https://github.com/sponsors/thehale)
 [![Joseph Hale's software engineering blog](https://jhale.dev/badges/website.svg)](https://jhale.dev)
 [![Follow Joseph Hale on LinkedIn](https://jhale.dev/badges/follow.svg)](https://www.linkedin.com/comm/mynetwork/discovery-see-all?usecase=PEOPLE_FOLLOWS&followMember=thehale)
 </div>
 
 ## Quickstart
+
+```console
+$ tooluse-screener "git status"
+allow: Every command is allowed: git status
+$ tooluse-screener "ls && cat foo"
+allow: Every command is allowed: ls, cat
+$ tooluse-screener "nmap localhost"
+ask: Command is not in the shared allow list
+```
+
+Deny if *any* command in the line is refused, allow if *every* one is
+vouched for, ask otherwise. The exit code repeats the decision: 0, 1, 2.
+
+## Installation
+
+```bash
+mise use github:thehale/tooluse-screener
+```
+
+Point each agent's Bash hook at `tooluse-screener --hook`, which reads
+the payload on stdin and answers in the shape that agent expects —
+`PreToolUse` for Claude Code, and both `PreToolUse` and
+`PermissionRequest` for Codex, which only enforces a denial on the
+first.
+
+## Configuration
+
+What ships covers git, and a few things nobody wants run by accident.
+Write the rest in a file of your own, which **replaces** the shipped one
+rather than adding to it — the first of these that answers is the only
+one read:
+
+| Policy                          | Where                    |
+| ------------------------------- | ------------------------ |
+| `--config-file PATH`            | The command line         |
+| `$TOOLUSE_SCREENER_POLICY_FILE` | The environment          |
+| `tooluse-screener/policy.yaml`  | Your platform's config¹  |
+| The built-in one                | Compiled into the binary |
+
+¹ `$XDG_CONFIG_HOME` or `~/.config` on Linux,
+`~/Library/Application Support` on macOS, `%AppData%` on Windows.
+
+```yaml
+trusted_git_directories:
+  - ~/src
+
+denied:
+  - git clone
+  - description: Cutting or moving a GitHub release
+    reason: Cut one with the publish script instead.
+    patterns:
+      - '(?:^|[\s/])gh(?:\s+\S+)*?\s+release\s+(?:create|delete)\b'
+
+allowed:
+  - git status
+  - ls
+```
+
+An entry is a command, or a group of `commands` and `patterns` sharing a
+`reason`, shown with the verdict, and a `description`, which is what the
+rules call themselves there. `commands` are literal text; `patterns` are
+[RE2](https://github.com/google/re2/wiki/Syntax), which has no
+lookarounds and reads `\b` as ASCII.
+
+A denied entry is looked for anywhere in a command, so a deploy is
+caught behind the environment variable preceding it. An allowed one has
+to open the command and end at a word boundary, so `ls` allows `ls -la`
+and says nothing about `lsblk`. An entry starting with `git` covers
+every spelling of that operation, and an allowed one holds only where it
+points inside `trusted_git_directories`.
+
+A policy that will not parse enforces nothing and says why on stderr, so
+check one with `tooluse-screener --config-file PATH ls` after editing it.
+
+## Contributing
 
 ```bash
 bin/setup  # Install the tools
