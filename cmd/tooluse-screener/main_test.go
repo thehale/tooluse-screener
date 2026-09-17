@@ -44,16 +44,54 @@ func TestCheckingOneCommand(t *testing.T) {
 		}
 	})
 
-	t.Run("asking for help is not an error", func(t *testing.T) {
-		if _, code := ran(t, "--help"); code != 0 {
-			t.Errorf("exit %d, wanted 0", code)
-		}
-	})
-
 	t.Run("a policy that will not read is an error, not a verdict", func(t *testing.T) {
 		out, code := ran(t, "--config-file", missing(t), "ls")
 		if code != usageError || out != "" {
 			t.Errorf("exit %d said %q", code, out)
+		}
+	})
+}
+
+func TestSayingWhatItIs(t *testing.T) {
+	t.Run("asking for help is not an error, however it is asked", func(t *testing.T) {
+		for _, asking := range [][]string{{"help"}, {"-h"}, {"-help"}, {"--help"}} {
+			out, code := ran(t, asking...)
+			if code != 0 {
+				t.Errorf("%q exited %d, wanted 0", asking, code)
+			}
+			if !strings.Contains(out, "Usage: tooluse-screener") {
+				t.Errorf("%q wrote %q to stdout", asking, out)
+			}
+		}
+	})
+
+	t.Run("help lists every flag it takes", func(t *testing.T) {
+		out, _ := ran(t, "help")
+		for _, flag := range []string{"-hook", "-version", "-config-file"} {
+			if !strings.Contains(out, flag) {
+				t.Errorf("help does not mention %s", flag)
+			}
+		}
+	})
+
+	t.Run("a usage error complains on stderr rather than stdout", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := run([]string{"--nonsense"}, strings.NewReader(""), &out, &complaints)
+		if code != usageError || out.String() != "" {
+			t.Errorf("exit %d wrote %q to stdout", code, out.String())
+		}
+		if !strings.Contains(complaints.String(), "Usage: tooluse-screener") {
+			t.Errorf("stderr said %q", complaints.String())
+		}
+	})
+
+	t.Run("it says which build it is", func(t *testing.T) {
+		out, code := ran(t, "--version")
+		if code != 0 || !strings.HasPrefix(out, "tooluse-screener ") {
+			t.Errorf("exit %d said %q", code, out)
+		}
+		if strings.TrimSpace(strings.TrimPrefix(out, "tooluse-screener ")) == "" {
+			t.Errorf("named no version: %q", out)
 		}
 	})
 }

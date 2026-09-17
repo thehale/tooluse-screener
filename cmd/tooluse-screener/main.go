@@ -10,6 +10,8 @@
 //
 // With --hook it is what an agent's settings point at: it reads a hook
 // payload on stdin and answers in the shape that agent expects.
+//
+// `help` and `--version` say what it is and which build this is.
 package main
 
 import (
@@ -18,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/hook"
@@ -29,25 +32,52 @@ func main() {
 }
 
 func run(arguments []string, in io.Reader, out, complaints io.Writer) int {
-	asked := flag.NewFlagSet("tooluse-screener", flag.ContinueOnError)
+	asked := flag.NewFlagSet(name, flag.ContinueOnError)
 	asked.SetOutput(complaints)
-	asked.Usage = func() { usage(asked, complaints) }
+	asked.Usage = func() {}
 	answering := asked.Bool("hook", false, "Answer a hook payload read on stdin.")
+	reporting := asked.Bool("version", false, "Print the version and exit.")
 	path := asked.String("config-file", "", "Policy file to ask, before "+policy.Variable+" and this machine's own.")
 
-	if err := asked.Parse(arguments); err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			return 0
-		}
+	switch err := asked.Parse(asFlags(arguments)); {
+	case errors.Is(err, flag.ErrHelp):
+		usage(asked, out)
+		return 0
+	case err != nil:
+		usage(asked, complaints)
 		return usageError
-	}
-	if *answering {
+	case *reporting:
+		_, _ = fmt.Fprintln(out, name, version())
+		return 0
+	case *answering:
 		return hook.Main(in, out, complaints, checking(*path))
+	default:
+		return checkOne(asked, out, complaints, *path)
 	}
-	return checkOne(asked, out, complaints, *path)
 }
 
+const name = "tooluse-screener"
+
 const usageError = 64
+
+func asFlags(arguments []string) []string {
+	switch {
+	case len(arguments) > 0 && arguments[0] == "help":
+		return []string{"-h"}
+	default:
+		return arguments
+	}
+}
+
+func version() string {
+	build, known := debug.ReadBuildInfo()
+	switch {
+	case known && build.Main.Version != "":
+		return build.Main.Version
+	default:
+		return "(unknown)"
+	}
+}
 
 var exitCodes = map[check.Decision]int{check.Allow: 0, check.Deny: 1, check.Ask: 2}
 
@@ -76,8 +106,9 @@ func checking(path string) hook.Checking {
 	}
 }
 
-func usage(asked *flag.FlagSet, complaints io.Writer) {
-	_, _ = fmt.Fprintln(complaints, "Check a Bash command against the shared agent permission policy.")
-	_, _ = fmt.Fprintln(complaints, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n\nFlags:")
+func usage(asked *flag.FlagSet, writing io.Writer) {
+	_, _ = fmt.Fprintln(writing, "Check a Bash command against the shared agent permission policy.")
+	_, _ = fmt.Fprintln(writing, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n       tooluse-screener help\n\nFlags:")
+	asked.SetOutput(writing)
 	asked.PrintDefaults()
 }
