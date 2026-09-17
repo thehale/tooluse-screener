@@ -38,7 +38,8 @@ func claude(command, event string) hook.Payload {
 
 func codex(command, event string) hook.Payload {
 	payload := claude(command, event)
-	payload["turn_id"] = "a-turn"
+	payload["model"] = "gpt-5.6-sol"
+	payload["tool_use_id"] = "exec-0e2a"
 	return payload
 }
 
@@ -133,10 +134,6 @@ func TestCodexPreToolUse(t *testing.T) {
 		says(t, within(t, envelope, "hookSpecificOutput"), "permissionDecision", "deny")
 	})
 
-	t.Run("stays quiet about an allow, which PermissionRequest handles", func(t *testing.T) {
-		quiet(t, codex("ls", "PreToolUse"), allow, 0)
-	})
-
 	t.Run("stays quiet when undecided", func(t *testing.T) {
 		quiet(t, codex("ls", "PreToolUse"), ask, 0)
 	})
@@ -177,6 +174,27 @@ func TestStdinToStdout(t *testing.T) {
 			t.Errorf("exit %d, wanted 2", code)
 		}
 		says(t, read(t, written), "decision", "block")
+	})
+
+	t.Run("a denial carries its reason on stderr, where Codex reads it", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(deny))
+		if code != 2 {
+			t.Errorf("exit %d, wanted 2", code)
+		}
+		if !strings.Contains(complaints.String(), deny.Reason) {
+			t.Errorf("stderr said %q, wanted the reason in it", complaints.String())
+		}
+	})
+
+	t.Run("anything but a denial leaves stderr alone", func(t *testing.T) {
+		for _, verdict := range []check.Verdict{allow, ask} {
+			var out, complaints bytes.Buffer
+			hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(verdict))
+			if complaints.String() != "" {
+				t.Errorf("%s wrote %q to stderr", verdict.Decision, complaints.String())
+			}
+		}
 	})
 
 	t.Run("writes nothing when undecided", func(t *testing.T) {
