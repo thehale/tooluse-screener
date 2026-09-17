@@ -14,23 +14,18 @@ One Bash command policy, shared by every coding agent.
 ## Quickstart
 
 ```console
-$ tooluse-screener "git status"
-allow: Every command is allowed: git status
-
-$ tooluse-screener "git commit -m 'a message' && git status"
-allow: Every command is allowed: git commit, git status
-
-$ tooluse-screener "rm -rf /"
+$ tooluse-screener 'rm -rf /'          # prints `allow|deny|ask: reason`
 deny: Command matches a denied rule: Emptying a whole tree
-
-$ tooluse-screener "nmap localhost"
-ask: Command is not in the shared allow list
 ```
 
-The screener checks each requested command against its
-[policy](#configuration) where a single denial blocks an entire compound
-command. The exit code carries the same answer: 0 allowed, 1 denied, 2
-to ask.
+The exit code carries the same answer: 0 allowed, 1 denied, 2 to ask.
+
+```bash
+echo "$payload" | tooluse-screener --hook   # answers the agent that asked
+```
+
+Each command is checked against a [policy](#configuration), and one
+`deny` blocks the whole line it was written on.
 
 ## Installation
 
@@ -38,12 +33,27 @@ to ask.
 mise use github:thehale/tooluse-screener
 ```
 
-Point each agent's Bash hook at `tooluse-screener --hook`, which reads
-the payload on stdin and answers in the shape that agent expects —
-`PreToolUse` for Claude Code, and both `PreToolUse` and
-`PermissionRequest` for Codex, which only enforces a denial on the
-first. A refusal is written to stderr as well as into the envelope,
-because Codex ignores one that carries no reason there.
+Point the agent's pre-tool hook at `tooluse-screener --hook`, which
+reads the tool-use payload on stdin and answers in the envelope that
+agent expects.
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "hooks": [{ "type": "command", "command": "tooluse-screener --hook" }] }
+    ]
+  }
+}
+```
+
+Claude Code and Codex are both recognised. Claude Code enforces a `deny`
+on `PreToolUse`; Codex reads both `PreToolUse` and `PermissionRequest`
+and enforces on the first, so point it at both. A `deny` is written to
+stderr as well as into the envelope, because Codex ignores one that
+carries no reason there. A payload holding no Bash command is met with
+silence, and so is a verdict of `ask`, which leaves the agent to prompt
+as it normally would.
 
 Commands are matched as text rather than parsed as a shell, so quoting
 defeats the matching. A policy is a guard rail for an agent that means
@@ -51,10 +61,10 @@ well, not a sandbox for one that does not.
 
 ## Configuration
 
-What ships covers git, and a few things nobody wants run by accident.
-Write the rest in a file of your own, which **replaces** the shipped one
-rather than adding to it — the first of these that answers is the only
-one read:
+### Policy File
+
+The policy says which commands are allowed and which are denied. It is
+read from the first of these that answers:
 
 | Policy                          | Where                    |
 | ------------------------------- | ------------------------ |
@@ -66,37 +76,146 @@ one read:
 ¹ `$XDG_CONFIG_HOME` or `~/.config` on Linux,
 `~/Library/Application Support` on macOS, `%AppData%` on Windows.
 
+Only the highest one applies. No merging, no inheritance, so a policy of
+your own replaces the built-in one rather than adding to it.
+
+A policy that will not parse enforces nothing and says why on stderr.
+Check one after editing it:
+
+```bash
+tooluse-screener --config-file PATH ls
+```
+
+### Syntax
+
+A policy has three blocks, each described below: `denied` and `allowed`
+hold rules, and `trusted_git_directories` binds git to the repositories
+you name.
+
+#### Rules
+
+A rule is a command written plainly, or a mapping naming several:
+
+```yaml
+- ls
+- commands: ls
+- commands: [ls, cat]
+- patterns: '^ls\b'
+- patterns: ['^ls\b', '^cat\b']
+```
+
+`commands` are literal text. `patterns` are regexes, specifically
+[RE2](https://github.com/google/re2/wiki/Syntax), which has no
+lookarounds and reads `\b` as ASCII.
+
+Rules check the entire command for whole-word matches, so a rule about
+`ls` matches `ENV=thing ls -la` and not `lsblk`. An allowed rule has to
+be the command itself rather than merely appear in it, so it says
+nothing about `rm ls`.
+
+Add a `description`, which is what the rule calls itself in a verdict,
+and a `reason`, which is shown alongside it:
+
+```yaml
+- description: Emptying a whole tree
+  reason: Ask a human first.
+  patterns: ['^rm -(rf|fr) /$']
+```
+
+An `only` block holds a rule to where it applies. A rule whose `only` is
+not satisfied does not match at all:
+
+```yaml
+- commands: git push
+  only:
+    dirs: [~/src/one-repo]
+    branches:
+      - ci-fix
+      - not: [main, master, trunk]
+```
+
+`dirs` holds the rule to those directories, read against every directory
+the command names with `-C`, `--git-dir` or `--work-tree`, or against
+the working directory when it names none.
+
+`branches` holds a push to the branches it lists. A plain name is one
+the push may land on, and `not` names one it may not. Where both are
+written, both hold. This is read from where the commits will actually
+land rather than from the words, which is why it is a restriction and
+not part of the expression beside it.
+
+##### Rule Precedence
+
+The basic rules are straightforward:
+
+- If **any** commands match a `denied` rule, the whole compound command
+  is denied.
+
+  ```bash
+  friendly && scary  # whole command denied
+  ```
+
+- If **every** command matches an `allowed` rule, the whole command is allowed.
+
+  ```bash
+  friendly && cheerful  # whole command approved
+  ```
+
+- Everything else is returned for the model to "ask" you or an auto-evaluator.
+
+  ```bash
+  friendly && unknown  # "ask" for permission.
+  ```
+
+When `allowed` and `denied` rules both match the same command, conflict
+resolution occurs.
+
+```bash
+friendly -exec "scary"
+```
+
+- To be safe, if a `denied` rule matches **any** part of the command,
+  the denial wins ...
+- ... UNLESS, there's an explicit `allowed` rule that matches the
+  **entire** command.
+- In the case of a tie, denial wins.
+
+#### Trusted Git Directories
+
+```yaml
+trusted_git_directories: [~/src]
+```
+
+This is where an agent may reach out to a repository other than the one
+it is standing in. An allowed git rule holds only where the command
+points inside one of these, so `git -C /elsewhere status` is left to be
+asked about however plainly `git status` is allowed.
+
+It is not the same question as `only.dirs`, and a git command has to get
+past both. This names the repositories an agent may touch at all.
+`only.dirs` names where a single rule applies.
+
+#### Example
+
 ```yaml
 trusted_git_directories:
   - ~/src
 
 denied:
-  - git clone
-  - description: Cutting or moving a GitHub release
-    reason: Cut one with the publish script instead.
-    patterns:
-      - '(?:^|[\s/])gh(?:\s+\S+)*?\s+release\s+(?:create|delete)\b'
+  - description: Pushing
+    reason: A push is the operator's to approve.
+    commands: git push
 
 allowed:
-  - git status
   - ls
+
+  - description: Pushing where CI can run against the commit
+    patterns: ['^git push origin \S+$']
+    only:
+      dirs: [~/src/one-repo]
+      branches:
+        - not: [main, master, trunk]
 ```
-
-An entry is a command, or a group of `commands` and `patterns` sharing a
-`reason`, shown with the verdict, and a `description`, which is what the
-rules call themselves there. `commands` are literal text; `patterns` are
-[RE2](https://github.com/google/re2/wiki/Syntax), which has no
-lookarounds and reads `\b` as ASCII.
-
-A denied entry is looked for anywhere in a command, so a deploy is
-caught behind the environment variable preceding it. An allowed one has
-to open the command and end at a word boundary, so `ls` allows `ls -la`
-and says nothing about `lsblk`. An entry starting with `git` covers
-every spelling of that operation, and an allowed one holds only where it
-points inside `trusted_git_directories`.
-
-A policy that will not parse enforces nothing and says why on stderr, so
-check one with `tooluse-screener --config-file PATH ls` after editing it.
 
 ## Contributing
 
