@@ -34,6 +34,8 @@ unpublishable() {
 
 release_history() {
 	git init --quiet --initial-branch main .
+	git config user.email "release@example.com"
+	git config user.name "Release"
 	git remote add origin "$ORIGIN"
 	printf 'module %s\n\ngo 1.26.8\n' "${ORIGIN%.git}" >go.mod
 	checks "exit 0"
@@ -90,7 +92,7 @@ serve() {
 	checks "echo built >artifact.txt"
 	git add -A
 	commit "checks that write"
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 
 	run "$RELEASE"
 
@@ -124,7 +126,7 @@ serve() {
 }
 
 @test "refuses to publish what origin has never heard of" {
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 	git init --quiet --bare "$ORIGIN"
 
 	run "$RELEASE"
@@ -134,10 +136,10 @@ serve() {
 }
 
 @test "refuses to publish a commit that never left the workstation" {
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 	serve
 	commit "third"
-	git tag --force "v$VERSION"
+	git tag --force --annotate "v$VERSION" --message "v$VERSION"
 
 	run "$RELEASE"
 
@@ -147,7 +149,7 @@ serve() {
 
 @test "refuses to publish a tag that never left the workstation" {
 	serve
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 
 	run "$RELEASE"
 
@@ -156,7 +158,7 @@ serve() {
 }
 
 @test "refuses to publish when origin's tag names another commit" {
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 	serve
 	git --git-dir "$ORIGIN" update-ref "refs/tags/v$VERSION" "$(git rev-parse HEAD~1)"
 
@@ -167,7 +169,7 @@ serve() {
 }
 
 @test "refuses to publish a release configuration that does not validate" {
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 	serve
 
 	run "$RELEASE"
@@ -177,7 +179,7 @@ serve() {
 }
 
 @test "refuses to publish when go.mod points away from origin" {
-	git tag "v$VERSION"
+	git tag --annotate "v$VERSION" --message "v$VERSION"
 	serve
 	git remote set-url origin https://github.com/someone/else
 
