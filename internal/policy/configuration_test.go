@@ -206,7 +206,7 @@ func TestOnlyBranches(t *testing.T) {
 	})
 
 	t.Run("the command is named by the rule, never implied by the restriction", func(t *testing.T) {
-		refuses(t, "allowed:\n  - description: nothing to match\n    only:\n      dirs: [/approved]\n", "commands` or `patterns")
+		refuses(t, "allowed:\n  - description: nothing to match\n    only:\n      dirs: [/approved]\n", "`commands`, `patterns` or `paths`")
 	})
 
 	t.Run("one name may be written without a list", func(t *testing.T) {
@@ -240,9 +240,42 @@ func TestOnlyBranches(t *testing.T) {
 	})
 }
 
+func TestPaths(t *testing.T) {
+	t.Run("are read under denied and allowed alike", func(t *testing.T) {
+		paths := parsed(t, "denied:\n  - paths: /secrets/**\nallowed:\n  - paths: ['/notes/*', '/drafts/*']\n").Paths
+		globbed(t, paths.Denied, "/secrets/**")
+		globbed(t, paths.Allowed, "/notes/*", "/drafts/*")
+	})
+
+	t.Run("carry their entry's reason and description", func(t *testing.T) {
+		denied := parsed(t, "denied:\n  - description: Secrets\n    reason: Ask first.\n    paths: /secrets/**\n").Paths.Denied
+		globbed(t, denied, "Secrets")
+		if note := denied[0].Note(); note != "Ask first." {
+			t.Errorf("noted %q", note)
+		}
+	})
+
+	t.Run("are never read as commands", func(t *testing.T) {
+		matches(t, false, parsed(t, "denied:\n  - paths: /secrets/**\n").Denied, "cat /secrets/key")
+	})
+
+	t.Run("a relative one is refused", func(t *testing.T) {
+		refuses(t, "denied:\n  - paths: '**/.ssh/**'\n", "written from / or ~")
+	})
+
+	t.Run("one sharing an entry with commands or patterns is refused", func(t *testing.T) {
+		refuses(t, "denied:\n  - commands: cat /secrets\n    paths: /secrets/**\n", "never both")
+		refuses(t, "denied:\n  - patterns: ['^cat ']\n    paths: /secrets/**\n", "never both")
+	})
+
+	t.Run("one held by only is refused", func(t *testing.T) {
+		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` holds commands")
+	})
+}
+
 func TestWhatIsRefused(t *testing.T) {
 	t.Run("an entry with neither commands nor patterns", func(t *testing.T) {
-		refuses(t, "denied:\n  - reason: advice with nothing to advise on\n", "commands` or `patterns")
+		refuses(t, "denied:\n  - reason: advice with nothing to advise on\n", "`commands`, `patterns` or `paths`")
 	})
 
 	t.Run("a pattern that is not text", func(t *testing.T) {
@@ -408,4 +441,15 @@ func matching(t *testing.T, group rules.Group, command string) rules.Rule {
 		t.Fatalf("%q matched nothing", command)
 	}
 	return matched[0]
+}
+
+func globbed(t *testing.T, found []rules.Glob, wanted ...string) {
+	t.Helper()
+	var named []string
+	for _, glob := range found {
+		named = append(named, glob.String())
+	}
+	if strings.Join(named, " ") != strings.Join(wanted, " ") {
+		t.Errorf("read %q, wanted %q", named, wanted)
+	}
 }

@@ -8,4 +8,10 @@ import "github.com/thehale/tooluse-screener/internal/rules"
 type Policy struct {
 	Denied  rules.Group
 	Allowed rules.Group
+	Paths   Paths
+}
+
+type Paths struct {
+	Denied  []rules.Glob
+	Allowed []rules.Glob
 }

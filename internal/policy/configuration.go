@@ -38,6 +38,7 @@ type file struct {
 type entry struct {
 	Commands    texts        `yaml:"commands"`
 	Patterns    texts        `yaml:"patterns"`
+	Paths       texts        `yaml:"paths"`
 	Reason      string       `yaml:"reason"`
 	Description string       `yaml:"description"`
 	Only        *restriction `yaml:"only"`
@@ -72,7 +73,52 @@ func built(configuration file) (Policy, error) {
 	if err != nil {
 		return Policy{}, err
 	}
-	return Policy{Denied: denied, Allowed: allowed}, nil
+	paths, err := pathsIn(configuration)
+	if err != nil {
+		return Policy{}, err
+	}
+	return Policy{Denied: denied, Allowed: allowed, Paths: paths}, nil
+}
+
+func pathsIn(configuration file) (Paths, error) {
+	denied, err := globs(configuration.Denied)
+	if err != nil {
+		return Paths{}, err
+	}
+	allowed, err := globs(configuration.Allowed)
+	return Paths{Denied: denied, Allowed: allowed}, err
+}
+
+func globs(entries []entry) ([]rules.Glob, error) {
+	var found []rules.Glob
+	for _, written := range entries {
+		list, err := entryGlobs(written)
+		if err != nil {
+			return nil, err
+		}
+		found = append(found, list...)
+	}
+	return found, nil
+}
+
+func entryGlobs(written entry) ([]rules.Glob, error) {
+	switch {
+	case len(written.Paths) == 0:
+		return nil, nil
+	case len(written.Commands) > 0 || len(written.Patterns) > 0:
+		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", written)
+	case written.Only != nil:
+		return nil, fmt.Errorf("`only` holds commands, and an entry with `paths` has none to hold: %+v", written)
+	}
+	var found []rules.Glob
+	for _, text := range written.Paths {
+		made, err := rules.NewGlob(text, written.Reason, written.Description)
+		if err != nil {
+			return nil, err
+		}
+		found = append(found, made)
+	}
+	return found, nil
 }
 
 func asWritten(rule rules.Rule) rules.Rule {
@@ -137,8 +183,8 @@ func branchesNamed(conditions []condition) (rules.Branches, error) {
 }
 
 func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	if len(written.Commands) == 0 && len(written.Patterns) == 0 {
-		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands` or `patterns`: %+v", written)
+	if len(written.Commands) == 0 && len(written.Patterns) == 0 && len(written.Paths) == 0 {
+		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", written)
 	}
 	var found []rules.Rule
 	for _, text := range written.Commands {
