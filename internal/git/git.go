@@ -43,15 +43,16 @@ func (i Invocation) carries(word string) bool {
 }
 
 func afterGlobalOptions(words []string) (directories, global, spoken []string) {
+	var pointed []pointing
 	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
 		option, value, joined := strings.Cut(words[0], "=")
 		if pointsAtADirectory(option) {
-			directories = append(directories, directoryFrom(value, joined, words))
+			pointed = append(pointed, pointing{option, directoryFrom(value, joined, words)})
 		}
 		global = append(global, option)
 		words = words[stride(option, joined, len(words)):]
 	}
-	return directories, global, words
+	return resolved(pointed), global, words
 }
 
 func pointsAtADirectory(option string) bool {

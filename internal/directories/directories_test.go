@@ -99,3 +99,31 @@ func under(t *testing.T, wanted bool, paths, roots []string) {
 		t.Errorf("AllUnder(%q, %q) = %v, wanted %v", paths, roots, all, wanted)
 	}
 }
+
+func TestWithin(t *testing.T) {
+	t.Run("a relative path is taken from where it is", func(t *testing.T) {
+		within(t, "/a", "b", "/a/b")
+		within(t, "/a", "../b", "/a/../b")
+	})
+
+	t.Run("from here it is itself", func(t *testing.T) {
+		within(t, ".", "b", "b")
+	})
+
+	t.Run("a path from the root or a home stands alone", func(t *testing.T) {
+		within(t, "/a", "/b", "/b")
+		within(t, "/a", "~/b", "~/b")
+	})
+
+	t.Run("anything taken from somewhere unknown is unknown", func(t *testing.T) {
+		within(t, "", "b", "")
+		within(t, "/a", "", "")
+	})
+}
+
+func within(t *testing.T, here, path, wanted string) {
+	t.Helper()
+	if got := directories.Within(here, path); got != filepath.FromSlash(wanted) {
+		t.Errorf("Within(%q, %q) = %q, wanted %q", here, path, got, wanted)
+	}
+}

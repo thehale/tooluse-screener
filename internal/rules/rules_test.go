@@ -206,6 +206,16 @@ func TestReaching(t *testing.T) {
 		matches(t, false, within(root), "git --work-tree /elsewhere status")
 	})
 
+	t.Run("a directory entered from another is judged from it", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		sideways := filepath.Join("..", filepath.Base(here))
+		matches(t, true, within(here, root), "git -C "+sideways+" status")
+		matches(t, false, within(here, root), "git -C "+root+" -C "+sideways+" status")
+	})
+
 	t.Run("a directory the shell works out is trusted nowhere", func(t *testing.T) {
 		here, err := os.Getwd()
 		if err != nil {

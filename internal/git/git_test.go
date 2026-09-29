@@ -90,6 +90,15 @@ func TestDirectories(t *testing.T) {
 		pointed(t, "git --git-dir=/a/.git --work-tree=/b status", "/a/.git", "/b")
 	})
 
+	t.Run("each directory entered is entered from the one before", func(t *testing.T) {
+		pointed(t, "git -C /a -C b -C ../c status", "/a", "/a/b", "/a/b/../c")
+	})
+
+	t.Run("a repository named is named from the directory entered last", func(t *testing.T) {
+		pointed(t, "git --git-dir=.git -C /a -C b status", "/a", "/a/b", "/a/b/.git")
+		pointed(t, "git -C /a --work-tree=/b status", "/a", "/b")
+	})
+
 	t.Run("a directory is read as the shell passes it on", func(t *testing.T) {
 		pointed(t, `git -C "/tmp/foo" status`, "/tmp/foo")
 		pointed(t, `git --git-dir='/tmp/foo/.git' status`, "/tmp/foo/.git")
