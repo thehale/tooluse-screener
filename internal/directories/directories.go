@@ -35,11 +35,16 @@ func endedWithASeparator(root string) string {
 	return strings.TrimSuffix(root, separator) + separator
 }
 
+func Followed(path string) string {
+	resolved, _ := absolute(path)
+	return resolved
+}
+
 func absolute(path string) (string, bool) {
 	if path == "" {
 		return "", false
 	}
-	named := withHomeExpanded(path)
+	named := WithHomeExpanded(path)
 	from, known := workingDirectory(named)
 	return walked(from, strings.TrimPrefix(named, filepath.VolumeName(named))), known
 }
@@ -83,7 +88,7 @@ func followed(path string) string {
 	return path
 }
 
-func withHomeExpanded(path string) string {
+func WithHomeExpanded(path string) string {
 	home, err := os.UserHomeDir()
 	switch {
 	case err != nil, !strings.HasPrefix(path, "~"):

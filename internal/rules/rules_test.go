@@ -4,6 +4,7 @@
 package rules_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -263,6 +264,76 @@ func TestRestricted(t *testing.T) {
 	})
 }
 
+func TestGlob(t *testing.T) {
+	keys := glob(t, "/home/me/**/.ssh/**")
+
+	t.Run("matches a file under it", func(t *testing.T) {
+		writes(t, true, keys, "/home/me/src/.ssh/id_ed25519")
+	})
+
+	t.Run("a double star spans no directories as well as several", func(t *testing.T) {
+		writes(t, true, keys, "/home/me/.ssh/id_rsa")
+		writes(t, true, keys, "/home/me/a/b/c/.ssh/keys/work/id_rsa")
+	})
+
+	t.Run("a double star may open the path, and span nothing from the root", func(t *testing.T) {
+		internals := glob(t, "/**/.git/**")
+		writes(t, true, internals, "/.git/config")
+		writes(t, true, internals, "/home/me/src/repo/.git/HEAD")
+		writes(t, false, internals, "/home/me/src/repo/.github/workflows/ci.yml")
+	})
+
+	t.Run("a single star stays inside one name", func(t *testing.T) {
+		notes := glob(t, "/notes/*.md")
+		writes(t, true, notes, "/notes/today.md")
+		writes(t, false, notes, "/notes/2026/today.md")
+	})
+
+	t.Run("does not match a name that merely contains a segment", func(t *testing.T) {
+		writes(t, false, keys, "/home/me/.sshd/config")
+		writes(t, false, keys, "/home/you/.ssh/id_rsa")
+	})
+
+	t.Run("reads the file as cleaned", func(t *testing.T) {
+		writes(t, true, keys, "/home/me/src/../other/./.ssh/id_rsa")
+		writes(t, false, keys, "/home/me/.ssh/../notes.md")
+	})
+
+	t.Run("follows a symlink on the way to the file", func(t *testing.T) {
+		outside, home := t.TempDir(), t.TempDir()
+		linked, private := filepath.Join(outside, "linked"), filepath.Join(home, ".ssh")
+		if err := errors.Join(os.Mkdir(private, 0o700), os.Symlink(private, linked)); err != nil {
+			t.Fatal(err)
+		}
+		writes(t, true, glob(t, home+"/.ssh/**"), filepath.Join(linked, "id_rsa"))
+	})
+
+	t.Run("expands a leading tilde", func(t *testing.T) {
+		t.Setenv("HOME", "/home/someone")
+		writes(t, true, glob(t, "~/.ssh/**"), "/home/someone/.ssh/config")
+	})
+
+	t.Run("a path from anywhere but / or ~ is refused", func(t *testing.T) {
+		for _, written := range []string{".ssh/**", "./.ssh/**", "**/.ssh/**"} {
+			if _, err := rules.NewGlob(written, "", ""); err == nil {
+				t.Errorf("%s: wanted an error", written)
+			}
+		}
+	})
+
+	t.Run("a glob that will not parse is refused", func(t *testing.T) {
+		if _, err := rules.NewGlob("/notes/[", "", ""); err == nil {
+			t.Error("wanted an error")
+		}
+	})
+
+	t.Run("it names itself as written", func(t *testing.T) {
+		if said := keys.String(); said != "/home/me/**/.ssh/**" {
+			t.Errorf("named itself %q", said)
+		}
+	})
+}
+
 func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 	t.Run("a rule that does not match accounts for nothing", func(t *testing.T) {
 		spans(t, 0, rules.NewOpening(rules.NewWords("ls", "", "")), "cat foo")
@@ -396,5 +467,21 @@ func matched(t *testing.T, group rules.Group, command string, wanted ...rules.Ru
 	t.Helper()
 	if got := group.Matching(command); !slices.Equal(got, wanted) {
 		t.Errorf("Matching(%q) = %v, wanted %v", command, got, wanted)
+	}
+}
+
+func glob(t *testing.T, written string) rules.Glob {
+	t.Helper()
+	made, err := rules.NewGlob(written, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return made
+}
+
+func writes(t *testing.T, wanted bool, rule rules.Glob, file string) {
+	t.Helper()
+	if matched := rule.Matches(file); matched != wanted {
+		t.Errorf("%s matches %q = %v, wanted %v", rule, file, matched, wanted)
 	}
 }
