@@ -51,9 +51,7 @@ Claude Code and Codex are both recognised. Claude Code enforces a `deny`
 on `PreToolUse`; Codex reads both `PreToolUse` and `PermissionRequest`
 and enforces on the first, so point it at both. A `deny` is written to
 stderr as well as into the envelope, because Codex ignores one that
-carries no reason there. A payload holding no Bash command is met with
-silence, and so is a verdict of `ask`, which leaves the agent to prompt
-as it normally would.
+carries no reason there.
 
 Commands are matched as text rather than parsed as a shell, so quoting
 defeats the matching. A policy is a guard rail for an agent that means
@@ -143,6 +141,33 @@ the push may land on, and `not` names one it may not. Where both are
 written, both hold. This is read from where the commits will actually
 land rather than from the words, which is why it is a restriction and
 not part of the expression beside it.
+
+##### Paths
+
+`paths` rules control whether or not edits are allowed to the listed
+globs.
+
+```yaml
+denied:
+  - description: Writing an SSH key
+    reason: An SSH key opens other machines, so a human places it.
+    paths: ['~/.ssh/**']
+```
+
+A Claude Code hook with a `matcher` has to name every tool that edits:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [{ "type": "command", "command": "tooluse-screener --hook" }]
+      }
+    ]
+  }
+}
+```
 
 ##### Rule Precedence
 
