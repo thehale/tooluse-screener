@@ -66,8 +66,9 @@ ask     ~/.ssh/id_rsa
 
 # An assignment in front of a command can point it at another
 # repository. Git reads GIT_DIR, GIT_WORK_TREE and GIT_NAMESPACE as the
-# options they stand for, and so are they judged. Any other assignment
-# points it nowhere.
+# options they stand for, and so are they judged. One that points it
+# where nothing reads, such as GH_REPO, HOME or GIT_CONFIG_COUNT, leaves
+# it judged nowhere. Any other assignment points it nowhere.
 #
 # Denied, as they would be without the assignment:
 deny    GIT_DIR=/work/.git git push origin main
@@ -87,3 +88,6 @@ ask     GIT_WORK_TREE=/elsewhere git -C /work status
 allow   git -C /work/app push origin topic
 deny    GIT_DIR=/elsewhere/.git git -C /work/app push origin topic
 deny    GIT_DIR=/work/app/.git git -C /work/app push origin topic
+deny    HOME=/elsewhere git -C /work/app push origin topic
+deny    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.pushurl GIT_CONFIG_VALUE_0=/elsewhere git -C /work/app push origin topic
+ask     GIT_COMMON_DIR=/elsewhere git -C /work status

@@ -12,19 +12,29 @@ import (
 )
 
 type Invocation struct {
+	Git         bool
 	Subcommand  string
 	Arguments   []string
 	Directories []string
 	Global      []string
+	Unread      []string
 }
 
 func Read(command string) Invocation {
 	words := strings.Fields(commands.Spoken(command))
 	if len(words) == 0 || words[0] != "git" {
-		return Invocation{}
+		return Invocation{Unread: unread(command, nil)}
 	}
 	directories, global, spoken := afterGlobalOptions(append(twinned(command), words[1:]...))
-	return spokenAs(spoken, directories, global)
+	subcommand, arguments := spokenAs(spoken)
+	return Invocation{
+		Git:         true,
+		Subcommand:  subcommand,
+		Arguments:   arguments,
+		Directories: directories,
+		Global:      global,
+		Unread:      unread(command, twins),
+	}
 }
 
 func (i Invocation) IsA(subcommand string) bool {
@@ -83,14 +93,9 @@ func takesAValue(option string) bool {
 	return slices.Contains(withValues, option)
 }
 
-func spokenAs(spoken, directories, global []string) Invocation {
+func spokenAs(spoken []string) (subcommand string, arguments []string) {
 	if len(spoken) == 0 {
-		return Invocation{Directories: directories, Global: global}
+		return "", nil
 	}
-	return Invocation{
-		Subcommand:  spoken[0],
-		Arguments:   spoken[1:],
-		Directories: directories,
-		Global:      global,
-	}
+	return spoken[0], spoken[1:]
 }

@@ -20,7 +20,7 @@ func Landing(i Invocation) (branch string, known bool) {
 func pushed(i Invocation) (remote, refspec string) {
 	options, words := partitioned(i.Arguments)
 	switch {
-	case i.IsA("push") && len(words) == 2 && leaveTheLandingAlone(options, i.Global):
+	case i.IsA("push") && len(words) == 2 && len(i.Unread) == 0 && leaveTheLandingAlone(options, i.Global):
 		return words[0], words[1]
 	default:
 		return "", ""

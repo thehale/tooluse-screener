@@ -77,6 +77,11 @@ func TestWhereAPushIsUnread(t *testing.T) {
 		unread(t, "GIT_NAMESPACE=sneaky git push origin topic")
 	})
 
+	t.Run("an assignment that changes the config git reads", func(t *testing.T) {
+		unread(t, "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.pushurl GIT_CONFIG_VALUE_0=/x git push origin topic")
+		unread(t, "HOME=/elsewhere git push origin topic")
+	})
+
 	t.Run("a remote that is a place rather than a name", func(t *testing.T) {
 		unread(t, "git push git@github.com:acme/repo.git topic")
 		unread(t, "git push https://example.com/repo topic")

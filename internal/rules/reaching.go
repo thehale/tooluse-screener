@@ -40,7 +40,8 @@ func (r Reaching) Span(command string) int {
 }
 
 func (r Reaching) reaches(command string) bool {
-	return directories.AllUnder(git.Read(command).Directories, r.trusted)
+	invocation := git.Read(command)
+	return !invocation.Git || directories.AllUnder(pointedAt(invocation), r.trusted)
 }
 
 func (r Reaching) Note() string {

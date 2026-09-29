@@ -41,7 +41,7 @@ func (r Restricted) runsInADir(invocation git.Invocation) bool {
 	case len(r.dirs) == 0:
 		return true
 	default:
-		return directories.AllUnder(orHere(invocation.Directories), r.dirs)
+		return directories.AllUnder(orHere(pointedAt(invocation)), r.dirs)
 	}
 }
 

@@ -20,6 +20,17 @@ func twinned(command string) []string {
 	return options
 }
 
+func unread(command string, read map[string]string) []string {
+	var names []string
+	for _, assignment := range commands.Assignments(command) {
+		name, _, _ := strings.Cut(assignment, "=")
+		if _, twin := read[name]; commands.Retargets(name) && !twin {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 var twins = map[string]string{
 	"GIT_DIR":       "--git-dir",
 	"GIT_WORK_TREE": "--work-tree",

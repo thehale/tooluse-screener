@@ -225,6 +225,15 @@ func TestReaching(t *testing.T) {
 		matches(t, false, within(here), "git -C ~nobody status")
 	})
 
+	t.Run("an assignment that points git where nothing reads is trusted nowhere", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		matches(t, false, within(here), "GIT_COMMON_DIR=/elsewhere git status")
+		matches(t, true, within(here), "GIT_TRACE=1 git status")
+	})
+
 	t.Run("with within it still matches a command with no directory", func(t *testing.T) {
 		matches(t, true, within(root), "git status")
 	})
@@ -269,6 +278,18 @@ func TestRestricted(t *testing.T) {
 		}
 		matches(t, true, rules.NewRestricted(pushing, []string{here}, rules.Branches{}), "git push origin topic")
 		matches(t, false, rules.NewRestricted(pushing, []string{root}, rules.Branches{}), "git push origin topic")
+	})
+
+	t.Run("a command an assignment points where nothing reads is judged nowhere", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		opening := rules.NewRestricted(leading(t, `gh pr create\b.*$`, "", ""), []string{here}, rules.Branches{})
+		matches(t, true, opening, "gh pr create --fill")
+		matches(t, true, opening, "GH_DEBUG=1 gh pr create --fill")
+		matches(t, false, opening, "GH_REPO=other/repo gh pr create --fill")
+		matches(t, false, opening, "GIT_DIR=/elsewhere/.git gh pr create --fill")
 	})
 
 	t.Run("an unrestricted rule is left as it was", func(t *testing.T) {
