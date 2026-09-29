@@ -47,6 +47,17 @@ func TestMoves(t *testing.T) {
 		moved(t, "cd ~/work && git status", home+"/work")
 	})
 
+	t.Run("an assignment that points it elsewhere, kept for the commands after it, is unknown", func(t *testing.T) {
+		moved(t, "export GIT_DIR=/elsewhere/.git && git status", "")
+		moved(t, "GH_REPO=other/repo; gh pr view", "")
+		moved(t, "export HOME && git status", "")
+	})
+
+	t.Run("an assignment that points nowhere moves nothing", func(t *testing.T) {
+		moved(t, "export GIT_TRACE=1 && git status")
+		moved(t, "LANG=C; git status")
+	})
+
 	t.Run("where the shell decides is unknown", func(t *testing.T) {
 		for _, line := range []string{
 			`cd "$REPO" && git status`,

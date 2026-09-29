@@ -103,3 +103,7 @@ deny    GIT_DIR=/work/app/.git git -C /work/app push origin topic
 deny    HOME=/elsewhere git -C /work/app push origin topic
 deny    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.pushurl GIT_CONFIG_VALUE_0=/elsewhere git -C /work/app push origin topic
 ask     GIT_COMMON_DIR=/elsewhere git -C /work status
+#
+# An assignment kept for the rest of the line points every command after
+# it the same way.
+deny    export GIT_DIR=/work/app/.git && git -C /work/app push origin topic
