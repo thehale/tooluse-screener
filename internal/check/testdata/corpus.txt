@@ -55,5 +55,11 @@ ask     nmap localhost && ls -la
 allow   git -C /work status
 ask     git -C /elsewhere status
 
+# A repository is one the policy trusts only when it is written out.
+# One the shell has yet to work out could be anywhere.
+allow   git -C "/work" status
+ask     git -C "$REPO" status
+ask     git -C ~nobody/work status
+
 # A path rule never judges a command, even one that is only the path
 ask     ~/.ssh/id_rsa

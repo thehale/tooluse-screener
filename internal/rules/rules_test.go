@@ -206,6 +206,15 @@ func TestReaching(t *testing.T) {
 		matches(t, false, within(root), "git --work-tree /elsewhere status")
 	})
 
+	t.Run("a directory the shell works out is trusted nowhere", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		matches(t, false, within(here), `git -C "$REPO" status`)
+		matches(t, false, within(here), "git -C ~nobody status")
+	})
+
 	t.Run("with within it still matches a command with no directory", func(t *testing.T) {
 		matches(t, true, within(root), "git status")
 	})

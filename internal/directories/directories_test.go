@@ -63,6 +63,14 @@ func TestAllUnder(t *testing.T) {
 		under(t, false, []string{""}, []string{root})
 	})
 
+	t.Run("another user's home is under nothing", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		under(t, false, []string{"~nobody/work"}, []string{here})
+	})
+
 	t.Run("a step back out of a link lands where the link led", func(t *testing.T) {
 		elsewhere := t.TempDir()
 		link := filepath.Join(root, "link")

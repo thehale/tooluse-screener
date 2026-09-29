@@ -62,9 +62,9 @@ func pointsAtADirectory(option string) bool {
 func directoryFrom(value string, joined bool, words []string) string {
 	switch {
 	case joined:
-		return value
+		return commands.Literal(value)
 	case len(words) > 1:
-		return words[1]
+		return commands.Literal(words[1])
 	default:
 		return ""
 	}

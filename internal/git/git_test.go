@@ -90,6 +90,16 @@ func TestDirectories(t *testing.T) {
 		pointed(t, "git --git-dir=/a/.git --work-tree=/b status", "/a/.git", "/b")
 	})
 
+	t.Run("a directory is read as the shell passes it on", func(t *testing.T) {
+		pointed(t, `git -C "/tmp/foo" status`, "/tmp/foo")
+		pointed(t, `git --git-dir='/tmp/foo/.git' status`, "/tmp/foo/.git")
+	})
+
+	t.Run("a directory the shell works out is unknown", func(t *testing.T) {
+		pointed(t, `git -C "$REPO" status`, "")
+		pointed(t, "git -C /work/* status", "")
+	})
+
 	t.Run("a command with no directories", func(t *testing.T) {
 		pointed(t, "git status")
 	})

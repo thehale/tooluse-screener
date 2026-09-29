@@ -41,10 +41,10 @@ func Followed(path string) string {
 }
 
 func absolute(path string) (string, bool) {
-	if path == "" {
+	named := WithHomeExpanded(path)
+	if named == "" || strings.HasPrefix(named, "~") {
 		return "", false
 	}
-	named := WithHomeExpanded(path)
 	from, known := workingDirectory(named)
 	return walked(from, strings.TrimPrefix(named, filepath.VolumeName(named))), known
 }
