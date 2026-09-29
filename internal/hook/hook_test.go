@@ -21,11 +21,24 @@ var (
 )
 
 func always(verdict check.Verdict) hook.Checking {
-	return func(string) check.Verdict { return verdict }
+	return func(check.Question) (check.Verdict, bool) { return verdict, true }
 }
 
-func panics(string) check.Verdict {
+func panics(check.Question) (check.Verdict, bool) {
 	panic("something went sideways")
+}
+
+func echoing(asked check.Question) (check.Verdict, bool) {
+	return check.Verdict{Decision: check.Deny, Reason: asked.Command + asked.Path}, true
+}
+
+func writing(tool, key, path string) hook.Payload {
+	return hook.Payload{
+		"tool_name":       tool,
+		"hook_event_name": "PreToolUse",
+		"cwd":             "/work/repo",
+		"tool_input":      map[string]any{key: path, "content": "hi"},
+	}
 }
 
 func claude(command, event string) hook.Payload {
@@ -77,6 +90,56 @@ func TestNotOurBusiness(t *testing.T) {
 	t.Run("an event the hook does not answer", func(t *testing.T) {
 		quiet(t, claude("ls", "PostToolUse"), deny, 0)
 	})
+}
+
+func TestWhatIsAsked(t *testing.T) {
+	t.Run("bash is asked about its command", func(t *testing.T) {
+		asks(t, claude("ls -la", "PreToolUse"), "ls -la")
+	})
+
+	t.Run("a tool that writes a file is asked about its path", func(t *testing.T) {
+		asks(t, writing("Write", "file_path", "/work/notes.md"), "/work/notes.md")
+		asks(t, writing("Edit", "file_path", "/work/notes.md"), "/work/notes.md")
+		asks(t, writing("MultiEdit", "file_path", "/work/notes.md"), "/work/notes.md")
+		asks(t, writing("NotebookEdit", "notebook_path", "/work/a.ipynb"), "/work/a.ipynb")
+	})
+
+	t.Run("a relative path is read from where the agent is working", func(t *testing.T) {
+		asks(t, writing("Write", "file_path", "docs/../notes.md"), "/work/repo/notes.md")
+	})
+
+	t.Run("a path is read as cleaned", func(t *testing.T) {
+		asks(t, writing("Write", "file_path", "/work//repo/./notes.md"), "/work/repo/notes.md")
+	})
+
+	t.Run("a tool that writes, with no path, is not asked about", func(t *testing.T) {
+		undecided(t, writing("Write", "file_path", ""))
+		undecided(t, writing("NotebookEdit", "file_path", "/work/a.ipynb"))
+	})
+
+	t.Run("a path the policy says nothing about gets no envelope", func(t *testing.T) {
+		silent := func(check.Question) (check.Verdict, bool) { return check.Verdict{}, false }
+		var out bytes.Buffer
+		code := hook.Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, silent)
+		if code != 0 || out.String() != "" {
+			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
+		}
+	})
+
+	t.Run("a denied path gets a block envelope and a blocking exit", func(t *testing.T) {
+		written, code := ran(t, sent(writing("Edit", "file_path", "/work/notes.md")), deny)
+		if code != 2 {
+			t.Errorf("exit %d, wanted 2", code)
+		}
+		says(t, within(t, read(t, written), "hookSpecificOutput"), "permissionDecisionReason", deny.Reason)
+	})
+}
+
+func asks(t *testing.T, payload hook.Payload, wanted string) {
+	t.Helper()
+	if verdict, _ := hook.Decide(payload, echoing); verdict.Reason != wanted {
+		t.Errorf("%v asked about %q, wanted %q", payload, verdict.Reason, wanted)
+	}
 }
 
 func TestAPolicyThatFails(t *testing.T) {

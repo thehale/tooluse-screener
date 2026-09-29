@@ -14,11 +14,8 @@ import (
 )
 
 func TestTheCorpus(t *testing.T) {
-	asked, err := policy.Read(filepath.Join("testdata", "policy.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, line := range corpus(t) {
+	asked := testPolicy(t)
+	for _, line := range corpus(t, "corpus.txt") {
 		wanted, command := readLine(t, line)
 		if verdict := check.Evaluate(command, asked); verdict.Decision != wanted {
 			t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
@@ -26,9 +23,40 @@ func TestTheCorpus(t *testing.T) {
 	}
 }
 
-func corpus(t *testing.T) []string {
+func TestThePathCorpus(t *testing.T) {
+	t.Setenv("HOME", "/home/me")
+	asked := testPolicy(t)
+	for _, line := range corpus(t, "paths.txt") {
+		wanted, path := readLine(t, line)
+		if answered := written(path, asked); answered != wanted {
+			t.Errorf("%q -> %s, wanted %s", path, answered, wanted)
+		}
+	}
+}
+
+func testPolicy(t *testing.T) policy.Policy {
 	t.Helper()
-	written, err := os.ReadFile(filepath.Join("testdata", "corpus.txt"))
+	asked, err := policy.Read(filepath.Join("testdata", "policy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return asked
+}
+
+func written(path string, asked policy.Policy) check.Decision {
+	switch verdict, answered := check.Writing(path, asked); {
+	case answered:
+		return verdict.Decision
+	default:
+		return unanswered
+	}
+}
+
+const unanswered check.Decision = "none"
+
+func corpus(t *testing.T, named string) []string {
+	t.Helper()
+	written, err := os.ReadFile(filepath.Join("testdata", named))
 	if err != nil {
 		t.Fatal(err)
 	}

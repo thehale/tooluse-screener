@@ -7,20 +7,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"github.com/thehale/tooluse-screener/internal/check"
 )
 
 type Payload map[string]any
 
-type Checking func(line string) check.Verdict
+type Checking func(asked check.Question) (check.Verdict, bool)
 
 func Decide(payload Payload, checking Checking) (check.Verdict, bool) {
-	command, asked := bashCommandIn(payload)
-	if !asked {
+	asked, posed := questionIn(payload)
+	if !posed {
 		return check.Verdict{}, false
 	}
-	return checking(command), true
+	return checking(asked)
 }
 
 func Respond(payload Payload, verdict check.Verdict) (envelope map[string]any, code int) {
@@ -62,27 +63,49 @@ var failOpen = check.Verdict{Decision: check.Ask, Reason: "The policy could not 
 
 const blocked = 2
 
-func bashCommandIn(payload Payload) (string, bool) {
-	if text(payload, "tool_name") != "Bash" {
-		return "", false
-	}
+func questionIn(payload Payload) (check.Question, bool) {
 	arguments, given := payload["tool_input"].(map[string]any)
-	if !given {
-		return "", false
+	tool := text(payload, "tool_name")
+	target, writes := targets[tool]
+	switch {
+	case !given:
+		return check.Question{}, false
+	case tool == "Bash":
+		command := text(Payload(arguments), "command")
+		return check.Question{Command: command}, command != ""
+	case writes:
+		path := text(Payload(arguments), target)
+		return check.Question{Path: resolved(text(payload, "cwd"), path)}, path != ""
+	default:
+		return check.Question{}, false
 	}
-	command := text(Payload(arguments), "command")
-	return command, command != ""
+}
+
+var targets = map[string]string{
+	"Write":        "file_path",
+	"Edit":         "file_path",
+	"MultiEdit":    "file_path",
+	"NotebookEdit": "notebook_path",
+}
+
+func resolved(cwd, path string) string {
+	switch {
+	case filepath.IsAbs(path):
+		return filepath.Clean(path)
+	default:
+		return filepath.Join(cwd, path)
+	}
 }
 
 func noting(checking Checking, complaints io.Writer) Checking {
-	return func(line string) (verdict check.Verdict) {
+	return func(asked check.Question) (verdict check.Verdict, answered bool) {
 		defer func() {
 			if failure := recover(); failure != nil {
 				_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
-				verdict = failOpen
+				verdict, answered = failOpen, true
 			}
 		}()
-		return checking(line)
+		return checking(asked)
 	}
 }
 

@@ -37,7 +37,7 @@ func Evaluate(line string, p policy.Policy) Verdict {
 
 	switch {
 	case len(refused) > 0:
-		return Verdict{Deny, refusal(refused[0])}
+		return Verdict{Deny, refusal("Command", refused[0])}
 	case len(found) > 0 && lists.Every(permitted, anyOf):
 		return Verdict{Allow, permission(permitted)}
 	default:
@@ -82,8 +82,13 @@ func anyOf(matched []rules.Rule) bool {
 	return len(matched) > 0
 }
 
-func refusal(rule rules.Rule) string {
-	refused := fmt.Sprintf("Command matches a denied rule: %s", rule)
+type described interface {
+	Note() string
+	String() string
+}
+
+func refusal(subject string, rule described) string {
+	refused := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
 	if rule.Note() == "" {
 		return refused
 	}

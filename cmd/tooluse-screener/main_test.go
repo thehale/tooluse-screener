@@ -151,6 +151,26 @@ func TestAnsweringAHook(t *testing.T) {
 	})
 }
 
+func TestAnsweringAFileWrite(t *testing.T) {
+	policy := written(t, "denied:\n  - description: Secrets\n    reason: Ask first.\n    paths: /secrets/**\n")
+
+	t.Run("a write to a denied path is blocked with its reason", func(t *testing.T) {
+		out, code := wrote(t, policy, "/secrets/key")
+		if code != 2 {
+			t.Errorf("exit %d, wanted 2", code)
+		}
+		if reason := read(t, out)["reason"]; reason != "Path matches a denied rule: Secrets. Ask first." {
+			t.Errorf("gave the reason %q", reason)
+		}
+	})
+
+	t.Run("a write anywhere else says nothing", func(t *testing.T) {
+		if out, code := wrote(t, policy, "/work/notes.md"); out != "" || code != 0 {
+			t.Errorf("wrote %q and exited %d", out, code)
+		}
+	})
+}
+
 func ran(t *testing.T, arguments ...string) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
@@ -162,6 +182,14 @@ func answered(t *testing.T, policy, command string) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
 	code := run([]string{"--hook", "--config-file", policy}, sent(command), &out, &bytes.Buffer{})
+	return out.String(), code
+}
+
+func wrote(t *testing.T, policy, path string) (string, int) {
+	t.Helper()
+	payload, _ := json.Marshal(map[string]any{"tool_name": "Write", "tool_input": map[string]any{"file_path": path}})
+	var out bytes.Buffer
+	code := run([]string{"--hook", "--config-file", policy}, bytes.NewReader(payload), &out, &bytes.Buffer{})
 	return out.String(), code
 }
 

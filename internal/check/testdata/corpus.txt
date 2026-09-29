@@ -54,3 +54,6 @@ ask     nmap localhost && ls -la
 # A repository reached into has to be one the policy trusts
 allow   git -C /work status
 ask     git -C /elsewhere status
+
+# A path rule never judges a command, even one that is only the path
+ask     ~/.ssh/id_rsa

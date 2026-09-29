@@ -9,9 +9,13 @@ denied:
   - bin/publish
   - git push
   - patterns: ['^rm -(rf|fr) /$']
+  - description: Writing a private key
+    reason: Ask a human first.
+    paths: ['~/.ssh/**', '~/**/*.pem']
 
 allowed:
   - ls
   - cat
   - python3
   - git status
+  - paths: /work/**

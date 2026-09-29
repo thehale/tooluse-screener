@@ -132,12 +132,12 @@ func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 }
 
 func checking(path string) hook.Checking {
-	return func(line string) check.Verdict {
+	return func(asked check.Question) (check.Verdict, bool) {
 		chosen, err := policy.Chosen(path)
 		if err != nil {
 			panic(fmt.Sprintf("the policy will not read: %v", err))
 		}
-		return check.Evaluate(line, chosen)
+		return check.Answer(asked, chosen)
 	}
 }
 
