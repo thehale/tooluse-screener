@@ -10,10 +10,16 @@ import (
 
 func Spoken(text string) string {
 	words := strings.Fields(text)
-	for len(words) > 0 && isAnAssignment(words[0]) {
-		words = words[1:]
+	return strings.Join(words[len(Assignments(text)):], " ")
+}
+
+func Assignments(text string) []string {
+	words := strings.Fields(text)
+	leading := 0
+	for leading < len(words) && isAnAssignment(words[leading]) {
+		leading++
 	}
-	return strings.Join(words, " ")
+	return words[:leading]
 }
 
 func isAnAssignment(word string) bool {

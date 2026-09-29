@@ -19,3 +19,10 @@ allowed:
   - python3
   - git status
   - paths: /work/**
+
+  - description: Pushing a branch of the app
+    patterns: ['^git (-C \S+ )?push origin \S+$']
+    only:
+      dirs: [/work/app]
+      branches:
+        - not: [main]

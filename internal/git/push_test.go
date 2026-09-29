@@ -71,6 +71,12 @@ func TestWhereAPushIsUnread(t *testing.T) {
 		unread(t, "git --no-pager push origin topic")
 	})
 
+	t.Run("an assignment git reads as one of those options", func(t *testing.T) {
+		unread(t, "GIT_DIR=/elsewhere/.git git push origin topic")
+		unread(t, "GIT_WORK_TREE=/elsewhere git push origin topic")
+		unread(t, "GIT_NAMESPACE=sneaky git push origin topic")
+	})
+
 	t.Run("a remote that is a place rather than a name", func(t *testing.T) {
 		unread(t, "git push git@github.com:acme/repo.git topic")
 		unread(t, "git push https://example.com/repo topic")

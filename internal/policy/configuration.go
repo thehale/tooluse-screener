@@ -127,7 +127,7 @@ func asWritten(rule rules.Rule) rules.Rule {
 
 func vouching(trusted []string) func(rules.Rule) rules.Rule {
 	return func(rule rules.Rule) rules.Rule {
-		return rules.NewOpening(rules.NewReaching(rule, trusted))
+		return rules.NewReaching(rules.NewOpening(rule), trusted)
 	}
 }
 

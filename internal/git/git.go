@@ -23,7 +23,7 @@ func Read(command string) Invocation {
 	if len(words) == 0 || words[0] != "git" {
 		return Invocation{}
 	}
-	directories, global, spoken := afterGlobalOptions(words[1:])
+	directories, global, spoken := afterGlobalOptions(append(twinned(command), words[1:]...))
 	return spokenAs(spoken, directories, global)
 }
 

@@ -63,3 +63,27 @@ ask     git -C ~nobody/work status
 
 # A path rule never judges a command, even one that is only the path
 ask     ~/.ssh/id_rsa
+
+# An assignment in front of a command can point it at another
+# repository. Git reads GIT_DIR, GIT_WORK_TREE and GIT_NAMESPACE as the
+# options they stand for, and so are they judged. Any other assignment
+# points it nowhere.
+#
+# Denied, as they would be without the assignment:
+deny    GIT_DIR=/work/.git git push origin main
+deny    GIT_TRACE=1 git -C /work/app push origin main
+#
+# Allowed, pointed into a trusted repository or pointed nowhere:
+allow   GIT_DIR=/work/.git git status
+allow   GIT_TRACE=1 git -C /work status
+allow   GIT_TRACE=1 git -C /work/app push origin topic
+#
+# Contested, where the assignment is what takes a command out of the
+# repository a rule vouches for. A push is refused wherever git's
+# repository is named, since the config it names can send the commits
+# anywhere.
+ask     GIT_DIR=/elsewhere/.git git status
+ask     GIT_WORK_TREE=/elsewhere git -C /work status
+allow   git -C /work/app push origin topic
+deny    GIT_DIR=/elsewhere/.git git -C /work/app push origin topic
+deny    GIT_DIR=/work/app/.git git -C /work/app push origin topic

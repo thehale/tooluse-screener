@@ -99,6 +99,16 @@ func TestDirectories(t *testing.T) {
 		pointed(t, "git -C /a --work-tree=/b status", "/a", "/b")
 	})
 
+	t.Run("an assignment git reads as an option points it the same way", func(t *testing.T) {
+		pointed(t, "GIT_DIR=/a/.git git status", "/a/.git")
+		pointed(t, "GIT_WORK_TREE=/b git status", "/b")
+		pointed(t, "GIT_DIR=.git git -C /a status", "/a", "/a/.git")
+	})
+
+	t.Run("an assignment git reads as nothing points it nowhere", func(t *testing.T) {
+		pointed(t, "GIT_TRACE=1 git status")
+	})
+
 	t.Run("a directory is read as the shell passes it on", func(t *testing.T) {
 		pointed(t, `git -C "/tmp/foo" status`, "/tmp/foo")
 		pointed(t, `git --git-dir='/tmp/foo/.git' status`, "/tmp/foo/.git")
