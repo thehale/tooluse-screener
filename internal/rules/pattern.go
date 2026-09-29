@@ -3,7 +3,11 @@
 
 package rules
 
-import "regexp"
+import (
+	"regexp"
+
+	commands "github.com/thehale/tooluse-screener/internal/command"
+)
 
 type Pattern struct {
 	described
@@ -19,12 +23,12 @@ func NewPattern(expression, note, description string) (Rule, error) {
 	return Pattern{described{note, description}, built, expression}, nil
 }
 
-func (p Pattern) Matches(command string) bool {
+func (p Pattern) Matches(command commands.Command) bool {
 	return p.At(command) >= 0
 }
 
-func (p Pattern) At(command string) int {
-	return opened(p.expression.FindStringIndex(command))
+func (p Pattern) At(command commands.Command) int {
+	return opened(p.expression.FindStringIndex(command.Text))
 }
 
 func opened(at []int) int {
@@ -36,8 +40,8 @@ func opened(at []int) int {
 	}
 }
 
-func (p Pattern) Span(command string) int {
-	return spanned(p.expression.FindStringIndex(command))
+func (p Pattern) Span(command commands.Command) int {
+	return spanned(p.expression.FindStringIndex(command.Text))
 }
 
 func spanned(at []int) int {

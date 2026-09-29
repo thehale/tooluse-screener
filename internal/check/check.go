@@ -47,7 +47,7 @@ func Evaluate(line string, p policy.Policy) Verdict {
 
 var undecided = Verdict{Ask, "Command is not in the shared allow list"}
 
-func refusals(p policy.Policy, found []string) []rules.Rule {
+func refusals(p policy.Policy, found []command.Command) []rules.Rule {
 	var matched []rules.Rule
 	for _, one := range found {
 		matched = append(matched, standing(p.Denied.Matching(one), p.Allowed, one)...)
@@ -55,7 +55,7 @@ func refusals(p policy.Policy, found []string) []rules.Rule {
 	return matched
 }
 
-func standing(denials []rules.Rule, allowed rules.Group, line string) []rules.Rule {
+func standing(denials []rules.Rule, allowed rules.Group, line command.Command) []rules.Rule {
 	var matched []rules.Rule
 	for _, rule := range denials {
 		if !accountsForAll(allowed, line) || accountsForAll(rule, line) {
@@ -65,12 +65,12 @@ func standing(denials []rules.Rule, allowed rules.Group, line string) []rules.Ru
 	return matched
 }
 
-func accountsForAll(rule rules.Rule, line string) bool {
-	spoken := command.Spoken(line)
+func accountsForAll(rule rules.Rule, line command.Command) bool {
+	spoken := command.Spoken(line.Text)
 	return spoken != "" && rule.Span(line) == len(spoken)
 }
 
-func permissions(allowed rules.Group, found []string) [][]rules.Rule {
+func permissions(allowed rules.Group, found []command.Command) [][]rules.Rule {
 	vouching := make([][]rules.Rule, 0, len(found))
 	for _, one := range found {
 		vouching = append(vouching, allowed.Matching(one))

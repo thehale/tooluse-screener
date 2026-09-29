@@ -3,7 +3,11 @@
 
 package rules
 
-import "strings"
+import (
+	"strings"
+
+	commands "github.com/thehale/tooluse-screener/internal/command"
+)
 
 type Words struct {
 	described
@@ -14,17 +18,18 @@ func NewWords(text, note, description string) Rule {
 	return Words{described{note, description}, text}
 }
 
-func (w Words) Matches(command string) bool {
+func (w Words) Matches(command commands.Command) bool {
 	return w.At(command) >= 0
 }
 
-func (w Words) At(command string) int {
-	for from := 0; w.text != "" && from+len(w.text) <= len(command); {
-		found := strings.Index(command[from:], w.text)
+func (w Words) At(command commands.Command) int {
+	text := command.Text
+	for from := 0; w.text != "" && from+len(w.text) <= len(text); {
+		found := strings.Index(text[from:], w.text)
 		switch {
 		case found < 0:
 			return -1
-		case w.standsAlone(command, from+found):
+		case w.standsAlone(text, from+found):
 			return from + found
 		default:
 			from += found + 1
@@ -55,7 +60,7 @@ func joinsAWord(letter byte) bool {
 		('0' <= letter && letter <= '9')
 }
 
-func (w Words) Span(command string) int {
+func (w Words) Span(command commands.Command) int {
 	switch {
 	case w.Matches(command):
 		return len(w.text)

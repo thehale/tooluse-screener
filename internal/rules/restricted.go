@@ -4,6 +4,7 @@
 package rules
 
 import (
+	commands "github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/directories"
 	"github.com/thehale/tooluse-screener/internal/git"
 )
@@ -18,11 +19,11 @@ func NewRestricted(rule Rule, dirs []string, branches Branches) Rule {
 	return Restricted{rule, dirs, branches}
 }
 
-func (r Restricted) Matches(command string) bool {
+func (r Restricted) Matches(command commands.Command) bool {
 	return r.At(command) >= 0
 }
 
-func (r Restricted) At(command string) int {
+func (r Restricted) At(command commands.Command) int {
 	switch {
 	case r.holds(command):
 		return r.rule.At(command)
@@ -31,26 +32,17 @@ func (r Restricted) At(command string) int {
 	}
 }
 
-func (r Restricted) holds(command string) bool {
-	invocation := git.Read(command)
-	return r.runsInADir(invocation) && r.landsOnABranch(invocation)
+func (r Restricted) holds(command commands.Command) bool {
+	invocation := git.Read(command.Text)
+	return r.runsInADir(command, invocation) && r.landsOnABranch(invocation)
 }
 
-func (r Restricted) runsInADir(invocation git.Invocation) bool {
+func (r Restricted) runsInADir(command commands.Command, invocation git.Invocation) bool {
 	switch {
 	case len(r.dirs) == 0:
 		return true
 	default:
-		return directories.AllUnder(orHere(pointedAt(invocation)), r.dirs)
-	}
-}
-
-func orHere(pointed []string) []string {
-	switch {
-	case len(pointed) == 0:
-		return []string{"."}
-	default:
-		return pointed
+		return directories.AllUnder(actedIn(command.Moved, orHere(pointedAt(invocation))), r.dirs)
 	}
 }
 
@@ -64,7 +56,7 @@ func (r Restricted) landsOnABranch(invocation git.Invocation) bool {
 	}
 }
 
-func (r Restricted) Span(command string) int {
+func (r Restricted) Span(command commands.Command) int {
 	switch {
 	case r.holds(command):
 		return r.rule.Span(command)

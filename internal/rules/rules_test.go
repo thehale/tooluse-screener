@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
@@ -234,6 +235,23 @@ func TestReaching(t *testing.T) {
 		matches(t, true, within(here), "GIT_TRACE=1 git status")
 	})
 
+	t.Run("a command the line moved is judged where it may have gone", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		movedMatches(t, true, within(root), "git status", root)
+		movedMatches(t, false, within(root), "git status", root, "/elsewhere")
+		movedMatches(t, false, within(root), "git status", "")
+		movedMatches(t, false, within(root), "git -C nested status", "/elsewhere")
+		movedMatches(t, false, within(root), "git -C nested status", root)
+		movedMatches(t, true, within(root, here), "git -C nested status", root)
+	})
+
+	t.Run("a command other than git goes where it likes", func(t *testing.T) {
+		movedMatches(t, true, rules.NewReaching(rules.NewWords("ls", "", ""), []string{root}), "ls", "/elsewhere")
+	})
+
 	t.Run("with within it still matches a command with no directory", func(t *testing.T) {
 		matches(t, true, within(root), "git status")
 	})
@@ -290,6 +308,18 @@ func TestRestricted(t *testing.T) {
 		matches(t, true, opening, "GH_DEBUG=1 gh pr create --fill")
 		matches(t, false, opening, "GH_REPO=other/repo gh pr create --fill")
 		matches(t, false, opening, "GIT_DIR=/elsewhere/.git gh pr create --fill")
+	})
+
+	t.Run("a command the line moved is judged where it began and where it may have gone", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		held := rules.NewRestricted(pushing, []string{here}, rules.Branches{})
+		movedMatches(t, true, held, "git push origin topic", filepath.Join(here, "nested"))
+		movedMatches(t, false, held, "git push origin topic", "/elsewhere")
+		movedMatches(t, false, held, "git push origin topic", "")
+		movedMatches(t, false, rules.NewRestricted(pushing, []string{root}, rules.Branches{}), "git push origin topic", root)
 	})
 
 	t.Run("an unrestricted rule is left as it was", func(t *testing.T) {
@@ -484,14 +514,21 @@ func leading(t *testing.T, expression, note, description string) rules.Rule {
 
 func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
 	t.Helper()
-	if got := rule.Matches(command); got != wanted {
+	if got := rule.Matches(said(command)); got != wanted {
 		t.Errorf("%s matching %q = %v, wanted %v", rule, command, got, wanted)
+	}
+}
+
+func movedMatches(t *testing.T, wanted bool, rule rules.Rule, text string, moved ...string) {
+	t.Helper()
+	if got := rule.Matches(command.Command{Text: text, Moved: moved}); got != wanted {
+		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, moved, got, wanted)
 	}
 }
 
 func spans(t *testing.T, wanted int, rule rules.Rule, command string) {
 	t.Helper()
-	if got := rule.Span(command); got != wanted {
+	if got := rule.Span(said(command)); got != wanted {
 		t.Errorf("%s spanning %q = %d, wanted %d", rule, command, got, wanted)
 	}
 }
@@ -505,7 +542,7 @@ func named(t *testing.T, rule rules.Rule, wanted string) {
 
 func matched(t *testing.T, group rules.Group, command string, wanted ...rules.Rule) {
 	t.Helper()
-	if got := group.Matching(command); !slices.Equal(got, wanted) {
+	if got := group.Matching(said(command)); !slices.Equal(got, wanted) {
 		t.Errorf("Matching(%q) = %v, wanted %v", command, got, wanted)
 	}
 }
@@ -524,4 +561,8 @@ func writes(t *testing.T, wanted bool, rule rules.Glob, file string) {
 	if matched := rule.Matches(file); matched != wanted {
 		t.Errorf("%s matches %q = %v, wanted %v", rule, file, matched, wanted)
 	}
+}
+
+func said(text string) command.Command {
+	return command.Command{Text: text}
 }

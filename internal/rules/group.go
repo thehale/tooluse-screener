@@ -3,7 +3,10 @@
 
 package rules
 
-import "github.com/thehale/tooluse-screener/internal/lists"
+import (
+	commands "github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/lists"
+)
 
 type Group struct {
 	described
@@ -15,11 +18,11 @@ func NewGroup(name string, rules ...Rule) Group {
 	return Group{described{}, rules, name}
 }
 
-func (g Group) Matches(command string) bool {
+func (g Group) Matches(command commands.Command) bool {
 	return lists.Some(g.rules, func(rule Rule) bool { return rule.Matches(command) })
 }
 
-func (g Group) Matching(command string) []Rule {
+func (g Group) Matching(command commands.Command) []Rule {
 	var matched []Rule
 	for _, rule := range g.rules {
 		matched = append(matched, matchingOne(rule, command)...)
@@ -27,7 +30,7 @@ func (g Group) Matching(command string) []Rule {
 	return matched
 }
 
-func matchingOne(rule Rule, command string) []Rule {
+func matchingOne(rule Rule, command commands.Command) []Rule {
 	if nested, grouped := rule.(Group); grouped {
 		return nested.Matching(command)
 	}
@@ -41,7 +44,7 @@ func (g Group) String() string {
 	return g.describes(g.name)
 }
 
-func (g Group) At(command string) int {
+func (g Group) At(command commands.Command) int {
 	earliest := -1
 	for _, rule := range g.rules {
 		if at := rule.At(command); at >= 0 && (earliest < 0 || at < earliest) {
@@ -51,7 +54,7 @@ func (g Group) At(command string) int {
 	return earliest
 }
 
-func (g Group) Span(command string) int {
+func (g Group) Span(command commands.Command) int {
 	widest := 0
 	for _, rule := range g.rules {
 		widest = max(widest, rule.Span(command))

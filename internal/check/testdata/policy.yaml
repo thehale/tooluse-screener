@@ -14,6 +14,7 @@ denied:
     paths: ['~/.ssh/**', '~/**/*.pem']
 
 allowed:
+  - cd
   - ls
   - cat
   - python3

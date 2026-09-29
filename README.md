@@ -134,7 +134,10 @@ not satisfied does not match at all:
 
 `dirs` holds the rule to those directories, read against every directory
 the command names with `-C`, `--git-dir` or `--work-tree`, or against
-the working directory when it names none.
+the working directory when it names none. tooluse-screener makes a best
+effort attempt to detect and apply policy based on the actual directory
+where a command will execute (e.g. following `cd` and `git -C` path
+changes).
 
 `branches` holds a push to the branches it lists. A plain name is one
 the push may land on, and `not` names one it may not. Where both are

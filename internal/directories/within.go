@@ -22,3 +22,13 @@ func Within(here, path string) string {
 func standsAlone(path string) bool {
 	return rooted(path) || filepath.VolumeName(path) != "" || strings.HasPrefix(path, "~")
 }
+
+func Entered(here, path string) string {
+	named := WithHomeExpanded(Within(here, path))
+	switch {
+	case named == "" || strings.HasPrefix(named, "~"):
+		return ""
+	default:
+		return filepath.Clean(named)
+	}
+}

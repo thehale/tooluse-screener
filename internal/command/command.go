@@ -7,11 +7,18 @@ import "strings"
 
 const Unquotable = "\x00"
 
-func All(text string) []string {
-	var found []string
+type Command struct {
+	Text  string
+	Moved []string
+}
+
+func All(text string) []Command {
+	var found []Command
+	var moved []string
 	for _, written := range split(joinedLines(text)) {
 		if command := tidied(written); command != "" {
-			found = append(found, command)
+			found = append(found, Command{command, moved})
+			moved = movedBy(command, moved)
 		}
 	}
 	return found

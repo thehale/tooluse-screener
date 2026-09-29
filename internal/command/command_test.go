@@ -90,7 +90,15 @@ func TestSubstitutions(t *testing.T) {
 
 func found(t *testing.T, text string, wanted ...string) {
 	t.Helper()
-	if all := command.All(text); !slices.Equal(all, wanted) {
+	if all := texts(command.All(text)); !slices.Equal(all, wanted) {
 		t.Errorf("All(%q) = %q, wanted %q", text, all, wanted)
 	}
+}
+
+func texts(commands []command.Command) []string {
+	var spoken []string
+	for _, one := range commands {
+		spoken = append(spoken, one.Text)
+	}
+	return spoken
 }

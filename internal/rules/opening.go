@@ -13,11 +13,11 @@ func NewOpening(rule Rule) Rule {
 	return Opening{rule}
 }
 
-func (o Opening) Matches(command string) bool {
+func (o Opening) Matches(command commands.Command) bool {
 	return o.At(command) >= 0
 }
 
-func (o Opening) At(command string) int {
+func (o Opening) At(command commands.Command) int {
 	switch {
 	case o.Span(command) > 0:
 		return 0
@@ -26,11 +26,11 @@ func (o Opening) At(command string) int {
 	}
 }
 
-func (o Opening) Span(command string) int {
-	spoken := commands.Spoken(command)
+func (o Opening) Span(command commands.Command) int {
+	spoken := commands.Command{Text: commands.Spoken(command.Text), Moved: command.Moved}
 	accounted := o.rule.Span(spoken)
 	switch {
-	case o.rule.At(spoken) == 0 && endsAWord(spoken, accounted):
+	case o.rule.At(spoken) == 0 && endsAWord(spoken.Text, accounted):
 		return accounted
 	default:
 		return 0

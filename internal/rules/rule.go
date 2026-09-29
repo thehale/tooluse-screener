@@ -3,10 +3,12 @@
 
 package rules
 
+import commands "github.com/thehale/tooluse-screener/internal/command"
+
 type Rule interface {
-	Matches(command string) bool
-	At(command string) int
-	Span(command string) int
+	Matches(command commands.Command) bool
+	At(command commands.Command) int
+	Span(command commands.Command) int
 	Note() string
 	String() string
 }

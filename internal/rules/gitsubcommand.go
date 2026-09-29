@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	commands "github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/git"
 )
 
@@ -20,12 +21,12 @@ func NewGitSubcommand(subcommand string, having []string, note, description stri
 	return GitSubcommand{described{note, description}, subcommand, having}
 }
 
-func (g GitSubcommand) Matches(command string) bool {
-	invocation := git.Read(command)
+func (g GitSubcommand) Matches(command commands.Command) bool {
+	invocation := git.Read(command.Text)
 	return invocation.IsA(g.subcommand) && invocation.Carries(g.having)
 }
 
-func (g GitSubcommand) At(command string) int {
+func (g GitSubcommand) At(command commands.Command) int {
 	switch {
 	case g.Matches(command):
 		return 0
@@ -34,10 +35,10 @@ func (g GitSubcommand) At(command string) int {
 	}
 }
 
-func (g GitSubcommand) Span(command string) int {
+func (g GitSubcommand) Span(command commands.Command) int {
 	switch {
 	case g.Matches(command):
-		return past(command, append([]string{g.subcommand}, g.having...))
+		return past(command.Text, append([]string{g.subcommand}, g.having...))
 	default:
 		return 0
 	}

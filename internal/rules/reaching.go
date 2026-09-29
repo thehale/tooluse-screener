@@ -4,6 +4,7 @@
 package rules
 
 import (
+	commands "github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/directories"
 	"github.com/thehale/tooluse-screener/internal/git"
 )
@@ -17,11 +18,11 @@ func NewReaching(rule Rule, trusted []string) Rule {
 	return Reaching{rule, trusted}
 }
 
-func (r Reaching) Matches(command string) bool {
+func (r Reaching) Matches(command commands.Command) bool {
 	return r.At(command) >= 0
 }
 
-func (r Reaching) At(command string) int {
+func (r Reaching) At(command commands.Command) int {
 	switch {
 	case r.reaches(command):
 		return r.rule.At(command)
@@ -30,7 +31,7 @@ func (r Reaching) At(command string) int {
 	}
 }
 
-func (r Reaching) Span(command string) int {
+func (r Reaching) Span(command commands.Command) int {
 	switch {
 	case r.reaches(command):
 		return r.rule.Span(command)
@@ -39,9 +40,9 @@ func (r Reaching) Span(command string) int {
 	}
 }
 
-func (r Reaching) reaches(command string) bool {
-	invocation := git.Read(command)
-	return !invocation.Git || directories.AllUnder(pointedAt(invocation), r.trusted)
+func (r Reaching) reaches(command commands.Command) bool {
+	invocation := git.Read(command.Text)
+	return !invocation.Git || directories.AllUnder(actedIn(command.Moved, pointedAt(invocation)), r.trusted)
 }
 
 func (r Reaching) Note() string {

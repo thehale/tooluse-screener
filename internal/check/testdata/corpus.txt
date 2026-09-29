@@ -64,6 +64,18 @@ ask     git -C ~nobody/work status
 # A path rule never judges a command, even one that is only the path
 ask     ~/.ssh/id_rsa
 
+# A command after a cd may be wherever the cd went, and a line that
+# moves is judged everywhere it may be: where it began, and every place
+# each cd could have taken it from each of those. A place the shell
+# decides is known to no rule.
+allow   cd /work && git status
+allow   cd /elsewhere && ls
+ask     cd /elsewhere && git status
+ask     cd /work; cd ../elsewhere; git status
+ask     cd "$REPO" && git status
+ask     cd - && git status
+deny    cd /work/app && git push origin topic
+
 # An assignment in front of a command can point it at another
 # repository. Git reads GIT_DIR, GIT_WORK_TREE and GIT_NAMESPACE as the
 # options they stand for, and so are they judged. One that points it

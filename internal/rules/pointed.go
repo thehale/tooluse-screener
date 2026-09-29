@@ -3,7 +3,22 @@
 
 package rules
 
-import "github.com/thehale/tooluse-screener/internal/git"
+import (
+	"slices"
+
+	"github.com/thehale/tooluse-screener/internal/directories"
+	"github.com/thehale/tooluse-screener/internal/git"
+)
+
+func actedIn(moved, pointed []string) []string {
+	acted := slices.Clone(pointed)
+	for _, here := range moved {
+		for _, there := range orHere(pointed) {
+			acted = append(acted, directories.Within(here, there))
+		}
+	}
+	return acted
+}
 
 func pointedAt(invocation git.Invocation) []string {
 	switch {
@@ -11,5 +26,14 @@ func pointedAt(invocation git.Invocation) []string {
 		return append(invocation.Directories, "")
 	default:
 		return invocation.Directories
+	}
+}
+
+func orHere(pointed []string) []string {
+	switch {
+	case len(pointed) == 0:
+		return []string{"."}
+	default:
+		return pointed
 	}
 }

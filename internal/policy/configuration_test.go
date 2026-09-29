@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/policy"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
@@ -97,7 +98,7 @@ func TestAnEntryWithAReason(t *testing.T) {
 	t.Run("a bare command is the same entry without one", func(t *testing.T) {
 		bare := parsed(t, "denied:\n  - shutdown\n").Denied
 		grouped := parsed(t, "denied:\n  - commands: shutdown\n").Denied
-		if bare.Matches("shutdown now") != grouped.Matches("shutdown now") {
+		if bare.Matches(said("shutdown now")) != grouped.Matches(said("shutdown now")) {
 			t.Error("a bare command is not the same as one written out")
 		}
 		notes(t, bare, "shutdown now", "")
@@ -415,7 +416,7 @@ func refuses(t *testing.T, configuration, complaint string) {
 
 func matches(t *testing.T, wanted bool, group rules.Group, command string) {
 	t.Helper()
-	if got := group.Matches(command); got != wanted {
+	if got := group.Matches(said(command)); got != wanted {
 		t.Errorf("%s matching %q = %v, wanted %v", group, command, got, wanted)
 	}
 }
@@ -436,7 +437,7 @@ func named(t *testing.T, group rules.Group, command, wanted string) {
 
 func matching(t *testing.T, group rules.Group, command string) rules.Rule {
 	t.Helper()
-	matched := group.Matching(command)
+	matched := group.Matching(said(command))
 	if len(matched) == 0 {
 		t.Fatalf("%q matched nothing", command)
 	}
@@ -452,4 +453,8 @@ func globbed(t *testing.T, found []rules.Glob, wanted ...string) {
 	if strings.Join(named, " ") != strings.Join(wanted, " ") {
 		t.Errorf("read %q, wanted %q", named, wanted)
 	}
+}
+
+func said(text string) command.Command {
+	return command.Command{Text: text}
 }
