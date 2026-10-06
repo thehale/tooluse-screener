@@ -4,6 +4,7 @@
 package git_test
 
 import (
+	"os/exec"
 	"testing"
 
 	"github.com/thehale/tooluse-screener/internal/git"
@@ -95,9 +96,74 @@ func TestWhereAPushIsUnread(t *testing.T) {
 	})
 }
 
+func TestTheBranchARepositorySays(t *testing.T) {
+	t.Run("a push that names no branch lands on the one checked out", func(t *testing.T) {
+		on := repository(t, "topic")
+		landsFrom(t, []string{on}, "git push", "topic")
+		landsFrom(t, []string{on}, "git push origin", "topic")
+		landsFrom(t, []string{on}, "git push -u origin", "topic")
+	})
+
+	t.Run("HEAD is the branch checked out", func(t *testing.T) {
+		landsFrom(t, []string{repository(t, "topic")}, "git push origin HEAD", "topic")
+	})
+
+	t.Run("push.default upstream lands on the branch it tracks", func(t *testing.T) {
+		tracking := repository(t, "topic", "push.default", "upstream", "branch.topic.remote", "origin", "branch.topic.merge", "refs/heads/main")
+		landsFrom(t, []string{tracking}, "git push", "main")
+	})
+
+	t.Run("push.default simple and current land on the same name", func(t *testing.T) {
+		landsFrom(t, []string{repository(t, "topic", "push.default", "current")}, "git push", "topic")
+		landsFrom(t, []string{repository(t, "topic", "push.default", "simple")}, "git push", "topic")
+	})
+
+	t.Run("a push the repository spreads over several branches", func(t *testing.T) {
+		unreadFrom(t, []string{repository(t, "topic", "push.default", "matching")}, "git push")
+		unreadFrom(t, []string{repository(t, "topic", "remote.origin.push", "refs/heads/*:refs/heads/*")}, "git push")
+	})
+
+	t.Run("a remote the repository names that is a place rather than a name", func(t *testing.T) {
+		unreadFrom(t, []string{repository(t, "topic", "remote.pushDefault", "../elsewhere")}, "git push")
+	})
+
+	t.Run("directories that disagree, or one nobody can read", func(t *testing.T) {
+		unreadFrom(t, []string{repository(t, "topic"), repository(t, "other")}, "git push")
+		landsFrom(t, []string{repository(t, "topic"), repository(t, "topic")}, "git push", "topic")
+		unreadFrom(t, []string{repository(t, "topic"), ""}, "git push")
+	})
+
+	t.Run("a directory that is no repository", func(t *testing.T) {
+		unreadFrom(t, []string{t.TempDir()}, "git push origin HEAD")
+	})
+}
+
+func repository(t *testing.T, branch string, settings ...string) string {
+	t.Helper()
+	dir := t.TempDir()
+	runs(t, dir, "init", "--quiet", "--initial-branch", branch)
+	for len(settings) > 1 {
+		runs(t, dir, "config", settings[0], settings[1])
+		settings = settings[2:]
+	}
+	return dir
+}
+
+func runs(t *testing.T, dir string, arguments ...string) {
+	t.Helper()
+	if said, err := exec.Command("git", append([]string{"-C", dir}, arguments...)...).CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", arguments, err, said)
+	}
+}
+
 func lands(t *testing.T, command, wanted string) {
 	t.Helper()
-	branch, known := git.Landing(git.Read(command))
+	landsFrom(t, []string{t.TempDir()}, command, wanted)
+}
+
+func landsFrom(t *testing.T, dirs []string, command, wanted string) {
+	t.Helper()
+	branch, known := git.Landing(git.Read(command), dirs)
 	if !known || branch != wanted {
 		t.Errorf("Landing(%q) = %q, %v, wanted %q, true", command, branch, known, wanted)
 	}
@@ -105,7 +171,12 @@ func lands(t *testing.T, command, wanted string) {
 
 func unread(t *testing.T, command string) {
 	t.Helper()
-	if branch, known := git.Landing(git.Read(command)); known {
+	unreadFrom(t, []string{t.TempDir()}, command)
+}
+
+func unreadFrom(t *testing.T, dirs []string, command string) {
+	t.Helper()
+	if branch, known := git.Landing(git.Read(command), dirs); known {
 		t.Errorf("Landing(%q) = %q, true, wanted it unread", command, branch)
 	}
 }

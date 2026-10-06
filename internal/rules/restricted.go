@@ -34,24 +34,20 @@ func (r Restricted) At(command commands.Command) int {
 
 func (r Restricted) holds(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	return r.runsInADir(command, invocation) && r.landsOnABranch(invocation)
+	acted := actedIn(command.Moved, orHere(pointedAt(invocation)))
+	return r.runsInADir(acted) && r.landsOnABranch(invocation, acted)
 }
 
-func (r Restricted) runsInADir(command commands.Command, invocation git.Invocation) bool {
-	switch {
-	case len(r.dirs) == 0:
-		return true
-	default:
-		return directories.AllUnder(actedIn(command.Moved, orHere(pointedAt(invocation))), r.dirs)
-	}
+func (r Restricted) runsInADir(acted []string) bool {
+	return len(r.dirs) == 0 || directories.AllUnder(acted, r.dirs)
 }
 
-func (r Restricted) landsOnABranch(invocation git.Invocation) bool {
-	branch, known := git.Landing(invocation)
+func (r Restricted) landsOnABranch(invocation git.Invocation, acted []string) bool {
 	switch {
 	case r.branches.unsaid():
 		return true
 	default:
+		branch, known := git.Landing(invocation, acted)
 		return known && r.branches.hold(branch)
 	}
 }

@@ -6,6 +6,7 @@ package rules_test
 import (
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"testing"
@@ -322,6 +323,12 @@ func TestRestricted(t *testing.T) {
 		movedMatches(t, false, rules.NewRestricted(pushing, []string{root}, rules.Branches{}), "git push origin topic", root)
 	})
 
+	t.Run("reads a push that names no branch from the repository it acts in", func(t *testing.T) {
+		guarding := rules.NewRestricted(pushing, nil, rules.Branches{Onto: []string{"main"}})
+		matches(t, true, guarding, "git -C "+checkedOut(t, "main")+" push")
+		matches(t, false, guarding, "git -C "+checkedOut(t, "topic")+" push")
+	})
+
 	t.Run("an unrestricted rule is left as it was", func(t *testing.T) {
 		matches(t, true, rules.NewRestricted(pushing, nil, rules.Branches{}), "git -C /anywhere push")
 	})
@@ -517,6 +524,15 @@ func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
 	if got := rule.Matches(said(command)); got != wanted {
 		t.Errorf("%s matching %q = %v, wanted %v", rule, command, got, wanted)
 	}
+}
+
+func checkedOut(t *testing.T, branch string) string {
+	t.Helper()
+	dir := t.TempDir()
+	if said, err := exec.Command("git", "-C", dir, "init", "--quiet", "--initial-branch", branch).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, said)
+	}
+	return dir
 }
 
 func movedMatches(t *testing.T, wanted bool, rule rules.Rule, text string, moved ...string) {

@@ -4,6 +4,7 @@
 package git
 
 import (
+	"cmp"
 	"regexp"
 	"slices"
 	"strings"
@@ -11,19 +12,51 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func Landing(i Invocation) (branch string, known bool) {
-	remote, refspec := pushed(i)
-	branch = branchOf(refspec)
+func Landing(i Invocation, dirs []string) (branch string, known bool) {
+	words, readable := pushed(i)
+	switch {
+	case !readable:
+		return "", false
+	case len(words) == 2 && words[1] != "HEAD":
+		return onto(words[0], branchOf(words[1]))
+	default:
+		return agreed(dirs, func(dir string) (string, bool) { return landingIn(dir, words) })
+	}
+}
+
+func pushed(i Invocation) (words []string, readable bool) {
+	options, words := partitioned(i.Arguments)
+	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && leaveTheLandingAlone(options, i.Global)
+}
+
+func onto(remote, branch string) (string, bool) {
 	return branch, remoteName.MatchString(remote) && branch != ""
 }
 
-func pushed(i Invocation) (remote, refspec string) {
-	options, words := partitioned(i.Arguments)
+func agreed(dirs []string, landing func(string) (string, bool)) (string, bool) {
+	branches := make([]string, 0, len(dirs))
+	known := true
+	for _, dir := range dirs {
+		branch, read := landing(dir)
+		branches = append(branches, branch)
+		known = known && read
+	}
+	slices.Sort(branches)
+	settled := slices.Compact(branches)
+	return cmp.Or(settled...), known && len(settled) == 1
+}
+
+func landingIn(dir string, words []string) (string, bool) {
+	repo, open := opened(dir)
 	switch {
-	case i.IsA("push") && len(words) == 2 && len(i.Unread) == 0 && leaveTheLandingAlone(options, i.Global):
-		return words[0], words[1]
+	case !open:
+		return "", false
+	case len(words) == 2:
+		return onto(words[0], named(repo.branch))
+	case len(words) == 1:
+		return repo.landing(words[0])
 	default:
-		return "", ""
+		return repo.landing(repo.pushRemote())
 	}
 }
 
