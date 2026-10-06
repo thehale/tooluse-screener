@@ -5,20 +5,20 @@ package rules
 
 import commands "github.com/thehale/tooluse-screener/internal/command"
 
-type Restricted struct {
+type Scoped struct {
 	rule  Rule
 	scope Scope
 }
 
-func NewRestricted(rule Rule, scope Scope) Rule {
-	return Restricted{rule, scope}
+func NewScoped(rule Rule, scope Scope) Rule {
+	return Scoped{rule, scope}
 }
 
-func (r Restricted) Matches(command commands.Command) bool {
+func (r Scoped) Matches(command commands.Command) bool {
 	return r.At(command) >= 0
 }
 
-func (r Restricted) At(command commands.Command) int {
+func (r Scoped) At(command commands.Command) int {
 	switch {
 	case r.scope.includes(command):
 		return r.rule.At(command)
@@ -27,7 +27,7 @@ func (r Restricted) At(command commands.Command) int {
 	}
 }
 
-func (r Restricted) Span(command commands.Command) int {
+func (r Scoped) Span(command commands.Command) int {
 	switch {
 	case r.scope.includes(command):
 		return r.rule.Span(command)
@@ -36,10 +36,10 @@ func (r Restricted) Span(command commands.Command) int {
 	}
 }
 
-func (r Restricted) Reason(command commands.Command) string {
+func (r Scoped) Reason(command commands.Command) string {
 	return r.rule.Reason(command)
 }
 
-func (r Restricted) String() string {
+func (r Scoped) String() string {
 	return r.rule.String()
 }

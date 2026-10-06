@@ -18,7 +18,7 @@ func (b Branches) unsaid() bool {
 	return len(b.Onto) == 0 && len(b.NotOnto) == 0
 }
 
-func (b Branches) hold(branch string) bool {
+func (b Branches) includes(branch string) bool {
 	return (len(b.Onto) == 0 || among(b.Onto, branch)) && !among(b.NotOnto, branch)
 }
 

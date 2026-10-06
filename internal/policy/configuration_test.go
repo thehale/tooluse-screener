@@ -169,7 +169,7 @@ func TestOnlyDirs(t *testing.T) {
 		matches(t, false, allowed, "git -C /elsewhere status")
 	})
 
-	t.Run("restricts a denial the same way", func(t *testing.T) {
+	t.Run("scopes a denial the same way", func(t *testing.T) {
 		denied := parsed(t, "denied:\n  - commands: git status\n    only:\n      dirs: ["+root+"]\n").Denied
 		matches(t, true, denied, "git -C "+root+" status")
 		matches(t, false, denied, "git -C /elsewhere status")
@@ -196,7 +196,7 @@ func TestOnlyBranches(t *testing.T) {
 		matches(t, true, allowed, "git -C "+root+" push origin HEAD:topic")
 	})
 
-	t.Run("holds back every spelling of one inside it", func(t *testing.T) {
+	t.Run("leaves out every spelling of one inside it", func(t *testing.T) {
 		allowed := parsed(t, written).Allowed
 		matches(t, false, allowed, "git -C "+root+" push origin main")
 		matches(t, false, allowed, "git -C "+root+" push origin HEAD:main")
@@ -204,13 +204,13 @@ func TestOnlyBranches(t *testing.T) {
 		matches(t, false, allowed, "git -C "+root+" push origin MASTER")
 	})
 
-	t.Run("holds back a landing it cannot read at all", func(t *testing.T) {
+	t.Run("leaves out a landing it cannot read at all", func(t *testing.T) {
 		allowed := parsed(t, written).Allowed
 		matches(t, false, allowed, "git -C "+root+" push origin +topic:main")
 		matches(t, false, allowed, "git -C /elsewhere push origin topic")
 	})
 
-	t.Run("the command is named by the rule, never implied by the restriction", func(t *testing.T) {
+	t.Run("the command is named by the rule, never implied by the scope", func(t *testing.T) {
 		refuses(t, "allowed:\n  - name: Match nothing\n    only:\n      dirs: [/approved]\n", "`commands`, `patterns` or `paths`")
 	})
 
@@ -220,7 +220,7 @@ func TestOnlyBranches(t *testing.T) {
 		matches(t, false, allowed, "git push origin main")
 	})
 
-	t.Run("several conditions all have to hold", func(t *testing.T) {
+	t.Run("several conditions all have to be met", func(t *testing.T) {
 		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}, {not: [release]}]\n").Allowed
 		matches(t, true, allowed, "git push origin topic")
 		matches(t, false, allowed, "git push origin main")
@@ -235,7 +235,7 @@ func TestOnlyBranches(t *testing.T) {
 		matches(t, false, allowed, "git push origin anything-else")
 	})
 
-	t.Run("names and exclusions both have to hold", func(t *testing.T) {
+	t.Run("names and exclusions both have to be met", func(t *testing.T) {
 		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, {not: ci-fix}]\n").Allowed
 		matches(t, false, allowed, "git push origin ci-fix")
 	})
@@ -279,7 +279,7 @@ func TestAddendum(t *testing.T) {
 	})
 
 	t.Run("is refused beside paths", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: /secrets/**\n    addendum:\n      - only: {dirs: [/work]}\n        reason: Here.\n", "`addendum` hold commands")
+		refuses(t, "denied:\n  - paths: /secrets/**\n    addendum:\n      - only: {dirs: [/work]}\n        reason: Here.\n", "`addendum` scope commands")
 	})
 }
 
@@ -311,8 +311,8 @@ func TestPaths(t *testing.T) {
 		refuses(t, "denied:\n  - patterns: ['^cat ']\n    paths: /secrets/**\n", "never both")
 	})
 
-	t.Run("one held by only is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` and `addendum` hold commands")
+	t.Run("one scoped by only is refused", func(t *testing.T) {
+		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` and `addendum` scope commands")
 	})
 }
 

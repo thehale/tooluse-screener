@@ -263,18 +263,18 @@ func TestReaching(t *testing.T) {
 	})
 }
 
-func TestRestricted(t *testing.T) {
+func TestScoped(t *testing.T) {
 	root := t.TempDir()
 	pushing := rules.NewGitSubcommand("push", nil, "Open a pull request.", "")
-	onto := func(heldBack ...string) rules.Rule {
-		return rules.NewRestricted(pushing, rules.NewScope([]string{root}, rules.Branches{NotOnto: heldBack}))
+	onto := func(excluded ...string) rules.Rule {
+		return rules.NewScoped(pushing, rules.NewScope([]string{root}, rules.Branches{NotOnto: excluded}))
 	}
 
 	t.Run("matches a branch the command names", func(t *testing.T) {
 		matches(t, true, onto("main"), "git -C "+root+" push origin topic")
 	})
 
-	t.Run("does not match one held back, however it is written", func(t *testing.T) {
+	t.Run("does not match one excluded, however it is written", func(t *testing.T) {
 		matches(t, false, onto("main"), "git -C "+root+" push origin main")
 		matches(t, false, onto("main"), "git -C "+root+" push origin HEAD:main")
 		matches(t, false, onto("main"), "git -C "+root+" push origin MAIN")
@@ -287,7 +287,7 @@ func TestRestricted(t *testing.T) {
 
 	t.Run("does not match outside the dirs it is given", func(t *testing.T) {
 		matches(t, false, onto("main"), "git -C /elsewhere push origin topic")
-		matches(t, false, rules.NewRestricted(pushing, rules.NewScope([]string{"/nowhere"}, rules.Branches{})), "git -C "+root+" push origin topic")
+		matches(t, false, rules.NewScoped(pushing, rules.NewScope([]string{"/nowhere"}, rules.Branches{})), "git -C "+root+" push origin topic")
 	})
 
 	t.Run("a command naming no directory is judged where it runs", func(t *testing.T) {
@@ -295,8 +295,8 @@ func TestRestricted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		matches(t, true, rules.NewRestricted(pushing, rules.NewScope([]string{here}, rules.Branches{})), "git push origin topic")
-		matches(t, false, rules.NewRestricted(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic")
+		matches(t, true, rules.NewScoped(pushing, rules.NewScope([]string{here}, rules.Branches{})), "git push origin topic")
+		matches(t, false, rules.NewScoped(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic")
 	})
 
 	t.Run("a command an assignment points where nothing reads is judged nowhere", func(t *testing.T) {
@@ -304,7 +304,7 @@ func TestRestricted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		opening := rules.NewRestricted(leading(t, `gh pr create\b.*$`, "", ""), rules.NewScope([]string{here}, rules.Branches{}))
+		opening := rules.NewScoped(leading(t, `gh pr create\b.*$`, "", ""), rules.NewScope([]string{here}, rules.Branches{}))
 		matches(t, true, opening, "gh pr create --fill")
 		matches(t, true, opening, "GH_DEBUG=1 gh pr create --fill")
 		matches(t, false, opening, "GH_REPO=other/repo gh pr create --fill")
@@ -316,24 +316,24 @@ func TestRestricted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		held := rules.NewRestricted(pushing, rules.NewScope([]string{here}, rules.Branches{}))
-		movedMatches(t, true, held, "git push origin topic", filepath.Join(here, "nested"))
-		movedMatches(t, false, held, "git push origin topic", "/elsewhere")
-		movedMatches(t, false, held, "git push origin topic", "")
-		movedMatches(t, false, rules.NewRestricted(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic", root)
+		scoped := rules.NewScoped(pushing, rules.NewScope([]string{here}, rules.Branches{}))
+		movedMatches(t, true, scoped, "git push origin topic", filepath.Join(here, "nested"))
+		movedMatches(t, false, scoped, "git push origin topic", "/elsewhere")
+		movedMatches(t, false, scoped, "git push origin topic", "")
+		movedMatches(t, false, rules.NewScoped(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic", root)
 	})
 
 	t.Run("reads a push that names no branch from the repository it acts in", func(t *testing.T) {
-		guarding := rules.NewRestricted(pushing, rules.NewScope(nil, rules.Branches{Onto: []string{"main"}}))
+		guarding := rules.NewScoped(pushing, rules.NewScope(nil, rules.Branches{Onto: []string{"main"}}))
 		matches(t, true, guarding, "git -C "+checkedOut(t, "main")+" push")
 		matches(t, false, guarding, "git -C "+checkedOut(t, "topic")+" push")
 	})
 
-	t.Run("an unrestricted rule is left as it was", func(t *testing.T) {
-		matches(t, true, rules.NewRestricted(pushing, rules.NewScope(nil, rules.Branches{})), "git -C /anywhere push")
+	t.Run("a rule with an empty scope is left as it was", func(t *testing.T) {
+		matches(t, true, rules.NewScoped(pushing, rules.NewScope(nil, rules.Branches{})), "git -C /anywhere push")
 	})
 
-	t.Run("speaks for the rule it restricts", func(t *testing.T) {
+	t.Run("speaks for the rule it scopes", func(t *testing.T) {
 		named(t, onto("main"), "git push")
 		reasoned(t, onto("main"), "git -C "+root+" push origin topic", "Open a pull request.")
 	})
@@ -456,13 +456,13 @@ func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 		spans(t, 18, rules.NewGitSubcommand("config", []string{"--unset"}, "", ""), "git config --unset user.name")
 	})
 
-	t.Run("a restricted rule accounts for what the rule it restricts did", func(t *testing.T) {
+	t.Run("a scoped rule accounts for what the rule it scopes did", func(t *testing.T) {
 		here, err := os.Getwd()
 		if err != nil {
 			t.Fatal(err)
 		}
 		naming := leading(t, `git push origin \S+$`, "", "")
-		landing := rules.NewRestricted(naming, rules.NewScope([]string{here}, rules.Branches{NotOnto: []string{"main"}}))
+		landing := rules.NewScoped(naming, rules.NewScope([]string{here}, rules.Branches{NotOnto: []string{"main"}}))
 		spans(t, len("git push origin topic"), landing, "git push origin topic")
 		spans(t, 0, landing, "git push origin main")
 	})

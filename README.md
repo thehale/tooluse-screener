@@ -87,7 +87,7 @@ tooluse-screener --config-file PATH ls
 ### Syntax
 
 A policy has three blocks, each described below: `denied` and `allowed`
-hold rules, and `trusted_git_directories` binds git to the repositories
+list rules, and `trusted_git_directories` binds git to the repositories
 you name.
 
 #### Rules
@@ -120,8 +120,8 @@ and a `reason`, which is shown alongside it:
   patterns: ['^rm -(rf|fr) /$']
 ```
 
-An `only` block holds a rule to where it applies. A rule whose `only` is
-not satisfied does not match at all:
+An `only` block scopes a rule to where it applies. A rule does not
+match at all outside its scope:
 
 ```yaml
 - commands: git push
@@ -132,17 +132,17 @@ not satisfied does not match at all:
       - not: [main, master, trunk]
 ```
 
-`dirs` holds the rule to those directories, read against every directory
+`dirs` scopes the rule to those directories, read against every directory
 the command names with `-C`, `--git-dir` or `--work-tree`, or against
 the working directory when it names none. tooluse-screener makes a best
 effort attempt to detect and apply policy based on the actual directory
 where a command will execute (e.g. following `cd` and `git -C` path
 changes).
 
-`branches` holds a push to the branches it lists. A plain name is one
+`branches` scopes a push to the branches it lists. A plain name is one
 the push may land on, and `not` names one it may not. Where both are
-written, both hold. This is read from where the commits will actually
-land rather than from the words, which is why it is a restriction and
+written, both must be met. This is read from where the commits will actually
+land rather than from the words, which is why it is part of the scope and
 not part of the expression beside it.
 
 An `addendum` adds to a rule's reason where its own `only` applies,
@@ -230,7 +230,7 @@ trusted_git_directories: [~/src]
 ```
 
 This is where an agent may reach out to a repository other than the one
-it is standing in. An allowed git rule holds only where the command
+it is standing in. An allowed git rule applies only where the command
 points inside one of these, so `git -C /elsewhere status` is left to be
 asked about however plainly `git status` is allowed.
 

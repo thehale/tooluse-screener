@@ -34,6 +34,6 @@ func (s Scope) landsOnABranch(invocation git.Invocation, acted []string) bool {
 		return true
 	default:
 		branch, known := git.Landing(invocation, acted)
-		return known && s.branches.hold(branch)
+		return known && s.branches.includes(branch)
 	}
 }
