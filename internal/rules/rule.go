@@ -9,17 +9,17 @@ type Rule interface {
 	Matches(command commands.Command) bool
 	At(command commands.Command) int
 	Span(command commands.Command) int
-	Note(command commands.Command) string
+	Reason(command commands.Command) string
 	String() string
 }
 
 type described struct {
-	note        string
+	reason      string
 	description string
 }
 
-func (d described) Note(commands.Command) string {
-	return d.note
+func (d described) Reason(commands.Command) string {
+	return d.reason
 }
 
 func (d described) describes(written string) string {

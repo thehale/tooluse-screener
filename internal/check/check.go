@@ -51,7 +51,7 @@ func refusals(p policy.Policy, found []command.Command) []string {
 	var reasons []string
 	for _, one := range found {
 		for _, rule := range standing(p.Denied.Matching(one), p.Allowed, one) {
-			reasons = append(reasons, refusal("Command", rule, rule.Note(one)))
+			reasons = append(reasons, refusal("Command", rule, rule.Reason(one)))
 		}
 	}
 	return reasons
@@ -84,12 +84,12 @@ func anyOf(matched []rules.Rule) bool {
 	return len(matched) > 0
 }
 
-func refusal(subject string, rule fmt.Stringer, note string) string {
+func refusal(subject string, rule fmt.Stringer, reason string) string {
 	refused := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
-	if note == "" {
+	if reason == "" {
 		return refused
 	}
-	return fmt.Sprintf("%s. %s", refused, note)
+	return fmt.Sprintf("%s. %s", refused, reason)
 }
 
 func permission(permitted [][]rules.Rule) string {

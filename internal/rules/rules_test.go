@@ -335,7 +335,7 @@ func TestRestricted(t *testing.T) {
 
 	t.Run("speaks for the rule it restricts", func(t *testing.T) {
 		named(t, onto("main"), "git push")
-		noted(t, onto("main"), "git -C "+root+" push origin topic", "Open a pull request.")
+		reasoned(t, onto("main"), "git -C "+root+" push origin topic", "Open a pull request.")
 	})
 }
 
@@ -345,17 +345,17 @@ func TestAddended(t *testing.T) {
 	approved := rules.NewAddendum(rules.NewScope([]string{root}, rules.Branches{}), "Push your own branch by name.")
 	addended := rules.NewAddended(pushing, []rules.Addendum{approved})
 
-	t.Run("adds a note where its addendum's scope includes the command", func(t *testing.T) {
-		noted(t, addended, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+	t.Run("adds a reason where its addendum's scope includes the command", func(t *testing.T) {
+		reasoned(t, addended, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
-	t.Run("keeps the note as it was elsewhere", func(t *testing.T) {
-		noted(t, addended, "git -C /elsewhere push", "Ask first.")
+	t.Run("keeps the reason as it was elsewhere", func(t *testing.T) {
+		reasoned(t, addended, "git -C /elsewhere push", "Ask first.")
 	})
 
-	t.Run("an addendum may be the only note", func(t *testing.T) {
+	t.Run("an addendum may be the only reason", func(t *testing.T) {
 		bare := rules.NewAddended(rules.NewGitSubcommand("push", nil, "", ""), []rules.Addendum{approved})
-		noted(t, bare, "git -C "+root+" push", "Push your own branch by name.")
+		reasoned(t, bare, "git -C "+root+" push", "Push your own branch by name.")
 	})
 
 	t.Run("matches as the rule it adds to", func(t *testing.T) {
@@ -519,25 +519,25 @@ func TestWhatARuleSaysAboutItself(t *testing.T) {
 		named(t, pattern(t, `\bx\b`, "", ""), `\bx\b`)
 	})
 
-	t.Run("a note is advice, kept apart from the name", func(t *testing.T) {
+	t.Run("a reason is advice, kept apart from the name", func(t *testing.T) {
 		rule := rules.NewOpening(rules.NewWords("ls", "Ask a human first.", ""))
-		noted(t, rule, "ls", "Ask a human first.")
+		reasoned(t, rule, "ls", "Ask a human first.")
 		named(t, rule, "ls")
 	})
 }
 
-func pattern(t *testing.T, expression, note, description string) rules.Rule {
+func pattern(t *testing.T, expression, reason, description string) rules.Rule {
 	t.Helper()
-	rule, err := rules.NewPattern(expression, note, description)
+	rule, err := rules.NewPattern(expression, reason, description)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return rule
 }
 
-func leading(t *testing.T, expression, note, description string) rules.Rule {
+func leading(t *testing.T, expression, reason, description string) rules.Rule {
 	t.Helper()
-	return rules.NewOpening(pattern(t, expression, note, description))
+	return rules.NewOpening(pattern(t, expression, reason, description))
 }
 
 func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
@@ -547,10 +547,10 @@ func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
 	}
 }
 
-func noted(t *testing.T, rule rules.Rule, command, wanted string) {
+func reasoned(t *testing.T, rule rules.Rule, command, wanted string) {
 	t.Helper()
-	if got := rule.Note(said(command)); got != wanted {
-		t.Errorf("%s noting %q = %q, wanted %q", rule, command, got, wanted)
+	if got := rule.Reason(said(command)); got != wanted {
+		t.Errorf("%s giving %q the reason %q, wanted %q", rule, command, got, wanted)
 	}
 }
 

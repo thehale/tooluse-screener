@@ -186,11 +186,11 @@ func (r restriction) scope() (rules.Scope, error) {
 
 func addended(found []rules.Rule, written []addition) ([]rules.Rule, error) {
 	addenda, err := addendaOf(written)
-	noted := make([]rules.Rule, 0, len(found))
+	reasoned := make([]rules.Rule, 0, len(found))
 	for _, rule := range found {
-		noted = append(noted, rules.NewAddended(rule, addenda))
+		reasoned = append(reasoned, rules.NewAddended(rule, addenda))
 	}
-	return noted, err
+	return reasoned, err
 }
 
 func addendaOf(written []addition) ([]rules.Addendum, error) {
@@ -241,11 +241,11 @@ func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, er
 	return found, nil
 }
 
-func command(text, note, description string) rules.Rule {
+func command(text, reason, description string) rules.Rule {
 	if invocation, named := gitInvocation(text); named {
-		return rules.NewGitSubcommand(invocation[0], invocation[1:], note, description)
+		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, description)
 	}
-	return rules.NewWords(text, note, description)
+	return rules.NewWords(text, reason, description)
 }
 
 func gitInvocation(text string) (spoken []string, named bool) {

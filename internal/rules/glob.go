@@ -18,7 +18,7 @@ type Glob struct {
 	written string
 }
 
-func NewGlob(written, note, description string) (Glob, error) {
+func NewGlob(written, reason, description string) (Glob, error) {
 	expanded := directories.WithHomeExpanded(written)
 	switch _, err := path.Match(filepath.ToSlash(expanded), ""); {
 	case !filepath.IsAbs(expanded):
@@ -26,7 +26,7 @@ func NewGlob(written, note, description string) (Glob, error) {
 	case err != nil:
 		return Glob{}, fmt.Errorf("%s: %w", written, err)
 	default:
-		return Glob{described{note, description}, names(expanded), written}, nil
+		return Glob{described{reason, description}, names(expanded), written}, nil
 	}
 }
 
@@ -54,8 +54,8 @@ func fitsName(glob, name string) bool {
 	return fitting
 }
 
-func (g Glob) Note() string {
-	return g.note
+func (g Glob) Reason() string {
+	return g.reason
 }
 
 func (g Glob) String() string {

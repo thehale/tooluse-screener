@@ -82,17 +82,17 @@ func TestAnEntryWithAReason(t *testing.T) {
 	t.Run("one command may be written alone", func(t *testing.T) {
 		denied := parsed(t, "denied:\n  - commands: shutdown\n    reason: Ask first.\n").Denied
 		matches(t, true, denied, "shutdown now")
-		notes(t, denied, "shutdown now", "Ask first.")
+		reasons(t, denied, "shutdown now", "Ask first.")
 	})
 
 	t.Run("several share it", func(t *testing.T) {
 		denied := parsed(t, "denied:\n  - commands: [shutdown, reboot]\n    reason: Ask first.\n").Denied
-		notes(t, denied, "shutdown now", "Ask first.")
-		notes(t, denied, "reboot now", "Ask first.")
+		reasons(t, denied, "shutdown now", "Ask first.")
+		reasons(t, denied, "reboot now", "Ask first.")
 	})
 
 	t.Run("it is optional", func(t *testing.T) {
-		notes(t, parsed(t, "denied:\n  - commands: [shutdown]\n").Denied, "shutdown now", "")
+		reasons(t, parsed(t, "denied:\n  - commands: [shutdown]\n").Denied, "shutdown now", "")
 	})
 
 	t.Run("a bare command is the same entry without one", func(t *testing.T) {
@@ -101,12 +101,12 @@ func TestAnEntryWithAReason(t *testing.T) {
 		if bare.Matches(said("shutdown now")) != grouped.Matches(said("shutdown now")) {
 			t.Error("a bare command is not the same as one written out")
 		}
-		notes(t, bare, "shutdown now", "")
+		reasons(t, bare, "shutdown now", "")
 	})
 
 	t.Run("a git command carries it too", func(t *testing.T) {
 		denied := parsed(t, "denied:\n  - commands: git push\n    reason: Open a pull request.\n").Denied
-		notes(t, denied, "git push", "Open a pull request.")
+		reasons(t, denied, "git push", "Open a pull request.")
 	})
 }
 
@@ -247,11 +247,11 @@ func TestAddendum(t *testing.T) {
 		"    addendum:\n      - only: {dirs: [" + root + "]}\n        reason: Push your own branch by name.\n"
 
 	t.Run("adds to the reason where its scope includes the command", func(t *testing.T) {
-		notes(t, parsed(t, written).Denied, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+		reasons(t, parsed(t, written).Denied, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
 	t.Run("leaves the reason alone elsewhere", func(t *testing.T) {
-		notes(t, parsed(t, written).Denied, "git -C /elsewhere push", "Ask first.")
+		reasons(t, parsed(t, written).Denied, "git -C /elsewhere push", "Ask first.")
 	})
 
 	t.Run("needs both an only and a reason", func(t *testing.T) {
@@ -261,7 +261,7 @@ func TestAddendum(t *testing.T) {
 
 	t.Run("may stand without a reason of its own", func(t *testing.T) {
 		bare := "denied:\n  - commands: git push\n    addendum:\n      - only: {dirs: [" + root + "]}\n        reason: Push your own branch by name.\n"
-		notes(t, parsed(t, bare).Denied, "git -C "+root+" push", "Push your own branch by name.")
+		reasons(t, parsed(t, bare).Denied, "git -C "+root+" push", "Push your own branch by name.")
 	})
 
 	t.Run("adds to an allowed entry's reason the same way", func(t *testing.T) {
@@ -271,7 +271,7 @@ func TestAddendum(t *testing.T) {
 		}
 		allowed := "allowed:\n  - commands: ls\n    reason: Listing is harmless.\n" +
 			"    addendum:\n      - only: {dirs: [" + here + "]}\n        reason: Even here.\n"
-		notes(t, parsed(t, allowed).Allowed, "ls", "Listing is harmless. Even here.")
+		reasons(t, parsed(t, allowed).Allowed, "ls", "Listing is harmless. Even here.")
 	})
 
 	t.Run("is refused beside paths", func(t *testing.T) {
@@ -289,8 +289,8 @@ func TestPaths(t *testing.T) {
 	t.Run("carry their entry's reason and description", func(t *testing.T) {
 		denied := parsed(t, "denied:\n  - description: Secrets\n    reason: Ask first.\n    paths: /secrets/**\n").Paths.Denied
 		globbed(t, denied, "Secrets")
-		if note := denied[0].Note(); note != "Ask first." {
-			t.Errorf("noted %q", note)
+		if reason := denied[0].Reason(); reason != "Ask first." {
+			t.Errorf("reason %q", reason)
 		}
 	})
 
@@ -459,10 +459,10 @@ func matches(t *testing.T, wanted bool, group rules.Group, command string) {
 	}
 }
 
-func notes(t *testing.T, group rules.Group, command, wanted string) {
+func reasons(t *testing.T, group rules.Group, command, wanted string) {
 	t.Helper()
-	if got := matching(t, group, command).Note(said(command)); got != wanted {
-		t.Errorf("%q -> note %q, wanted %q", command, got, wanted)
+	if got := matching(t, group, command).Reason(said(command)); got != wanted {
+		t.Errorf("%q -> reason %q, wanted %q", command, got, wanted)
 	}
 }
 

@@ -17,8 +17,8 @@ type GitSubcommand struct {
 	having     []string
 }
 
-func NewGitSubcommand(subcommand string, having []string, note, description string) Rule {
-	return GitSubcommand{described{note, description}, subcommand, having}
+func NewGitSubcommand(subcommand string, having []string, reason, description string) Rule {
+	return GitSubcommand{described{reason, description}, subcommand, having}
 }
 
 func (g GitSubcommand) Matches(command commands.Command) bool {

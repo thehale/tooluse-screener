@@ -10,12 +10,12 @@ import (
 )
 
 type Addendum struct {
-	scope Scope
-	note  string
+	scope  Scope
+	reason string
 }
 
-func NewAddendum(scope Scope, note string) Addendum {
-	return Addendum{scope, note}
+func NewAddendum(scope Scope, reason string) Addendum {
+	return Addendum{scope, reason}
 }
 
 type Addended struct {
@@ -27,12 +27,12 @@ func NewAddended(rule Rule, addenda []Addendum) Rule {
 	return Addended{rule, addenda}
 }
 
-func (a Addended) Note(command commands.Command) string {
-	notes := []string{a.Rule.Note(command)}
+func (a Addended) Reason(command commands.Command) string {
+	reasons := []string{a.Rule.Reason(command)}
 	for _, addendum := range a.addenda {
 		if addendum.scope.includes(command) {
-			notes = append(notes, addendum.note)
+			reasons = append(reasons, addendum.reason)
 		}
 	}
-	return strings.TrimSpace(strings.Join(notes, " "))
+	return strings.TrimSpace(strings.Join(reasons, " "))
 }

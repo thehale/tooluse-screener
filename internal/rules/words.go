@@ -14,8 +14,8 @@ type Words struct {
 	text string
 }
 
-func NewWords(text, note, description string) Rule {
-	return Words{described{note, description}, text}
+func NewWords(text, reason, description string) Rule {
+	return Words{described{reason, description}, text}
 }
 
 func (w Words) Matches(command commands.Command) bool {

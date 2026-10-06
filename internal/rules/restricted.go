@@ -36,8 +36,8 @@ func (r Restricted) Span(command commands.Command) int {
 	}
 }
 
-func (r Restricted) Note(command commands.Command) string {
-	return r.rule.Note(command)
+func (r Restricted) Reason(command commands.Command) string {
+	return r.rule.Reason(command)
 }
 
 func (r Restricted) String() string {

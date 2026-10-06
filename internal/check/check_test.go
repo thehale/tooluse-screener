@@ -74,7 +74,7 @@ func TestReasons(t *testing.T) {
 		ends(t, "sudo whoami", "sudo")
 	})
 
-	t.Run("a refusal carries the rule's note", func(t *testing.T) {
+	t.Run("a refusal carries the rule's reason", func(t *testing.T) {
 		ends(t, "shutdown now", "Ask a human first.")
 	})
 
@@ -143,8 +143,8 @@ func TestAnEmptyPolicy(t *testing.T) {
 	})
 }
 
-func pattern(expression, note, description string) rules.Rule {
-	rule, err := rules.NewPattern(expression, note, description)
+func pattern(expression, reason, description string) rules.Rule {
+	rule, err := rules.NewPattern(expression, reason, description)
 	if err != nil {
 		panic(err)
 	}

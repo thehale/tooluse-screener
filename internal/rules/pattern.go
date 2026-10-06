@@ -15,12 +15,12 @@ type Pattern struct {
 	written    string
 }
 
-func NewPattern(expression, note, description string) (Rule, error) {
+func NewPattern(expression, reason, description string) (Rule, error) {
 	built, err := regexp.Compile(expression)
 	if err != nil {
 		return nil, err
 	}
-	return Pattern{described{note, description}, built, expression}, nil
+	return Pattern{described{reason, description}, built, expression}, nil
 }
 
 func (p Pattern) Matches(command commands.Command) bool {

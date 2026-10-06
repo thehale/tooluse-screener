@@ -41,8 +41,8 @@ func endsAWord(spoken string, at int) bool {
 	return at > 0 && (at == len(spoken) || spoken[at] == ' ')
 }
 
-func (o Opening) Note(command commands.Command) string {
-	return o.rule.Note(command)
+func (o Opening) Reason(command commands.Command) string {
+	return o.rule.Reason(command)
 }
 
 func (o Opening) String() string {
