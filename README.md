@@ -15,7 +15,7 @@ One Bash command policy, shared by every coding agent.
 
 ```console
 $ tooluse-screener 'rm -rf /'          # prints `allow|deny|ask: reason`
-deny: Command matches a denied rule: Emptying a whole tree
+deny: Command matches a denied rule: Empty a whole tree
 ```
 
 The exit code carries the same answer: 0 allowed, 1 denied, 2 to ask.
@@ -111,11 +111,11 @@ Rules check the entire command for whole-word matches, so a rule about
 be the command itself rather than merely appear in it, so it says
 nothing about `rm ls`.
 
-Add a `description`, which is what the rule calls itself in a verdict,
+Add a `name`, which is what the rule calls itself in a verdict,
 and a `reason`, which is shown alongside it:
 
 ```yaml
-- description: Emptying a whole tree
+- name: Empty a whole tree
   reason: Ask a human first.
   patterns: ['^rm -(rf|fr) /$']
 ```
@@ -167,7 +167,7 @@ globs.
 
 ```yaml
 denied:
-  - description: Writing an SSH key
+  - name: Write an SSH key
     reason: An SSH key opens other machines, so a human places it.
     paths: ['~/.ssh/**']
 ```
@@ -245,14 +245,14 @@ trusted_git_directories:
   - ~/src
 
 denied:
-  - description: Pushing
+  - name: Push
     reason: A push is the operator's to approve.
     commands: git push
 
 allowed:
   - ls
 
-  - description: Pushing where CI can run against the commit
+  - name: Push where CI can run against the commit
     patterns: ['^git push origin \S+$']
     only:
       dirs: [~/src/one-repo]

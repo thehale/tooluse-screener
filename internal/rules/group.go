@@ -9,13 +9,12 @@ import (
 )
 
 type Group struct {
-	described
 	rules []Rule
 	name  string
 }
 
 func NewGroup(name string, rules ...Rule) Group {
-	return Group{described{}, rules, name}
+	return Group{rules, name}
 }
 
 func (g Group) Matches(command commands.Command) bool {
@@ -40,8 +39,12 @@ func matchingOne(rule Rule, command commands.Command) []Rule {
 	return nil
 }
 
+func (g Group) Reason(commands.Command) string {
+	return ""
+}
+
 func (g Group) String() string {
-	return g.describes(g.name)
+	return g.name
 }
 
 func (g Group) At(command commands.Command) int {

@@ -40,6 +40,7 @@ type entry struct {
 	Patterns    texts        `yaml:"patterns"`
 	Paths       texts        `yaml:"paths"`
 	Reason      string       `yaml:"reason"`
+	Name        string       `yaml:"name"`
 	Description string       `yaml:"description"`
 	Only        *restriction `yaml:"only"`
 	Addendum    []addition   `yaml:"addendum"`
@@ -118,7 +119,7 @@ func entryGlobs(written entry) ([]rules.Glob, error) {
 	}
 	var found []rules.Glob
 	for _, text := range written.Paths {
-		made, err := rules.NewGlob(text, written.Reason, written.Description)
+		made, err := rules.NewGlob(text, written.Reason, written.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -229,10 +230,10 @@ func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, er
 	}
 	var found []rules.Rule
 	for _, text := range written.Commands {
-		found = append(found, read(command(text, written.Reason, written.Description)))
+		found = append(found, read(command(text, written.Reason, written.Name)))
 	}
 	for _, expression := range written.Patterns {
-		made, err := rules.NewPattern(expression, written.Reason, written.Description)
+		made, err := rules.NewPattern(expression, written.Reason, written.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -241,11 +242,11 @@ func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, er
 	return found, nil
 }
 
-func command(text, reason, description string) rules.Rule {
+func command(text, reason, name string) rules.Rule {
 	if invocation, named := gitInvocation(text); named {
-		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, description)
+		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, name)
 	}
-	return rules.NewWords(text, reason, description)
+	return rules.NewWords(text, reason, name)
 }
 
 func gitInvocation(text string) (spoken []string, named bool) {
@@ -261,7 +262,19 @@ func (e *entry) UnmarshalYAML(node *yaml.Node) error {
 		return node.Decode(&e.Commands)
 	}
 	type mapping entry
-	return node.Decode((*mapping)(e))
+	if err := node.Decode((*mapping)(e)); err != nil {
+		return err
+	}
+	return renamed(e.Description)
+}
+
+func renamed(description string) error {
+	switch description {
+	case "":
+		return nil
+	default:
+		return fmt.Errorf("`description` is now `name`: %s", description)
+	}
 }
 
 func (t *texts) UnmarshalYAML(node *yaml.Node) error {

@@ -17,7 +17,7 @@ allowed:
   - git status
   - git worktree
 
-  - description: Reading git config
+  - name: Read git config
     commands:
       - git config get
       - git config list
@@ -28,12 +28,12 @@ allowed:
       - git config -l
 
 denied:
-  - description: Emptying a whole tree
+  - name: Empty a whole tree
     patterns:
       - '^rm -(rf|fr) /$'
       - '^rm -(rf|fr) ~$'
 
-  - description: Writing git config
+  - name: Write git config
     commands:
       - git config set
       - git config unset
@@ -45,7 +45,7 @@ denied:
       - git config --rename-section
       - git config --remove-section
 
-  - description: A publish script, named or run from any path
+  - name: Run a publish script, named or from any path
     reason: Publishing is the operator's to approve and to run.
     patterns:
       - '^(\S*/)?publish(\.sh)?(\s|$)'

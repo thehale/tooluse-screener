@@ -12,13 +12,13 @@ import (
 )
 
 type GitSubcommand struct {
-	described
+	named
 	subcommand string
 	having     []string
 }
 
-func NewGitSubcommand(subcommand string, having []string, reason, description string) Rule {
-	return GitSubcommand{described{reason, description}, subcommand, having}
+func NewGitSubcommand(subcommand string, having []string, reason, name string) Rule {
+	return GitSubcommand{named{reason, name}, subcommand, having}
 }
 
 func (g GitSubcommand) Matches(command commands.Command) bool {
@@ -61,5 +61,5 @@ func (g GitSubcommand) required() string {
 }
 
 func (g GitSubcommand) String() string {
-	return g.describes(g.required())
+	return g.calls(g.required())
 }

@@ -13,18 +13,18 @@ type Rule interface {
 	String() string
 }
 
-type described struct {
-	reason      string
-	description string
+type named struct {
+	reason string
+	name   string
 }
 
-func (d described) Reason(commands.Command) string {
-	return d.reason
+func (n named) Reason(commands.Command) string {
+	return n.reason
 }
 
-func (d described) describes(written string) string {
-	if d.description == "" {
+func (n named) calls(written string) string {
+	if n.name == "" {
 		return written
 	}
-	return d.description
+	return n.name
 }

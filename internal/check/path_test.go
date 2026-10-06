@@ -12,25 +12,25 @@ import (
 
 const guarding = `
 denied:
-  - description: Writing a secret
+  - name: Write a secret
     reason: Ask a human first.
     paths: /secrets/**
   - commands: cat /secrets
   - paths: /notes/private/*
 allowed:
-  - description: Taking notes
+  - name: Take notes
     paths: /notes/**
 `
 
 func TestWritingAPath(t *testing.T) {
 	guarded := parsed(t, guarding)
 
-	t.Run("a denied path is refused with its description and reason", func(t *testing.T) {
-		wrote(t, guarded, "/secrets/key", "deny: Path matches a denied rule: Writing a secret. Ask a human first.")
+	t.Run("a denied path is refused with its name and reason", func(t *testing.T) {
+		wrote(t, guarded, "/secrets/key", "deny: Path matches a denied rule: Write a secret. Ask a human first.")
 	})
 
 	t.Run("an allowed path is allowed", func(t *testing.T) {
-		wrote(t, guarded, "/notes/today.md", "allow: Path is allowed: Taking notes")
+		wrote(t, guarded, "/notes/today.md", "allow: Path is allowed: Take notes")
 	})
 
 	t.Run("a path both refuse and allow is refused", func(t *testing.T) {

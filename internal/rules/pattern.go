@@ -10,17 +10,17 @@ import (
 )
 
 type Pattern struct {
-	described
+	named
 	expression *regexp.Regexp
 	written    string
 }
 
-func NewPattern(expression, reason, description string) (Rule, error) {
+func NewPattern(expression, reason, name string) (Rule, error) {
 	built, err := regexp.Compile(expression)
 	if err != nil {
 		return nil, err
 	}
-	return Pattern{described{reason, description}, built, expression}, nil
+	return Pattern{named{reason, name}, built, expression}, nil
 }
 
 func (p Pattern) Matches(command commands.Command) bool {
@@ -54,5 +54,5 @@ func spanned(at []int) int {
 }
 
 func (p Pattern) String() string {
-	return p.describes(p.written)
+	return p.calls(p.written)
 }

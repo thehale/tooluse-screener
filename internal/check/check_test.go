@@ -90,8 +90,8 @@ func TestReasons(t *testing.T) {
 func TestWhichRuleOutranksWhich(t *testing.T) {
 	root := t.TempDir()
 	denial := "trusted_git_directories: [" + root + "]\n" +
-		"denied:\n  - description: Pushing\n    commands: git push\n"
-	landing := denial + "allowed:\n  - description: Pushing where CI can run it\n" +
+		"denied:\n  - name: Push\n    commands: git push\n"
+	landing := denial + "allowed:\n  - name: Push where CI can run it\n" +
 		"    patterns: ['^git -C \\S+ push origin \\S+$']\n" +
 		"    only:\n      dirs: [" + root + "]\n      branches: [{not: main}]\n"
 
@@ -143,8 +143,8 @@ func TestAnEmptyPolicy(t *testing.T) {
 	})
 }
 
-func pattern(expression, reason, description string) rules.Rule {
-	rule, err := rules.NewPattern(expression, reason, description)
+func pattern(expression, reason, name string) rules.Rule {
+	rule, err := rules.NewPattern(expression, reason, name)
 	if err != nil {
 		panic(err)
 	}

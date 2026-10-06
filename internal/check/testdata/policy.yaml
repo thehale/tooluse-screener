@@ -9,7 +9,7 @@ denied:
   - bin/publish
   - git push
   - patterns: ['^rm -(rf|fr) /$']
-  - description: Writing a private key
+  - name: Write a private key
     reason: Ask a human first.
     paths: ['~/.ssh/**', '~/**/*.pem']
 
@@ -21,7 +21,7 @@ allowed:
   - git status
   - paths: /work/**
 
-  - description: Pushing a branch of the app
+  - name: Push a branch of the app
     patterns: ['^git (-C \S+ )?push origin \S+$']
     only:
       dirs: [/work/app]

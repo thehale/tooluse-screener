@@ -110,10 +110,10 @@ func TestAnEntryWithAReason(t *testing.T) {
 	})
 }
 
-func TestDescriptions(t *testing.T) {
-	t.Run("a description is what the rules call themselves", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n    description: Something unreadable\n").Denied
-		named(t, denied, "never", "Something unreadable")
+func TestNames(t *testing.T) {
+	t.Run("a name is what the rules call themselves", func(t *testing.T) {
+		denied := parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n    name: Say never\n").Denied
+		named(t, denied, "never", "Say never")
 	})
 
 	t.Run("without one a rule calls itself what it is written as", func(t *testing.T) {
@@ -121,9 +121,13 @@ func TestDescriptions(t *testing.T) {
 	})
 
 	t.Run("it covers every command and pattern in its entry", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - commands: [shutdown]\n    patterns: ['\\breboot\\b']\n    description: Downtime\n").Denied
-		named(t, denied, "shutdown now", "Downtime")
-		named(t, denied, "reboot now", "Downtime")
+		denied := parsed(t, "denied:\n  - commands: [shutdown]\n    patterns: ['\\breboot\\b']\n    name: Take the machine down\n").Denied
+		named(t, denied, "shutdown now", "Take the machine down")
+		named(t, denied, "reboot now", "Take the machine down")
+	})
+
+	t.Run("the description it was once written with is refused", func(t *testing.T) {
+		refuses(t, "denied:\n  - commands: shutdown\n    description: Downtime\n", "`description` is now `name`")
 	})
 }
 
@@ -181,8 +185,8 @@ func TestOnlyDirs(t *testing.T) {
 func TestOnlyBranches(t *testing.T) {
 	root := t.TempDir()
 	written := "trusted_git_directories: [" + root + "]\n" +
-		"denied:\n  - description: Pushing\n    commands: git push\n" +
-		"allowed:\n  - description: Pushing where CI can run it\n" +
+		"denied:\n  - name: Push\n    commands: git push\n" +
+		"allowed:\n  - name: Push where CI can run it\n" +
 		"    patterns: ['^git (-C \\S+ )?push origin \\S+$']\n" +
 		"    only:\n      dirs: [" + root + "]\n      branches: [{not: [main, master, trunk]}]\n"
 
@@ -207,7 +211,7 @@ func TestOnlyBranches(t *testing.T) {
 	})
 
 	t.Run("the command is named by the rule, never implied by the restriction", func(t *testing.T) {
-		refuses(t, "allowed:\n  - description: nothing to match\n    only:\n      dirs: [/approved]\n", "`commands`, `patterns` or `paths`")
+		refuses(t, "allowed:\n  - name: Match nothing\n    only:\n      dirs: [/approved]\n", "`commands`, `patterns` or `paths`")
 	})
 
 	t.Run("one name may be written without a list", func(t *testing.T) {
@@ -286,9 +290,9 @@ func TestPaths(t *testing.T) {
 		globbed(t, paths.Allowed, "/notes/*", "/drafts/*")
 	})
 
-	t.Run("carry their entry's reason and description", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - description: Secrets\n    reason: Ask first.\n    paths: /secrets/**\n").Paths.Denied
-		globbed(t, denied, "Secrets")
+	t.Run("carry their entry's reason and name", func(t *testing.T) {
+		denied := parsed(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n").Paths.Denied
+		globbed(t, denied, "Write a secret")
 		if reason := denied[0].Reason(); reason != "Ask first." {
 			t.Errorf("reason %q", reason)
 		}

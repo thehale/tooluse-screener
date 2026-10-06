@@ -10,12 +10,12 @@ import (
 )
 
 type Words struct {
-	described
+	named
 	text string
 }
 
-func NewWords(text, reason, description string) Rule {
-	return Words{described{reason, description}, text}
+func NewWords(text, reason, name string) Rule {
+	return Words{named{reason, name}, text}
 }
 
 func (w Words) Matches(command commands.Command) bool {
@@ -70,5 +70,5 @@ func (w Words) Span(command commands.Command) int {
 }
 
 func (w Words) String() string {
-	return w.describes(w.text)
+	return w.calls(w.text)
 }

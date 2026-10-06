@@ -152,14 +152,14 @@ func TestAnsweringAHook(t *testing.T) {
 }
 
 func TestAnsweringAFileWrite(t *testing.T) {
-	policy := written(t, "denied:\n  - description: Secrets\n    reason: Ask first.\n    paths: /secrets/**\n")
+	policy := written(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n")
 
 	t.Run("a write to a denied path is blocked with its reason", func(t *testing.T) {
 		out, code := wrote(t, policy, "/secrets/key")
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
-		if reason := read(t, out)["reason"]; reason != "Path matches a denied rule: Secrets. Ask first." {
+		if reason := read(t, out)["reason"]; reason != "Path matches a denied rule: Write a secret. Ask first." {
 			t.Errorf("gave the reason %q", reason)
 		}
 	})

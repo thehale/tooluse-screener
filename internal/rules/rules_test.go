@@ -511,8 +511,8 @@ func TestGroup(t *testing.T) {
 }
 
 func TestWhatARuleSaysAboutItself(t *testing.T) {
-	t.Run("a description is what a rule calls itself", func(t *testing.T) {
-		named(t, pattern(t, `\bx\b`, "", "Something unreadable"), "Something unreadable")
+	t.Run("a name is what a rule calls itself", func(t *testing.T) {
+		named(t, pattern(t, `\bx\b`, "", "Say never"), "Say never")
 	})
 
 	t.Run("without one it calls itself what it is written as", func(t *testing.T) {
@@ -526,18 +526,18 @@ func TestWhatARuleSaysAboutItself(t *testing.T) {
 	})
 }
 
-func pattern(t *testing.T, expression, reason, description string) rules.Rule {
+func pattern(t *testing.T, expression, reason, name string) rules.Rule {
 	t.Helper()
-	rule, err := rules.NewPattern(expression, reason, description)
+	rule, err := rules.NewPattern(expression, reason, name)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return rule
 }
 
-func leading(t *testing.T, expression, reason, description string) rules.Rule {
+func leading(t *testing.T, expression, reason, name string) rules.Rule {
 	t.Helper()
-	return rules.NewOpening(pattern(t, expression, reason, description))
+	return rules.NewOpening(pattern(t, expression, reason, name))
 }
 
 func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
