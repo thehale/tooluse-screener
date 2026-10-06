@@ -241,6 +241,44 @@ func TestOnlyBranches(t *testing.T) {
 	})
 }
 
+func TestAddendum(t *testing.T) {
+	root := t.TempDir()
+	written := "denied:\n  - commands: git push\n    reason: Ask first.\n" +
+		"    addendum:\n      - only: {dirs: [" + root + "]}\n        reason: Push your own branch by name.\n"
+
+	t.Run("adds to the reason where its scope includes the command", func(t *testing.T) {
+		notes(t, parsed(t, written).Denied, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+	})
+
+	t.Run("leaves the reason alone elsewhere", func(t *testing.T) {
+		notes(t, parsed(t, written).Denied, "git -C /elsewhere push", "Ask first.")
+	})
+
+	t.Run("needs both an only and a reason", func(t *testing.T) {
+		refuses(t, "denied:\n  - commands: git push\n    addendum:\n      - reason: Anywhere.\n", "`only` and `reason`")
+		refuses(t, "denied:\n  - commands: git push\n    addendum:\n      - only: {dirs: [/work]}\n", "`only` and `reason`")
+	})
+
+	t.Run("may stand without a reason of its own", func(t *testing.T) {
+		bare := "denied:\n  - commands: git push\n    addendum:\n      - only: {dirs: [" + root + "]}\n        reason: Push your own branch by name.\n"
+		notes(t, parsed(t, bare).Denied, "git -C "+root+" push", "Push your own branch by name.")
+	})
+
+	t.Run("adds to an allowed entry's reason the same way", func(t *testing.T) {
+		here, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		allowed := "allowed:\n  - commands: ls\n    reason: Listing is harmless.\n" +
+			"    addendum:\n      - only: {dirs: [" + here + "]}\n        reason: Even here.\n"
+		notes(t, parsed(t, allowed).Allowed, "ls", "Listing is harmless. Even here.")
+	})
+
+	t.Run("is refused beside paths", func(t *testing.T) {
+		refuses(t, "denied:\n  - paths: /secrets/**\n    addendum:\n      - only: {dirs: [/work]}\n        reason: Here.\n", "`addendum` hold commands")
+	})
+}
+
 func TestPaths(t *testing.T) {
 	t.Run("are read under denied and allowed alike", func(t *testing.T) {
 		paths := parsed(t, "denied:\n  - paths: /secrets/**\nallowed:\n  - paths: ['/notes/*', '/drafts/*']\n").Paths
@@ -270,7 +308,7 @@ func TestPaths(t *testing.T) {
 	})
 
 	t.Run("one held by only is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` holds commands")
+		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` and `addendum` hold commands")
 	})
 }
 
@@ -423,7 +461,7 @@ func matches(t *testing.T, wanted bool, group rules.Group, command string) {
 
 func notes(t *testing.T, group rules.Group, command, wanted string) {
 	t.Helper()
-	if got := matching(t, group, command).Note(); got != wanted {
+	if got := matching(t, group, command).Note(said(command)); got != wanted {
 		t.Errorf("%q -> note %q, wanted %q", command, got, wanted)
 	}
 }

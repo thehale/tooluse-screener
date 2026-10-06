@@ -16,7 +16,7 @@ func Writing(path string, p policy.Policy) (Verdict, bool) {
 
 	switch {
 	case len(refused) > 0:
-		return Verdict{Deny, refusal("Path", refused[0])}, true
+		return Verdict{Deny, refusal("Path", refused[0], refused[0].Note())}, true
 	case len(permitted) > 0:
 		return Verdict{Allow, fmt.Sprintf("Path is allowed: %s", permitted[0])}, true
 	default:

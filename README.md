@@ -145,6 +145,21 @@ written, both hold. This is read from where the commits will actually
 land rather than from the words, which is why it is a restriction and
 not part of the expression beside it.
 
+An `addendum` adds to a rule's reason where its own `only` applies,
+which lets one rule say something more in some places:
+
+```yaml
+denied:
+  - commands: terraform apply
+    reason: Applying changes real infrastructure, so a human runs it.
+    addendum:
+      - only:
+          dirs: [~/src/infra]
+        reason: Run `terraform plan` here and share its output instead.
+```
+
+Every applicable addendum is added, in the order written.
+
 ##### Paths
 
 `paths` rules control whether or not edits are allowed to the listed

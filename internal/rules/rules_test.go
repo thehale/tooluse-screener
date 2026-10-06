@@ -267,7 +267,7 @@ func TestRestricted(t *testing.T) {
 	root := t.TempDir()
 	pushing := rules.NewGitSubcommand("push", nil, "Open a pull request.", "")
 	onto := func(heldBack ...string) rules.Rule {
-		return rules.NewRestricted(pushing, []string{root}, rules.Branches{NotOnto: heldBack})
+		return rules.NewRestricted(pushing, rules.NewScope([]string{root}, rules.Branches{NotOnto: heldBack}))
 	}
 
 	t.Run("matches a branch the command names", func(t *testing.T) {
@@ -287,7 +287,7 @@ func TestRestricted(t *testing.T) {
 
 	t.Run("does not match outside the dirs it is given", func(t *testing.T) {
 		matches(t, false, onto("main"), "git -C /elsewhere push origin topic")
-		matches(t, false, rules.NewRestricted(pushing, []string{"/nowhere"}, rules.Branches{}), "git -C "+root+" push origin topic")
+		matches(t, false, rules.NewRestricted(pushing, rules.NewScope([]string{"/nowhere"}, rules.Branches{})), "git -C "+root+" push origin topic")
 	})
 
 	t.Run("a command naming no directory is judged where it runs", func(t *testing.T) {
@@ -295,8 +295,8 @@ func TestRestricted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		matches(t, true, rules.NewRestricted(pushing, []string{here}, rules.Branches{}), "git push origin topic")
-		matches(t, false, rules.NewRestricted(pushing, []string{root}, rules.Branches{}), "git push origin topic")
+		matches(t, true, rules.NewRestricted(pushing, rules.NewScope([]string{here}, rules.Branches{})), "git push origin topic")
+		matches(t, false, rules.NewRestricted(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic")
 	})
 
 	t.Run("a command an assignment points where nothing reads is judged nowhere", func(t *testing.T) {
@@ -304,7 +304,7 @@ func TestRestricted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		opening := rules.NewRestricted(leading(t, `gh pr create\b.*$`, "", ""), []string{here}, rules.Branches{})
+		opening := rules.NewRestricted(leading(t, `gh pr create\b.*$`, "", ""), rules.NewScope([]string{here}, rules.Branches{}))
 		matches(t, true, opening, "gh pr create --fill")
 		matches(t, true, opening, "GH_DEBUG=1 gh pr create --fill")
 		matches(t, false, opening, "GH_REPO=other/repo gh pr create --fill")
@@ -316,28 +316,51 @@ func TestRestricted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		held := rules.NewRestricted(pushing, []string{here}, rules.Branches{})
+		held := rules.NewRestricted(pushing, rules.NewScope([]string{here}, rules.Branches{}))
 		movedMatches(t, true, held, "git push origin topic", filepath.Join(here, "nested"))
 		movedMatches(t, false, held, "git push origin topic", "/elsewhere")
 		movedMatches(t, false, held, "git push origin topic", "")
-		movedMatches(t, false, rules.NewRestricted(pushing, []string{root}, rules.Branches{}), "git push origin topic", root)
+		movedMatches(t, false, rules.NewRestricted(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic", root)
 	})
 
 	t.Run("reads a push that names no branch from the repository it acts in", func(t *testing.T) {
-		guarding := rules.NewRestricted(pushing, nil, rules.Branches{Onto: []string{"main"}})
+		guarding := rules.NewRestricted(pushing, rules.NewScope(nil, rules.Branches{Onto: []string{"main"}}))
 		matches(t, true, guarding, "git -C "+checkedOut(t, "main")+" push")
 		matches(t, false, guarding, "git -C "+checkedOut(t, "topic")+" push")
 	})
 
 	t.Run("an unrestricted rule is left as it was", func(t *testing.T) {
-		matches(t, true, rules.NewRestricted(pushing, nil, rules.Branches{}), "git -C /anywhere push")
+		matches(t, true, rules.NewRestricted(pushing, rules.NewScope(nil, rules.Branches{})), "git -C /anywhere push")
 	})
 
 	t.Run("speaks for the rule it restricts", func(t *testing.T) {
 		named(t, onto("main"), "git push")
-		if onto("main").Note() != "Open a pull request." {
-			t.Errorf("Note() = %q", onto("main").Note())
-		}
+		noted(t, onto("main"), "git -C "+root+" push origin topic", "Open a pull request.")
+	})
+}
+
+func TestAddended(t *testing.T) {
+	root := t.TempDir()
+	pushing := rules.NewGitSubcommand("push", nil, "Ask first.", "")
+	approved := rules.NewAddendum(rules.NewScope([]string{root}, rules.Branches{}), "Push your own branch by name.")
+	addended := rules.NewAddended(pushing, []rules.Addendum{approved})
+
+	t.Run("adds a note where its addendum's scope includes the command", func(t *testing.T) {
+		noted(t, addended, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+	})
+
+	t.Run("keeps the note as it was elsewhere", func(t *testing.T) {
+		noted(t, addended, "git -C /elsewhere push", "Ask first.")
+	})
+
+	t.Run("an addendum may be the only note", func(t *testing.T) {
+		bare := rules.NewAddended(rules.NewGitSubcommand("push", nil, "", ""), []rules.Addendum{approved})
+		noted(t, bare, "git -C "+root+" push", "Push your own branch by name.")
+	})
+
+	t.Run("matches as the rule it adds to", func(t *testing.T) {
+		matches(t, true, addended, "git -C /elsewhere push")
+		named(t, addended, "git push")
 	})
 }
 
@@ -439,7 +462,7 @@ func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 			t.Fatal(err)
 		}
 		naming := leading(t, `git push origin \S+$`, "", "")
-		landing := rules.NewRestricted(naming, []string{here}, rules.Branches{NotOnto: []string{"main"}})
+		landing := rules.NewRestricted(naming, rules.NewScope([]string{here}, rules.Branches{NotOnto: []string{"main"}}))
 		spans(t, len("git push origin topic"), landing, "git push origin topic")
 		spans(t, 0, landing, "git push origin main")
 	})
@@ -498,9 +521,7 @@ func TestWhatARuleSaysAboutItself(t *testing.T) {
 
 	t.Run("a note is advice, kept apart from the name", func(t *testing.T) {
 		rule := rules.NewOpening(rules.NewWords("ls", "Ask a human first.", ""))
-		if rule.Note() != "Ask a human first." {
-			t.Errorf("Note() = %q", rule.Note())
-		}
+		noted(t, rule, "ls", "Ask a human first.")
 		named(t, rule, "ls")
 	})
 }
@@ -523,6 +544,13 @@ func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
 	t.Helper()
 	if got := rule.Matches(said(command)); got != wanted {
 		t.Errorf("%s matching %q = %v, wanted %v", rule, command, got, wanted)
+	}
+}
+
+func noted(t *testing.T, rule rules.Rule, command, wanted string) {
+	t.Helper()
+	if got := rule.Note(said(command)); got != wanted {
+		t.Errorf("%s noting %q = %q, wanted %q", rule, command, got, wanted)
 	}
 }
 

@@ -42,6 +42,12 @@ type entry struct {
 	Reason      string       `yaml:"reason"`
 	Description string       `yaml:"description"`
 	Only        *restriction `yaml:"only"`
+	Addendum    []addition   `yaml:"addendum"`
+}
+
+type addition struct {
+	Only   *restriction `yaml:"only"`
+	Reason string       `yaml:"reason"`
 }
 
 type restriction struct {
@@ -107,8 +113,8 @@ func entryGlobs(written entry) ([]rules.Glob, error) {
 		return nil, nil
 	case len(written.Commands) > 0 || len(written.Patterns) > 0:
 		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", written)
-	case written.Only != nil:
-		return nil, fmt.Errorf("`only` holds commands, and an entry with `paths` has none to hold: %+v", written)
+	case written.Only != nil || len(written.Addendum) > 0:
+		return nil, fmt.Errorf("`only` and `addendum` hold commands, and an entry with `paths` has none to hold: %+v", written)
 	}
 	var found []rules.Glob
 	for _, text := range written.Paths {
@@ -145,26 +151,61 @@ func group(name string, entries []entry, read func(rules.Rule) rules.Rule) (rule
 
 func entryRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
 	found, err := allRules(written, read)
-	switch {
-	case err != nil:
-		return nil, err
-	case written.Only == nil:
-		return found, nil
-	default:
-		return restricted(found, *written.Only)
-	}
-}
-
-func restricted(found []rules.Rule, only restriction) ([]rules.Rule, error) {
-	branches, err := branchesNamed(only.Branches)
 	if err != nil {
 		return nil, err
 	}
+	held, err := restricted(found, written.Only)
+	if err != nil {
+		return nil, err
+	}
+	return addended(held, written.Addendum)
+}
+
+func restricted(found []rules.Rule, only *restriction) ([]rules.Rule, error) {
+	switch only {
+	case nil:
+		return found, nil
+	default:
+		scope, err := only.scope()
+		return narrowed(found, scope), err
+	}
+}
+
+func narrowed(found []rules.Rule, scope rules.Scope) []rules.Rule {
 	narrower := make([]rules.Rule, 0, len(found))
 	for _, rule := range found {
-		narrower = append(narrower, rules.NewRestricted(rule, only.Dirs, branches))
+		narrower = append(narrower, rules.NewRestricted(rule, scope))
 	}
-	return narrower, nil
+	return narrower
+}
+
+func (r restriction) scope() (rules.Scope, error) {
+	branches, err := branchesNamed(r.Branches)
+	return rules.NewScope(r.Dirs, branches), err
+}
+
+func addended(found []rules.Rule, written []addition) ([]rules.Rule, error) {
+	addenda, err := addendaOf(written)
+	noted := make([]rules.Rule, 0, len(found))
+	for _, rule := range found {
+		noted = append(noted, rules.NewAddended(rule, addenda))
+	}
+	return noted, err
+}
+
+func addendaOf(written []addition) ([]rules.Addendum, error) {
+	var addenda []rules.Addendum
+	for _, one := range written {
+		if one.Only == nil || strings.TrimSpace(one.Reason) == "" {
+			return nil, fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", one)
+		}
+		scope, err := one.Only.scope()
+		if err != nil {
+			return nil, err
+		}
+		addenda = append(addenda, rules.NewAddendum(scope, one.Reason))
+	}
+	return addenda, nil
 }
 
 func branchesNamed(conditions []condition) (rules.Branches, error) {

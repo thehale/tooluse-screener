@@ -9,7 +9,7 @@ type Rule interface {
 	Matches(command commands.Command) bool
 	At(command commands.Command) int
 	Span(command commands.Command) int
-	Note() string
+	Note(command commands.Command) string
 	String() string
 }
 
@@ -18,7 +18,7 @@ type described struct {
 	description string
 }
 
-func (d described) Note() string {
+func (d described) Note(commands.Command) string {
 	return d.note
 }
 

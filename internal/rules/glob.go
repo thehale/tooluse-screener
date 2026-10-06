@@ -54,6 +54,10 @@ func fitsName(glob, name string) bool {
 	return fitting
 }
 
+func (g Glob) Note() string {
+	return g.note
+}
+
 func (g Glob) String() string {
 	return g.describes(g.written)
 }

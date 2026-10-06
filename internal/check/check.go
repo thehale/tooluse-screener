@@ -37,7 +37,7 @@ func Evaluate(line string, p policy.Policy) Verdict {
 
 	switch {
 	case len(refused) > 0:
-		return Verdict{Deny, refusal("Command", refused[0])}
+		return Verdict{Deny, refused[0]}
 	case len(found) > 0 && lists.Every(permitted, anyOf):
 		return Verdict{Allow, permission(permitted)}
 	default:
@@ -47,12 +47,14 @@ func Evaluate(line string, p policy.Policy) Verdict {
 
 var undecided = Verdict{Ask, "Command is not in the shared allow list"}
 
-func refusals(p policy.Policy, found []command.Command) []rules.Rule {
-	var matched []rules.Rule
+func refusals(p policy.Policy, found []command.Command) []string {
+	var reasons []string
 	for _, one := range found {
-		matched = append(matched, standing(p.Denied.Matching(one), p.Allowed, one)...)
+		for _, rule := range standing(p.Denied.Matching(one), p.Allowed, one) {
+			reasons = append(reasons, refusal("Command", rule, rule.Note(one)))
+		}
 	}
-	return matched
+	return reasons
 }
 
 func standing(denials []rules.Rule, allowed rules.Group, line command.Command) []rules.Rule {
@@ -82,17 +84,12 @@ func anyOf(matched []rules.Rule) bool {
 	return len(matched) > 0
 }
 
-type described interface {
-	Note() string
-	String() string
-}
-
-func refusal(subject string, rule described) string {
+func refusal(subject string, rule fmt.Stringer, note string) string {
 	refused := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
-	if rule.Note() == "" {
+	if note == "" {
 		return refused
 	}
-	return fmt.Sprintf("%s. %s", refused, rule.Note())
+	return fmt.Sprintf("%s. %s", refused, note)
 }
 
 func permission(permitted [][]rules.Rule) string {

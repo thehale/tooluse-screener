@@ -121,6 +121,20 @@ func TestWhichRuleOutranksWhich(t *testing.T) {
 	})
 }
 
+func TestAnAddendum(t *testing.T) {
+	root := t.TempDir()
+	chosen := parsed(t, "denied:\n  - commands: git push\n    reason: Ask first.\n"+
+		"    addendum:\n      - only: {dirs: ["+root+"]}\n        reason: Push your own branch by name.\n")
+
+	t.Run("ends the reason where the command runs inside its dirs", func(t *testing.T) {
+		reasons(t, chosen, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+	})
+
+	t.Run("is left out elsewhere", func(t *testing.T) {
+		reasons(t, chosen, "git -C /elsewhere push", "Ask first.")
+	})
+}
+
 func TestAnEmptyPolicy(t *testing.T) {
 	t.Run("decides nothing", func(t *testing.T) {
 		if decision := check.Evaluate("anything at all", policy.Policy{}).Decision; decision != check.Ask {
@@ -157,6 +171,13 @@ func decides(t *testing.T, wanted check.Decision, command string) {
 	t.Helper()
 	if verdict := check.Evaluate(command, madeUp); verdict.Decision != wanted {
 		t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
+	}
+}
+
+func reasons(t *testing.T, chosen policy.Policy, command, wanted string) {
+	t.Helper()
+	if reason := check.Evaluate(command, chosen).Reason; !strings.HasSuffix(reason, ": git push. "+wanted) {
+		t.Errorf("%q -> %q, wanted it to end with %q", command, reason, wanted)
 	}
 }
 

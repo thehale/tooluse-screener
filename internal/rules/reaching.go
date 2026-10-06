@@ -45,8 +45,8 @@ func (r Reaching) reaches(command commands.Command) bool {
 	return !invocation.Git || directories.AllUnder(actedIn(command.Moved, pointedAt(invocation)), r.trusted)
 }
 
-func (r Reaching) Note() string {
-	return r.rule.Note()
+func (r Reaching) Note(command commands.Command) string {
+	return r.rule.Note(command)
 }
 
 func (r Reaching) String() string {
