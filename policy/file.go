@@ -15,83 +15,106 @@ import (
 
 type file struct {
 	Trusted []string `yaml:"trusted_git_directories"`
-	Denied  []entry  `yaml:"denied"`
-	Allowed []entry  `yaml:"allowed"`
+	Denied  entries  `yaml:"denied"`
+	Allowed entries  `yaml:"allowed"`
 }
+
+type entries []entry
 
 type entry struct {
-	Commands    texts      `yaml:"commands"`
-	Patterns    texts      `yaml:"patterns"`
-	Paths       texts      `yaml:"paths"`
-	Reason      string     `yaml:"reason"`
-	Name        string     `yaml:"name"`
-	Description string     `yaml:"description"`
-	Only        *scope     `yaml:"only"`
-	Addendum    []addition `yaml:"addendum"`
+	Commands texts           `yaml:"commands"`
+	Patterns texts           `yaml:"patterns"`
+	Paths    texts           `yaml:"paths"`
+	Reason   string          `yaml:"reason"`
+	Name     string          `yaml:"name"`
+	Only     *onlyBlock      `yaml:"only"`
+	Addendum []addendumBlock `yaml:"addendum"`
 }
 
-type addition struct {
-	Only   *scope `yaml:"only"`
-	Reason string `yaml:"reason"`
-}
-
-type scope struct {
-	Dirs     texts       `yaml:"dirs"`
-	Branches []condition `yaml:"branches"`
-}
-
-type condition struct {
-	Onto string `yaml:"-"`
-	Not  texts  `yaml:"not"`
-}
-
-func (c *condition) UnmarshalYAML(node *yaml.Node) error {
+func (e *entry) UnmarshalYAML(node *yaml.Node) error {
+	type mapping entry
 	if node.Kind == yaml.ScalarNode {
-		return node.Decode(&c.Onto)
+		return node.Decode(&e.Commands)
+	} else if retired, isWritten := description(node); isWritten {
+		return fmt.Errorf("`description` is now `name`: %s", retired)
 	} else {
-		type mapping condition
-		return node.Decode((*mapping)(c))
+		return node.Decode((*mapping)(e))
+	}
+}
+
+func description(node *yaml.Node) (string, bool) {
+	for index := 0; index+1 < len(node.Content); index += 2 {
+		if node.Content[index].Value == "description" {
+			return node.Content[index+1].Value, true
+		}
+	}
+	return "", false
+}
+
+type onlyBlock struct {
+	rules.Scope
+}
+
+func (o *onlyBlock) UnmarshalYAML(node *yaml.Node) error {
+	var written struct {
+		Dirs     texts      `yaml:"dirs"`
+		Branches branchList `yaml:"branches"`
+	}
+	err := node.Decode(&written)
+	o.Scope = rules.NewScope(written.Dirs, rules.Branches(written.Branches))
+	return err
+}
+
+type branchList rules.Branches
+
+func (b *branchList) UnmarshalYAML(node *yaml.Node) error {
+	var items []yaml.Node
+	if err := node.Decode(&items); err != nil {
+		return err
+	}
+	for _, item := range items {
+		if err := b.add(item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *branchList) add(item yaml.Node) error {
+	var excluded struct {
+		Not texts `yaml:"not"`
+	}
+	if item.Kind == yaml.ScalarNode {
+		b.Onto = append(b.Onto, item.Value)
+		return nil
+	} else if err := item.Decode(&excluded); err != nil || len(excluded.Not) == 0 {
+		return cmp.Or(err, fmt.Errorf("a branch is a name, or a mapping with `not`: %v", item.Value))
+	} else {
+		b.NotOnto = append(b.NotOnto, excluded.Not...)
+		return nil
+	}
+}
+
+type addendumBlock struct {
+	rules.Addendum
+}
+
+func (a *addendumBlock) UnmarshalYAML(node *yaml.Node) error {
+	var written struct {
+		Only   *onlyBlock `yaml:"only"`
+		Reason string     `yaml:"reason"`
+	}
+	if err := node.Decode(&written); err != nil {
+		return err
+	} else if written.Only == nil || strings.TrimSpace(written.Reason) == "" {
+		return fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", written)
+	} else {
+		a.Addendum = rules.NewAddendum(written.Only.Scope, written.Reason)
+		return nil
 	}
 }
 
 type texts []string
-
-func (s scope) rulesScope() (rules.Scope, error) {
-	branches, err := branchesOf(s.Branches)
-	return rules.NewScope(s.Dirs, branches), err
-}
-
-func branchesOf(conditions []condition) (rules.Branches, error) {
-	var branches rules.Branches
-	for _, one := range conditions {
-		switch {
-		case one.Onto != "":
-			branches.Onto = append(branches.Onto, one.Onto)
-		case len(one.Not) > 0:
-			branches.NotOnto = append(branches.NotOnto, one.Not...)
-		default:
-			return rules.Branches{}, fmt.Errorf("a branch is a name, or a mapping with `not`: %+v", one)
-		}
-	}
-	return branches, nil
-}
-
-func (e *entry) UnmarshalYAML(node *yaml.Node) error {
-	if node.Kind == yaml.ScalarNode {
-		return node.Decode(&e.Commands)
-	} else {
-		type mapping entry
-		return cmp.Or(node.Decode((*mapping)(e)), renameError(e.Description))
-	}
-}
-
-func renameError(description string) error {
-	if description == "" {
-		return nil
-	} else {
-		return fmt.Errorf("`description` is now `name`: %s", description)
-	}
-}
 
 func (t *texts) UnmarshalYAML(node *yaml.Node) error {
 	var values []string
