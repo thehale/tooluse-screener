@@ -14,10 +14,9 @@ func NewOpening(rule Rule) Rule {
 }
 
 func (o Opening) At(command commands.Command) int {
-	switch {
-	case o.Span(command) > 0:
+	if o.Span(command) > 0 {
 		return 0
-	default:
+	} else {
 		return -1
 	}
 }
@@ -25,10 +24,9 @@ func (o Opening) At(command commands.Command) int {
 func (o Opening) Span(command commands.Command) int {
 	spoken := commands.Command{Text: commands.Spoken(command.Text), Moved: command.Moved}
 	accounted := o.Rule.Span(spoken)
-	switch {
-	case o.Rule.At(spoken) == 0 && endsAWord(spoken.Text, accounted):
+	if o.Rule.At(spoken) == 0 && endsAWord(spoken.Text, accounted) {
 		return accounted
-	default:
+	} else {
 		return 0
 	}
 }

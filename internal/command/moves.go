@@ -34,10 +34,9 @@ var unseenMoves = []string{"popd", "source", ".", "eval"}
 var exporting = []string{"export", "declare", "typeset", "readonly", "local"}
 
 func retargetedBy(words []string, moved []string) []string {
-	switch {
-	case lists.Some(words, namesARetarget):
+	if lists.Some(words, namesARetarget) {
 		return movedTo(moved, "")
-	default:
+	} else {
 		return moved
 	}
 }

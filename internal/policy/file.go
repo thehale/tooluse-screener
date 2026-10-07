@@ -4,6 +4,7 @@
 package policy
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -47,9 +48,10 @@ type condition struct {
 func (c *condition) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind == yaml.ScalarNode {
 		return node.Decode(&c.Onto)
+	} else {
+		type mapping condition
+		return node.Decode((*mapping)(c))
 	}
-	type mapping condition
-	return node.Decode((*mapping)(c))
 }
 
 type texts []string
@@ -77,19 +79,16 @@ func branchesNamed(conditions []condition) (rules.Branches, error) {
 func (e *entry) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind == yaml.ScalarNode {
 		return node.Decode(&e.Commands)
+	} else {
+		type mapping entry
+		return cmp.Or(node.Decode((*mapping)(e)), renamed(e.Description))
 	}
-	type mapping entry
-	if err := node.Decode((*mapping)(e)); err != nil {
-		return err
-	}
-	return renamed(e.Description)
 }
 
 func renamed(description string) error {
-	switch description {
-	case "":
+	if description == "" {
 		return nil
-	default:
+	} else {
 		return fmt.Errorf("`description` is now `name`: %s", description)
 	}
 }
@@ -109,8 +108,9 @@ func (t *texts) UnmarshalYAML(node *yaml.Node) error {
 func writtenIn(node *yaml.Node) []*yaml.Node {
 	if node.Kind == yaml.SequenceNode {
 		return node.Content
+	} else {
+		return []*yaml.Node{node}
 	}
-	return []*yaml.Node{node}
 }
 
 func isText(written *yaml.Node) bool {

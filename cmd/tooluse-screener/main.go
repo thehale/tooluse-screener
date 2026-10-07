@@ -23,11 +23,9 @@ func main() {
 func run(arguments []string, in io.Reader, out, complaints io.Writer) int {
 	asked := reading(complaints)
 	spelled := asFlags(arguments)
-
-	switch wrong := misspelled(spelled); {
-	case wrong != "":
+	if wrong := misspelled(spelled); wrong != "" {
 		return misspelling(asked.flags, complaints, wrong)
-	default:
+	} else {
 		return asked.answer(spelled, in, out, complaints)
 	}
 }
@@ -95,20 +93,18 @@ func misspelling(asked *flag.FlagSet, complaints io.Writer, wrong string) int {
 }
 
 func asFlags(arguments []string) []string {
-	switch {
-	case len(arguments) > 0 && arguments[0] == "help":
+	if len(arguments) > 0 && arguments[0] == "help" {
 		return []string{"-h"}
-	default:
+	} else {
 		return arguments
 	}
 }
 
 func version() string {
 	build, known := debug.ReadBuildInfo()
-	switch {
-	case known && build.Main.Version != "":
+	if known && build.Main.Version != "" {
 		return build.Main.Version
-	default:
+	} else {
 		return "(unknown)"
 	}
 }
@@ -149,10 +145,9 @@ func (c configured) policy() policy.Policy {
 }
 
 func loaded(path string) (policy.Policy, error) {
-	switch path {
-	case "":
+	if path == "" {
 		return policy.Load()
-	default:
+	} else {
 		return policy.LoadFile(path)
 	}
 }

@@ -99,10 +99,9 @@ func branchOf(refspec string) string {
 
 func named(side string) string {
 	branch := strings.TrimPrefix(side, "refs/heads/")
-	switch {
-	case isABranchName(branch):
+	if isABranchName(branch) {
 		return branch
-	default:
+	} else {
 		return ""
 	}
 }

@@ -74,8 +74,9 @@ var substitutionOpeners = []string{"$(", "`", "<(", ">("}
 func readSubstitution(text string, start int, opener string) (contents string, resumed int) {
 	if opener == "`" {
 		return readToClosingBacktick(text, start)
+	} else {
+		return readToClosingParen(text, start+len(opener)-1)
 	}
-	return readToClosingParen(text, start+len(opener)-1)
 }
 
 func readToClosingBacktick(text string, start int) (contents string, resumed int) {
@@ -83,8 +84,9 @@ func readToClosingBacktick(text string, start int) (contents string, resumed int
 	end := strings.Index(text[begins:], "`")
 	if end < 0 {
 		return unterminated(text, begins)
+	} else {
+		return text[begins : begins+end], begins + end + 1
 	}
-	return text[begins : begins+end], begins + end + 1
 }
 
 func readToClosingParen(text string, openingParen int) (contents string, resumed int) {
@@ -154,6 +156,7 @@ func tidied(command string) string {
 func letterAt(text string, index int) rune {
 	if index < 0 || index >= len(text) {
 		return 0
+	} else {
+		return rune(text[index])
 	}
-	return rune(text[index])
 }

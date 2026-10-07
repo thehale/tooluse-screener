@@ -32,10 +32,9 @@ const Variable = "TOOLUSE_SCREENER_POLICY_FILE"
 const fileName = "tooluse-screener/policy.yaml"
 
 func configured() (string, error) {
-	switch set := os.Getenv(Variable); set {
-	case "":
+	if set := os.Getenv(Variable); set == "" {
 		return inConfigDirectory()
-	default:
+	} else {
 		return set, nil
 	}
 }

@@ -24,6 +24,7 @@ func (n named) Reason(commands.Command) string {
 func (n named) calls(written string) string {
 	if n.name == "" {
 		return written
+	} else {
+		return n.name
 	}
-	return n.name
 }

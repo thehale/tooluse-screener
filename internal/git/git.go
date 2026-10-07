@@ -21,11 +21,15 @@ type Invocation struct {
 }
 
 func Read(command string) Invocation {
-	words := strings.Fields(commands.Spoken(command))
-	if len(words) == 0 || words[0] != "git" {
+	if words := strings.Fields(commands.Spoken(command)); len(words) == 0 || words[0] != "git" {
 		return Invocation{Unread: unread(command, nil)}
+	} else {
+		return invoked(command, words[1:])
 	}
-	directories, global, spoken := afterGlobalOptions(append(twinned(command), words[1:]...))
+}
+
+func invoked(command string, words []string) Invocation {
+	directories, global, spoken := afterGlobalOptions(append(twinned(command), words...))
 	subcommand, arguments := spokenAs(spoken)
 	return Invocation{
 		Git:         true,
@@ -48,8 +52,9 @@ func (i Invocation) Carries(words []string) bool {
 func (i Invocation) carries(word string) bool {
 	if strings.HasPrefix(word, "-") {
 		return slices.Contains(i.Arguments, word)
+	} else {
+		return len(i.Arguments) > 0 && i.Arguments[0] == word
 	}
-	return len(i.Arguments) > 0 && i.Arguments[0] == word
 }
 
 func afterGlobalOptions(words []string) (directories, global, spoken []string) {
@@ -84,8 +89,9 @@ func directoryFrom(value string, joined bool, words []string) string {
 func stride(option string, joined bool, remaining int) int {
 	if joined || !takesAValue(option) || remaining < 2 {
 		return 1
+	} else {
+		return 2
 	}
-	return 2
 }
 
 func takesAValue(option string) bool {
@@ -96,6 +102,7 @@ func takesAValue(option string) bool {
 func spokenAs(spoken []string) (subcommand string, arguments []string) {
 	if len(spoken) == 0 {
 		return "", nil
+	} else {
+		return spoken[0], spoken[1:]
 	}
-	return spoken[0], spoken[1:]
 }

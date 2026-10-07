@@ -27,19 +27,17 @@ func (g GitSubcommand) matches(command commands.Command) bool {
 }
 
 func (g GitSubcommand) At(command commands.Command) int {
-	switch {
-	case g.matches(command):
+	if g.matches(command) {
 		return 0
-	default:
+	} else {
 		return -1
 	}
 }
 
 func (g GitSubcommand) Span(command commands.Command) int {
-	switch {
-	case g.matches(command):
+	if g.matches(command) {
 		return past(command.Text, append([]string{g.subcommand}, g.having...))
-	default:
+	} else {
 		return 0
 	}
 }

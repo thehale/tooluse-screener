@@ -200,16 +200,16 @@ func TestWhatEachEventAnswersWith(t *testing.T) {
 	for _, wanted := range answers {
 		t.Run(wanted.event+" "+string(wanted.verdict.Decision), func(t *testing.T) {
 			payload := claude("git status", wanted.event)
-			switch wanted.envelope {
-			case "":
+			if wanted.envelope == "" {
 				quiet(t, payload, wanted.verdict, wanted.code)
-			default:
+			} else {
 				envelope, code := answered(t, payload, wanted.verdict)
 				spoke(t, envelope, wanted.envelope)
 				if code != wanted.code {
 					t.Errorf("exit %d, wanted %d", code, wanted.code)
 				}
 			}
+
 		})
 	}
 }

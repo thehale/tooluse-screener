@@ -25,10 +25,9 @@ func standsAlone(path string) bool {
 
 func Entered(here, path string) string {
 	named := WithHomeExpanded(Within(here, path))
-	switch {
-	case named == "" || strings.HasPrefix(named, "~"):
+	if named == "" || strings.HasPrefix(named, "~") {
 		return ""
-	default:
+	} else {
 		return filepath.Clean(named)
 	}
 }

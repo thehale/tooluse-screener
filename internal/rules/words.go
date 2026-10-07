@@ -57,10 +57,9 @@ func joinsAWord(letter byte) bool {
 }
 
 func (w Words) Span(command commands.Command) int {
-	switch {
-	case w.At(command) >= 0:
+	if w.At(command) >= 0 {
 		return len(w.text)
-	default:
+	} else {
 		return 0
 	}
 }

@@ -43,10 +43,9 @@ func testPolicy(t *testing.T) policy.Policy {
 }
 
 func decidedOn(path string, asked policy.Policy) policy.Decision {
-	switch verdict, answered := asked.CheckPath(path); {
-	case answered:
+	if verdict, answered := asked.CheckPath(path); answered {
 		return verdict.Decision
-	default:
+	} else {
 		return unanswered
 	}
 }

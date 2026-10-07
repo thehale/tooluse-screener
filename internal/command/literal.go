@@ -22,6 +22,7 @@ const expanding = "$`\\\"'*?[]{}" + Unquotable
 func withoutQuotes(word string) (unquoted string, quoted bool) {
 	if len(word) >= 2 && strings.ContainsRune(`'"`, rune(word[0])) && word[0] == word[len(word)-1] {
 		return word[1 : len(word)-1], true
+	} else {
+		return word, false
 	}
-	return word, false
 }

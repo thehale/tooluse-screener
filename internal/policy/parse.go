@@ -105,10 +105,9 @@ func entryRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, 
 }
 
 func scoped(found []rules.Rule, only *scope) ([]rules.Rule, error) {
-	switch only {
-	case nil:
+	if only == nil {
 		return found, nil
-	default:
+	} else {
 		built, err := only.built()
 		return within(found, built), err
 	}
@@ -167,14 +166,15 @@ func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, er
 func commandRule(text, reason, name string) rules.Rule {
 	if invocation, named := gitInvocation(text); named {
 		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, name)
+	} else {
+		return rules.NewWords(text, reason, name)
 	}
-	return rules.NewWords(text, reason, name)
 }
 
 func gitInvocation(text string) (spoken []string, named bool) {
-	words := strings.Fields(text)
-	if len(words) < 2 || words[0] != "git" {
+	if words := strings.Fields(text); len(words) < 2 || words[0] != "git" {
 		return nil, false
+	} else {
+		return words[1:], true
 	}
-	return words[1:], true
 }

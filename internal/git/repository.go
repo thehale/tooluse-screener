@@ -18,10 +18,9 @@ type repository struct {
 
 func opened(dir string) (repository, bool) {
 	path := directories.Followed(dir)
-	switch path {
-	case "":
+	if path == "" {
 		return repository{}, false
-	default:
+	} else {
 		return read(path)
 	}
 }

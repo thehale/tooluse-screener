@@ -20,10 +20,9 @@ func actedIn(moved, pointed []string) []string {
 }
 
 func orHere(pointed []string) []string {
-	switch {
-	case len(pointed) == 0:
+	if len(pointed) == 0 {
 		return []string{"."}
-	default:
+	} else {
 		return pointed
 	}
 }

@@ -15,11 +15,11 @@ type Checker interface {
 }
 
 func Decide(payload Payload, checker Checker) (policy.Verdict, bool) {
-	asked, posed := questionIn(payload)
-	if !posed {
+	if asked, posed := questionIn(payload); !posed {
 		return policy.Verdict{}, false
+	} else {
+		return asked(checker)
 	}
-	return asked(checker)
 }
 
 type question func(checker Checker) (policy.Verdict, bool)
@@ -62,10 +62,9 @@ var targets = map[string]string{
 }
 
 func resolved(cwd, path string) string {
-	switch {
-	case filepath.IsAbs(path):
+	if filepath.IsAbs(path) {
 		return filepath.Clean(path)
-	default:
+	} else {
 		return filepath.Join(cwd, path)
 	}
 }

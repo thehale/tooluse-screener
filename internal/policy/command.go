@@ -72,10 +72,9 @@ func anyOf(matched []rules.Rule) bool {
 
 func refusal(subject string, rule fmt.Stringer, reason string) string {
 	refused := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
-	switch reason {
-	case "":
+	if reason == "" {
 		return refused
-	default:
+	} else {
 		return fmt.Sprintf("%s. %s", refused, reason)
 	}
 }

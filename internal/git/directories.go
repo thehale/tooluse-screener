@@ -42,19 +42,17 @@ func namedFrom(here string, pointed []pointing) []string {
 }
 
 func lastOf(entered []string) string {
-	switch {
-	case len(entered) == 0:
+	if len(entered) == 0 {
 		return "."
-	default:
+	} else {
 		return entered[len(entered)-1]
 	}
 }
 
 func (i Invocation) PointedAt() []string {
-	switch {
-	case len(i.Unread) > 0:
+	if len(i.Unread) > 0 {
 		return append(slices.Clone(i.Directories), "")
-	default:
+	} else {
 		return i.Directories
 	}
 }

@@ -19,19 +19,17 @@ func NewReaching(rule Rule, trusted []string) Rule {
 }
 
 func (r Reaching) At(command commands.Command) int {
-	switch {
-	case r.reaches(command):
+	if r.reaches(command) {
 		return r.Rule.At(command)
-	default:
+	} else {
 		return -1
 	}
 }
 
 func (r Reaching) Span(command commands.Command) int {
-	switch {
-	case r.reaches(command):
+	if r.reaches(command) {
 		return r.Rule.Span(command)
-	default:
+	} else {
 		return 0
 	}
 }

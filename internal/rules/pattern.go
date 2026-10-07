@@ -28,10 +28,9 @@ func (p Pattern) At(command commands.Command) int {
 }
 
 func opened(at []int) int {
-	switch at {
-	case nil:
+	if at == nil {
 		return -1
-	default:
+	} else {
 		return at[0]
 	}
 }
@@ -41,10 +40,9 @@ func (p Pattern) Span(command commands.Command) int {
 }
 
 func spanned(at []int) int {
-	switch at {
-	case nil:
+	if at == nil {
 		return 0
-	default:
+	} else {
 		return at[1] - at[0]
 	}
 }

@@ -15,19 +15,17 @@ func NewScoped(rule Rule, scope Scope) Rule {
 }
 
 func (r Scoped) At(command commands.Command) int {
-	switch {
-	case r.scope.includes(command):
+	if r.scope.includes(command) {
 		return r.Rule.At(command)
-	default:
+	} else {
 		return -1
 	}
 }
 
 func (r Scoped) Span(command commands.Command) int {
-	switch {
-	case r.scope.includes(command):
+	if r.scope.includes(command) {
 		return r.Rule.Span(command)
-	default:
+	} else {
 		return 0
 	}
 }

@@ -29,10 +29,9 @@ func (s Scope) runsInADir(acted []string) bool {
 }
 
 func (s Scope) landsOnABranch(invocation git.Invocation, acted []string) bool {
-	switch {
-	case s.branches.unsaid():
+	if s.branches.unsaid() {
 		return true
-	default:
+	} else {
 		branch, known := invocation.Landing(acted)
 		return known && s.branches.includes(branch)
 	}

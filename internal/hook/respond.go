@@ -19,10 +19,11 @@ func Respond(payload Payload, verdict policy.Verdict) (envelope map[string]any, 
 const blocked = 2
 
 func event(payload Payload) string {
-	if named := text(payload, "hook_event_name"); named != "" {
+	if named := text(payload, "hook_event_name"); named == "" {
+		return "PreToolUse"
+	} else {
 		return named
 	}
-	return "PreToolUse"
 }
 
 func preToolUse(verdict policy.Verdict) (map[string]any, int) {
