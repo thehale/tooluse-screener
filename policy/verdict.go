@@ -26,7 +26,7 @@ func unlisted(subject string) Verdict {
 	return Verdict{Ask, fmt.Sprintf("%s is not in the shared allow list", subject)}
 }
 
-func refusal(subject string, rule fmt.Stringer, reason string) string {
+func denyReason(subject string, rule fmt.Stringer, reason string) string {
 	message := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
 	if reason == "" {
 		return message

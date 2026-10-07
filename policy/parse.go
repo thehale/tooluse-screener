@@ -21,19 +21,19 @@ func Parse(contents []byte) (Policy, error) {
 }
 
 func (f file) policy() (Policy, error) {
-	deniedSide, err := f.Denied.side(denial)
+	deniedSide, err := f.Denied.side(asWritten)
 	if err != nil {
 		return Policy{}, err
 	}
-	allowedSide, err := f.Allowed.side(allowanceIn(f.Trusted))
+	allowedSide, err := f.Allowed.side(allowRuleIn(f.Trusted))
 	return Policy{denied: deniedSide, allowed: allowedSide}, err
 }
 
-func denial(rule rules.Rule) rules.Rule {
+func asWritten(rule rules.Rule) rules.Rule {
 	return rule
 }
 
-func allowanceIn(trusted []string) func(rules.Rule) rules.Rule {
+func allowRuleIn(trusted []string) func(rules.Rule) rules.Rule {
 	return func(rule rules.Rule) rules.Rule {
 		return rules.NewReaching(rules.NewOpening(rule), trusted)
 	}
