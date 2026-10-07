@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/thehale/tooluse-screener/internal/directories"
-	"github.com/thehale/tooluse-screener/internal/git"
 )
 
 func actedIn(moved, pointed []string) []string {
@@ -18,15 +17,6 @@ func actedIn(moved, pointed []string) []string {
 		}
 	}
 	return acted
-}
-
-func pointedAt(invocation git.Invocation) []string {
-	switch {
-	case len(invocation.Unread) > 0:
-		return append(invocation.Directories, "")
-	default:
-		return invocation.Directories
-	}
 }
 
 func orHere(pointed []string) []string {

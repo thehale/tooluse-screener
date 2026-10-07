@@ -20,7 +20,7 @@ func NewScope(dirs []string, branches Branches) Scope {
 
 func (s Scope) includes(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	acted := actedIn(command.Moved, orHere(pointedAt(invocation)))
+	acted := actedIn(command.Moved, orHere(invocation.PointedAt()))
 	return s.runsInADir(acted) && s.landsOnABranch(invocation, acted)
 }
 
@@ -33,7 +33,7 @@ func (s Scope) landsOnABranch(invocation git.Invocation, acted []string) bool {
 	case s.branches.unsaid():
 		return true
 	default:
-		branch, known := git.Landing(invocation, acted)
+		branch, known := invocation.Landing(acted)
 		return known && s.branches.includes(branch)
 	}
 }

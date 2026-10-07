@@ -12,8 +12,8 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func Landing(i Invocation, dirs []string) (branch string, known bool) {
-	words, readable := pushed(i)
+func (i Invocation) Landing(dirs []string) (branch string, known bool) {
+	words, readable := i.pushed()
 	switch {
 	case !readable:
 		return "", false
@@ -24,7 +24,7 @@ func Landing(i Invocation, dirs []string) (branch string, known bool) {
 	}
 }
 
-func pushed(i Invocation) (words []string, readable bool) {
+func (i Invocation) pushed() (words []string, readable bool) {
 	options, words := partitioned(i.Arguments)
 	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && leaveTheLandingAlone(options, i.Global)
 }

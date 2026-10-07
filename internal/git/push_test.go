@@ -163,7 +163,7 @@ func lands(t *testing.T, command, wanted string) {
 
 func landsFrom(t *testing.T, dirs []string, command, wanted string) {
 	t.Helper()
-	branch, known := git.Landing(git.Read(command), dirs)
+	branch, known := git.Read(command).Landing(dirs)
 	if !known || branch != wanted {
 		t.Errorf("Landing(%q) = %q, %v, wanted %q, true", command, branch, known, wanted)
 	}
@@ -176,7 +176,7 @@ func unread(t *testing.T, command string) {
 
 func unreadFrom(t *testing.T, dirs []string, command string) {
 	t.Helper()
-	if branch, known := git.Landing(git.Read(command), dirs); known {
+	if branch, known := git.Read(command).Landing(dirs); known {
 		t.Errorf("Landing(%q) = %q, true, wanted it unread", command, branch)
 	}
 }

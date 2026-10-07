@@ -3,7 +3,11 @@
 
 package git
 
-import "github.com/thehale/tooluse-screener/internal/directories"
+import (
+	"slices"
+
+	"github.com/thehale/tooluse-screener/internal/directories"
+)
 
 type pointing struct {
 	option    string
@@ -43,5 +47,14 @@ func lastOf(entered []string) string {
 		return "."
 	default:
 		return entered[len(entered)-1]
+	}
+}
+
+func (i Invocation) PointedAt() []string {
+	switch {
+	case len(i.Unread) > 0:
+		return append(slices.Clone(i.Directories), "")
+	default:
+		return i.Directories
 	}
 }
