@@ -21,10 +21,10 @@ func main() {
 }
 
 func run(arguments []string, in io.Reader, out, complaints io.Writer) int {
-	asked := reading(complaints)
+	asked := optionsFor(complaints)
 	spelled := asFlags(arguments)
-	if wrong := misspelled(spelled); wrong != "" {
-		return misspelling(asked.flags, complaints, wrong)
+	if wrong := misspelling(spelled); wrong != "" {
+		return complainOfMisspelling(asked.flags, complaints, wrong)
 	} else {
 		return asked.answer(spelled, in, out, complaints)
 	}
@@ -37,7 +37,7 @@ type options struct {
 	path      *string
 }
 
-func reading(complaints io.Writer) options {
+func optionsFor(complaints io.Writer) options {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	flags.SetOutput(complaints)
 	flags.Usage = func() {}
@@ -53,16 +53,16 @@ func reading(complaints io.Writer) options {
 func (o options) answer(spelled []string, in io.Reader, out, complaints io.Writer) int {
 	switch err := o.flags.Parse(spelled); {
 	case errors.Is(err, flag.ErrHelp):
-		usage(o.flags, out)
+		printUsage(o.flags, out)
 		return 0
 	case err != nil:
-		usage(o.flags, complaints)
+		printUsage(o.flags, complaints)
 		return usageError
 	case *o.reporting:
 		_, _ = fmt.Fprintln(out, name, version())
 		return 0
 	case *o.answering:
-		return hook.Main(in, out, complaints, configured(*o.path))
+		return hook.Main(in, out, complaints, lazyPolicy(*o.path))
 	default:
 		return checkOne(o.flags, out, complaints, *o.path)
 	}
@@ -72,7 +72,7 @@ const name = "tooluse-screener"
 
 const usageError = 64
 
-func misspelled(arguments []string) string {
+func misspelling(arguments []string) string {
 	for _, one := range arguments {
 		switch {
 		case one == "--" || !strings.HasPrefix(one, "-"):
@@ -86,9 +86,9 @@ func misspelled(arguments []string) string {
 	return ""
 }
 
-func misspelling(asked *flag.FlagSet, complaints io.Writer, wrong string) int {
+func complainOfMisspelling(asked *flag.FlagSet, complaints io.Writer, wrong string) int {
 	_, _ = fmt.Fprintf(complaints, "%s: %s is not a flag. Write -%s.\n", name, wrong, wrong)
-	usage(asked, complaints)
+	printUsage(asked, complaints)
 	return usageError
 }
 
@@ -116,12 +116,12 @@ func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 		asked.Usage()
 		return usageError
 	} else {
-		return checked(asked.Arg(0), out, complaints, path)
+		return checkLine(asked.Arg(0), out, complaints, path)
 	}
 }
 
-func checked(line string, out, complaints io.Writer, path string) int {
-	chosen, err := loaded(path)
+func checkLine(line string, out, complaints io.Writer, path string) int {
+	chosen, err := policyAt(path)
 	if err != nil {
 		_, _ = fmt.Fprintf(complaints, "tooluse-screener: %v\n", err)
 		return usageError
@@ -131,25 +131,25 @@ func checked(line string, out, complaints io.Writer, path string) int {
 	return exitCodes[verdict.Decision]
 }
 
-type configured string
+type lazyPolicy string
 
-func (c configured) CheckCommand(line string) policy.Verdict {
+func (c lazyPolicy) CheckCommand(line string) policy.Verdict {
 	return c.policy().CheckCommand(line)
 }
 
-func (c configured) CheckPath(path string) policy.Verdict {
+func (c lazyPolicy) CheckPath(path string) policy.Verdict {
 	return c.policy().CheckPath(path)
 }
 
-func (c configured) policy() policy.Policy {
-	found, err := loaded(string(c))
+func (c lazyPolicy) policy() policy.Policy {
+	found, err := policyAt(string(c))
 	if err != nil {
 		panic(fmt.Sprintf("the policy will not read: %v", err))
 	}
 	return found
 }
 
-func loaded(path string) (policy.Policy, error) {
+func policyAt(path string) (policy.Policy, error) {
 	if path == "" {
 		return policy.Load()
 	} else {
@@ -157,19 +157,19 @@ func loaded(path string) (policy.Policy, error) {
 	}
 }
 
-func usage(asked *flag.FlagSet, writing io.Writer) {
+func printUsage(asked *flag.FlagSet, writing io.Writer) {
 	_, _ = fmt.Fprintln(writing, "Check a Bash command against the shared agent permission policy.")
 	_, _ = fmt.Fprintln(writing, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n       tooluse-screener help\n\nFlags:")
-	flags(asked, writing)
+	printFlags(asked, writing)
 }
 
-func flags(asked *flag.FlagSet, writing io.Writer) {
+func printFlags(asked *flag.FlagSet, writing io.Writer) {
 	asked.VisitAll(func(one *flag.Flag) {
 		placeholder, purpose := flag.UnquoteUsage(one)
-		_, _ = fmt.Fprintf(writing, "  %s\n        %s\n", named(one, placeholder), purpose)
+		_, _ = fmt.Fprintf(writing, "  %s\n        %s\n", flagName(one, placeholder), purpose)
 	})
 }
 
-func named(one *flag.Flag, placeholder string) string {
+func flagName(one *flag.Flag, placeholder string) string {
 	return strings.TrimSpace("--" + one.Name + " " + placeholder)
 }
