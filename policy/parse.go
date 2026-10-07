@@ -30,18 +30,18 @@ func rulesScope(configuration file) (Policy, error) {
 }
 
 func sideFrom(entries []entry, wrap func(rules.Rule) rules.Rule) (side, error) {
-	commandRules, err := group(entries, wrap)
+	commandRules, err := commandRulesOf(entries, wrap)
 	if err != nil {
 		return side{}, err
 	}
-	pathRules, err := globs(entries)
+	pathRules, err := pathRulesOf(entries)
 	return side{commandRules: commandRules, pathRules: pathRules}, err
 }
 
-func globs(entries []entry) (rules.Globs, error) {
+func pathRulesOf(entries []entry) (rules.Globs, error) {
 	var pathRules rules.Globs
 	for _, one := range entries {
-		list, err := entryGlobs(one)
+		list, err := one.pathRules()
 		if err != nil {
 			return nil, err
 		}
@@ -50,23 +50,23 @@ func globs(entries []entry) (rules.Globs, error) {
 	return pathRules, nil
 }
 
-func entryGlobs(policyEntry entry) (rules.Globs, error) {
+func (e entry) pathRules() (rules.Globs, error) {
 	switch {
-	case len(policyEntry.Paths) == 0:
+	case len(e.Paths) == 0:
 		return nil, nil
-	case len(policyEntry.Commands) > 0 || len(policyEntry.Patterns) > 0:
-		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", policyEntry)
-	case policyEntry.Only != nil || len(policyEntry.Addendum) > 0:
-		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", policyEntry)
+	case len(e.Commands) > 0 || len(e.Patterns) > 0:
+		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", e)
+	case e.Only != nil || len(e.Addendum) > 0:
+		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", e)
 	default:
-		return globsIn(policyEntry)
+		return e.globs()
 	}
 }
 
-func globsIn(policyEntry entry) (rules.Globs, error) {
+func (e entry) globs() (rules.Globs, error) {
 	var pathRules rules.Globs
-	for _, text := range policyEntry.Paths {
-		glob, err := rules.NewGlob(text, policyEntry.Reason, policyEntry.Name)
+	for _, text := range e.Paths {
+		glob, err := rules.NewGlob(text, e.Reason, e.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -85,10 +85,10 @@ func allowanceIn(trusted []string) func(rules.Rule) rules.Rule {
 	}
 }
 
-func group(entries []entry, wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
+func commandRulesOf(entries []entry, wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
 	var commandRules []rules.Rule
 	for _, one := range entries {
-		list, err := entryRules(one, wrap)
+		list, err := one.commandRules(wrap)
 		if err != nil {
 			return rules.Group{}, err
 		}
@@ -97,16 +97,16 @@ func group(entries []entry, wrap func(rules.Rule) rules.Rule) (rules.Group, erro
 	return rules.Group(commandRules), nil
 }
 
-func entryRules(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	commandRules, err := allRules(policyEntry, wrap)
+func (e entry) commandRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+	commandRules, err := e.unscopedRules(wrap)
 	if err != nil {
 		return nil, err
 	}
-	commandRules, err = scopedRules(commandRules, policyEntry.Only)
+	commandRules, err = scopedRules(commandRules, e.Only)
 	if err != nil {
 		return nil, err
 	}
-	return addendedRules(commandRules, policyEntry.Addendum)
+	return addendedRules(commandRules, e.Addendum)
 }
 
 func scopedRules(commandRules []rules.Rule, only *scope) ([]rules.Rule, error) {
@@ -150,21 +150,21 @@ func addendaOf(additions []addition) ([]rules.Addendum, error) {
 	return addenda, nil
 }
 
-func allRules(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	if len(policyEntry.Commands) == 0 && len(policyEntry.Patterns) == 0 && len(policyEntry.Paths) == 0 {
-		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", policyEntry)
+func (e entry) unscopedRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+	if len(e.Commands) == 0 && len(e.Patterns) == 0 && len(e.Paths) == 0 {
+		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", e)
 	} else {
-		return rulesIn(policyEntry, wrap)
+		return e.writtenRules(wrap)
 	}
 }
 
-func rulesIn(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+func (e entry) writtenRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
 	var commandRules []rules.Rule
-	for _, text := range policyEntry.Commands {
-		commandRules = append(commandRules, wrap(commandRule(text, policyEntry.Reason, policyEntry.Name)))
+	for _, text := range e.Commands {
+		commandRules = append(commandRules, wrap(e.commandRule(text)))
 	}
-	for _, expression := range policyEntry.Patterns {
-		pattern, err := rules.NewPattern(expression, policyEntry.Reason, policyEntry.Name)
+	for _, expression := range e.Patterns {
+		pattern, err := rules.NewPattern(expression, e.Reason, e.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -173,11 +173,11 @@ func rulesIn(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule,
 	return commandRules, nil
 }
 
-func commandRule(text, reason, name string) rules.Rule {
+func (e entry) commandRule(text string) rules.Rule {
 	if invocation, isGit := gitInvocation(text); isGit {
-		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, name)
+		return rules.NewGitSubcommand(invocation[0], invocation[1:], e.Reason, e.Name)
 	} else {
-		return rules.NewWords(text, reason, name)
+		return rules.NewWords(text, e.Reason, e.Name)
 	}
 }
 
