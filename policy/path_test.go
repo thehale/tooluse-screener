@@ -34,16 +34,12 @@ func TestWritingAPath(t *testing.T) {
 		wrote(t, guarded, "/notes/private/diary.md", "deny: Path matches a denied rule: /notes/private/*")
 	})
 
-	t.Run("a path the policy does not name gets no answer", func(t *testing.T) {
-		if verdict, answered := guarded.CheckPath("/work/main.go"); answered {
-			t.Errorf("answered %s", verdict)
-		}
+	t.Run("a path the policy does not name is asked about", func(t *testing.T) {
+		wrote(t, guarded, "/work/main.go", "ask: Path is not in the shared allow list")
 	})
 
 	t.Run("a path is never judged by a command", func(t *testing.T) {
-		if verdict, answered := guarded.CheckPath("cat /secrets"); answered {
-			t.Errorf("answered %s", verdict)
-		}
+		wrote(t, guarded, "cat /secrets", "ask: Path is not in the shared allow list")
 	})
 
 	t.Run("a command is never judged by a path", func(t *testing.T) {
@@ -53,7 +49,7 @@ func TestWritingAPath(t *testing.T) {
 
 func wrote(t *testing.T, chosen Policy, path, wanted string) {
 	t.Helper()
-	if verdict, _ := chosen.CheckPath(path); verdict.String() != wanted {
+	if verdict := chosen.CheckPath(path); verdict.String() != wanted {
 		t.Errorf("%q -> %s, wanted %s", path, verdict, wanted)
 	}
 }

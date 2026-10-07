@@ -132,7 +132,7 @@ func (c configured) CheckCommand(line string) policy.Verdict {
 	return c.policy().CheckCommand(line)
 }
 
-func (c configured) CheckPath(path string) (policy.Verdict, bool) {
+func (c configured) CheckPath(path string) policy.Verdict {
 	return c.policy().CheckPath(path)
 }
 

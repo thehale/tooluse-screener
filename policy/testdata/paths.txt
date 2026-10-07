@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # Every line is a verdict and the path a tool writes, read against
-# testdata/policy.yaml with a home of /home/me. `none` is no verdict at
-# all, which leaves the agent to decide as it would without a hook.
+# testdata/policy.yaml with a home of /home/me. `ask` leaves the agent
+# to decide as it would without a hook.
 
 # A denied path, written under the home it was named from
 deny    /home/me/.ssh/id_ed25519
@@ -16,17 +16,17 @@ deny    /home/me/server.pem
 deny    /home/me/src/tls/client.pem
 
 # A name that only resembles one the policy names
-none    /home/me/src/tls/client.pem.bak
-none    /home/me/.sshd/config
+ask     /home/me/src/tls/client.pem.bak
+ask     /home/me/.sshd/config
 
 # Another home's keys are not this one's
-none    /home/you/.ssh/id_rsa
+ask     /home/you/.ssh/id_rsa
 
 # A path climbing back out of a denied directory
-none    /home/me/.ssh/../notes.md
+ask     /home/me/.ssh/../notes.md
 
 # An allowed path
 allow   /work/repo/main.go
 
 # A path the policy says nothing about
-none    /etc/hosts
+ask     /etc/hosts

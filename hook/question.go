@@ -11,18 +11,18 @@ import (
 
 type Checker interface {
 	CheckCommand(line string) policy.Verdict
-	CheckPath(path string) (policy.Verdict, bool)
+	CheckPath(path string) policy.Verdict
 }
 
 func Decide(payload Payload, checker Checker) (policy.Verdict, bool) {
 	if asked, posed := questionIn(payload); !posed {
 		return policy.Verdict{}, false
 	} else {
-		return asked(checker)
+		return asked(checker), true
 	}
 }
 
-type question func(checker Checker) (policy.Verdict, bool)
+type question func(checker Checker) policy.Verdict
 
 func questionIn(payload Payload) (question, bool) {
 	arguments, given := payload["tool_input"].(map[string]any)
@@ -43,13 +43,13 @@ func questionIn(payload Payload) (question, bool) {
 }
 
 func aboutCommand(line string) question {
-	return func(checker Checker) (policy.Verdict, bool) {
-		return checker.CheckCommand(line), true
+	return func(checker Checker) policy.Verdict {
+		return checker.CheckCommand(line)
 	}
 }
 
 func aboutPath(path string) question {
-	return func(checker Checker) (policy.Verdict, bool) {
+	return func(checker Checker) policy.Verdict {
 		return checker.CheckPath(path)
 	}
 }

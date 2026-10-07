@@ -25,8 +25,8 @@ func TestThePathCorpus(t *testing.T) {
 	asked := testPolicy(t)
 	for _, line := range corpus(t, "paths.txt") {
 		wanted, path := readLine(t, line)
-		if answered := decidedOn(path, asked); answered != wanted {
-			t.Errorf("%q -> %s, wanted %s", path, answered, wanted)
+		if verdict := asked.CheckPath(path); verdict.Decision != wanted {
+			t.Errorf("%q -> %s, wanted %s", path, verdict, wanted)
 		}
 	}
 }
@@ -39,16 +39,6 @@ func testPolicy(t *testing.T) Policy {
 	}
 	return asked
 }
-
-func decidedOn(path string, asked Policy) Decision {
-	if verdict, answered := asked.CheckPath(path); answered {
-		return verdict.Decision
-	} else {
-		return unanswered
-	}
-}
-
-const unanswered Decision = "none"
 
 func corpus(t *testing.T, named string) []string {
 	t.Helper()

@@ -277,8 +277,7 @@ parsedPolicy, err := policy.Parse(policyYAML)
 verdict := defaultPolicy.CheckCommand("rm -rf /")
 fmt.Println(verdict) // deny: Command matches a denied rule: Empty a whole tree
 
-// judged is false when no path rule applies
-verdict, judged := defaultPolicy.CheckPath("/home/me/.ssh/id_ed25519")
+verdict = defaultPolicy.CheckPath("/home/me/.ssh/id_ed25519")
 ```
 
 `github.com/thehale/tooluse-screener/hook` answers an agent's hook

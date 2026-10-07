@@ -26,8 +26,8 @@ func (a always) CheckCommand(string) policy.Verdict {
 	return policy.Verdict(a)
 }
 
-func (a always) CheckPath(string) (policy.Verdict, bool) {
-	return policy.Verdict(a), true
+func (a always) CheckPath(string) policy.Verdict {
+	return policy.Verdict(a)
 }
 
 type panics struct{}
@@ -36,7 +36,7 @@ func (panics) CheckCommand(string) policy.Verdict {
 	panic("something went sideways")
 }
 
-func (panics) CheckPath(string) (policy.Verdict, bool) {
+func (panics) CheckPath(string) policy.Verdict {
 	panic("something went sideways")
 }
 
@@ -46,18 +46,8 @@ func (echoing) CheckCommand(line string) policy.Verdict {
 	return policy.Verdict{Decision: policy.Deny, Reason: line}
 }
 
-func (echoing) CheckPath(path string) (policy.Verdict, bool) {
-	return policy.Verdict{Decision: policy.Deny, Reason: path}, true
-}
-
-type silent struct{}
-
-func (silent) CheckCommand(string) policy.Verdict {
-	return policy.Verdict{}
-}
-
-func (silent) CheckPath(string) (policy.Verdict, bool) {
-	return policy.Verdict{}, false
+func (echoing) CheckPath(path string) policy.Verdict {
+	return policy.Verdict{Decision: policy.Deny, Reason: path}
 }
 
 func writing(tool, key, path string) hook.Payload {
@@ -147,7 +137,7 @@ func TestWhatIsAsked(t *testing.T) {
 
 	t.Run("a path the policy says nothing about gets no envelope", func(t *testing.T) {
 		var out bytes.Buffer
-		code := hook.Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, silent{})
+		code := hook.Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, always(ask))
 		if code != 0 || out.String() != "" {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
