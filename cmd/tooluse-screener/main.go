@@ -115,13 +115,18 @@ func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 	if asked.NArg() != 1 {
 		asked.Usage()
 		return usageError
+	} else {
+		return checked(asked.Arg(0), out, complaints, path)
 	}
+}
+
+func checked(line string, out, complaints io.Writer, path string) int {
 	chosen, err := loaded(path)
 	if err != nil {
 		_, _ = fmt.Fprintf(complaints, "tooluse-screener: %v\n", err)
 		return usageError
 	}
-	verdict := chosen.CheckCommand(asked.Arg(0))
+	verdict := chosen.CheckCommand(line)
 	_, _ = fmt.Fprintln(out, verdict)
 	return exitCodes[verdict.Decision]
 }

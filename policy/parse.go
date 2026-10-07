@@ -58,7 +58,12 @@ func entryGlobs(written entry) (rules.Globs, error) {
 		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", written)
 	case written.Only != nil || len(written.Addendum) > 0:
 		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", written)
+	default:
+		return globsIn(written)
 	}
+}
+
+func globsIn(written entry) (rules.Globs, error) {
 	var found rules.Globs
 	for _, text := range written.Paths {
 		made, err := rules.NewGlob(text, written.Reason, written.Name)
@@ -148,7 +153,12 @@ func addendaOf(written []addition) ([]rules.Addendum, error) {
 func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
 	if len(written.Commands) == 0 && len(written.Patterns) == 0 && len(written.Paths) == 0 {
 		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", written)
+	} else {
+		return rulesIn(written, read)
 	}
+}
+
+func rulesIn(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
 	var found []rules.Rule
 	for _, text := range written.Commands {
 		found = append(found, read(commandRule(text, written.Reason, written.Name)))

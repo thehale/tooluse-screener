@@ -12,14 +12,22 @@ import (
 )
 
 func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
-	payload, read := payloadOn(in)
-	if !read {
+	if payload, read := payloadOn(in); !read {
 		return 0
+	} else {
+		return answered(payload, checker, out, complaints)
 	}
-	verdict, asked := decided(payload, checker, complaints)
-	if !asked {
+}
+
+func answered(payload Payload, checker Checker, out, complaints io.Writer) int {
+	if verdict, asked := decided(payload, checker, complaints); !asked {
 		return 0
+	} else {
+		return responded(payload, verdict, out, complaints)
 	}
+}
+
+func responded(payload Payload, verdict policy.Verdict, out, complaints io.Writer) int {
 	envelope, code := Respond(payload, verdict)
 	wrote(envelope, out)
 	if code == blocked {
