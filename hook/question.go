@@ -14,7 +14,7 @@ type Checker interface {
 	CheckPath(path string) policy.Verdict
 }
 
-func decide(payload toolCall, checker Checker) (policy.Verdict, bool) {
+func verdictOn(payload toolCall, checker Checker) (policy.Verdict, bool) {
 	if asked, posed := questionIn(payload); !posed {
 		return policy.Verdict{}, false
 	} else {
@@ -33,22 +33,22 @@ func questionIn(payload toolCall) (question, bool) {
 		return nil, false
 	case tool == "Bash":
 		command := text(toolCall(arguments), "command")
-		return aboutCommand(command), command != ""
+		return commandQuestion(command), command != ""
 	case writes:
 		path := text(toolCall(arguments), target)
-		return aboutPath(resolved(text(payload, "cwd"), path)), path != ""
+		return pathQuestion(absolutePath(text(payload, "cwd"), path)), path != ""
 	default:
 		return nil, false
 	}
 }
 
-func aboutCommand(line string) question {
+func commandQuestion(line string) question {
 	return func(checker Checker) policy.Verdict {
 		return checker.CheckCommand(line)
 	}
 }
 
-func aboutPath(path string) question {
+func pathQuestion(path string) question {
 	return func(checker Checker) policy.Verdict {
 		return checker.CheckPath(path)
 	}
@@ -61,7 +61,7 @@ var targets = map[string]string{
 	"NotebookEdit": "notebook_path",
 }
 
-func resolved(cwd, path string) string {
+func absolutePath(cwd, path string) string {
 	if filepath.IsAbs(path) {
 		return filepath.Clean(path)
 	} else {

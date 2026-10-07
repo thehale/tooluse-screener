@@ -20,7 +20,7 @@ func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
 }
 
 func answer(payload toolCall, checker Checker, out, complaints io.Writer) int {
-	if verdict, asked := decided(payload, checker, complaints); !asked {
+	if verdict, asked := safeVerdictOn(payload, checker, complaints); !asked {
 		return 0
 	} else {
 		return reply(payload, verdict, out, complaints)
@@ -28,27 +28,27 @@ func answer(payload toolCall, checker Checker, out, complaints io.Writer) int {
 }
 
 func reply(payload toolCall, verdict policy.Verdict, out, complaints io.Writer) int {
-	envelope, code := respond(payload, verdict)
-	wrote(envelope, out)
+	envelope, code := response(payload, verdict)
+	write(envelope, out)
 	if code == blocked {
 		_, _ = fmt.Fprintln(complaints, verdict.Reason)
 	}
 	return code
 }
 
-func decided(payload toolCall, checker Checker, complaints io.Writer) (verdict policy.Verdict, asked bool) {
+func safeVerdictOn(payload toolCall, checker Checker, complaints io.Writer) (verdict policy.Verdict, asked bool) {
 	defer func() {
 		if failure := recover(); failure != nil {
 			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
 			verdict, asked = failOpen, true
 		}
 	}()
-	return decide(payload, checker)
+	return verdictOn(payload, checker)
 }
 
 var failOpen = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
 
-func wrote(envelope map[string]any, out io.Writer) {
+func write(envelope map[string]any, out io.Writer) {
 	if envelope != nil {
 		written, _ := json.Marshal(envelope)
 		_, _ = fmt.Fprint(out, string(written))
