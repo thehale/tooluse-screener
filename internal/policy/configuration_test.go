@@ -353,7 +353,7 @@ func TestReadingAFile(t *testing.T) {
 	})
 
 	t.Run("a file that is not there is an error", func(t *testing.T) {
-		if _, err := policy.Read(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		if _, err := policy.LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
 			t.Error("wanted an error")
 		}
 	})
@@ -366,56 +366,74 @@ func TestTheBuiltInPolicy(t *testing.T) {
 	})
 
 	t.Run("gives way to a policy file that is named", func(t *testing.T) {
-		chosen, err := policy.Chosen(written(t, "denied:\n  - shutdown\n"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		matches(t, true, chosen.Denied.CommandRules, "shutdown now")
-		matches(t, false, chosen.Denied.CommandRules, "rm -rf /")
+		named := loadedFile(t, written(t, "denied:\n  - shutdown\n"))
+		matches(t, true, named.Denied.CommandRules, "shutdown now")
+		matches(t, false, named.Denied.CommandRules, "rm -rf /")
 	})
 }
 
 func TestWhichPolicyAnswers(t *testing.T) {
-	t.Run("the environment gives way to what is named", func(t *testing.T) {
+	t.Run("a file named outright pays the environment no mind", func(t *testing.T) {
 		t.Setenv(policy.Variable, written(t, "denied:\n  - reboot\n"))
-		chosen := asked(t, written(t, "denied:\n  - shutdown\n"))
-		matches(t, true, chosen.Denied.CommandRules, "shutdown now")
-		matches(t, false, chosen.Denied.CommandRules, "reboot now")
+		named := loadedFile(t, written(t, "denied:\n  - shutdown\n"))
+		matches(t, true, named.Denied.CommandRules, "shutdown now")
+		matches(t, false, named.Denied.CommandRules, "reboot now")
 	})
 
-	t.Run("the environment answers when nothing is named", func(t *testing.T) {
+	t.Run("the environment answers first", func(t *testing.T) {
 		t.Setenv(policy.Variable, written(t, "denied:\n  - reboot\n"))
-		matches(t, true, asked(t, "").Denied.CommandRules, "reboot now")
+		matches(t, true, loaded(t).Denied.CommandRules, "reboot now")
 	})
 
-	t.Run("nothing named and nothing in the environment leaves the built-in one", func(t *testing.T) {
+	t.Run("then the config directory", func(t *testing.T) {
+		t.Setenv(policy.Variable, "")
+		home := t.TempDir()
+		t.Setenv("XDG_CONFIG_HOME", home)
+		configured := filepath.Join(home, "tooluse-screener", "policy.yaml")
+		if err := os.MkdirAll(filepath.Dir(configured), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(configured, []byte("denied:\n  - reboot\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		matches(t, true, loaded(t).Denied.CommandRules, "reboot now")
+	})
+
+	t.Run("and nothing in either leaves the built-in one", func(t *testing.T) {
 		t.Setenv(policy.Variable, "")
 		t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-		matches(t, true, asked(t, "").Denied.CommandRules, "rm -rf /")
+		matches(t, true, loaded(t).Denied.CommandRules, "rm -rf /")
 	})
 
 	t.Run("a policy that answers is the only one read", func(t *testing.T) {
-		t.Setenv(policy.Variable, "")
-		t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-		chosen := asked(t, written(t, "denied:\n  - shutdown\n"))
-		matches(t, false, chosen.Denied.CommandRules, "rm -rf /")
-		matches(t, false, chosen.Allowed.CommandRules, "git status")
+		named := loadedFile(t, written(t, "denied:\n  - shutdown\n"))
+		matches(t, false, named.Denied.CommandRules, "rm -rf /")
+		matches(t, false, named.Allowed.CommandRules, "git status")
 	})
 
 	t.Run("one that is named and not there is an error, not a fallback", func(t *testing.T) {
-		if _, err := policy.Chosen(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		if _, err := policy.LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
 			t.Error("wanted an error")
 		}
 	})
 }
 
-func asked(t *testing.T, named string) policy.Policy {
+func loaded(t *testing.T) policy.Policy {
 	t.Helper()
-	chosen, err := policy.Chosen(named)
+	found, err := policy.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return chosen
+	return found
+}
+
+func loadedFile(t *testing.T, path string) policy.Policy {
+	t.Helper()
+	found, err := policy.LoadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return found
 }
 
 func parsed(t *testing.T, configuration string) policy.Policy {
@@ -429,7 +447,7 @@ func parsed(t *testing.T, configuration string) policy.Policy {
 
 func read(t *testing.T, configuration string) policy.Policy {
 	t.Helper()
-	built, err := policy.Read(written(t, configuration))
+	built, err := policy.LoadFile(written(t, configuration))
 	if err != nil {
 		t.Fatalf("Read(%q): %v", configuration, err)
 	}

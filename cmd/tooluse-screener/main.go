@@ -121,7 +121,7 @@ func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 		asked.Usage()
 		return usageError
 	}
-	chosen, err := policy.Chosen(path)
+	chosen, err := loaded(path)
 	if err != nil {
 		_, _ = fmt.Fprintf(complaints, "tooluse-screener: %v\n", err)
 		return usageError
@@ -133,11 +133,20 @@ func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 
 func checking(path string) hook.Checking {
 	return func(asked check.Question) (check.Verdict, bool) {
-		chosen, err := policy.Chosen(path)
+		chosen, err := loaded(path)
 		if err != nil {
 			panic(fmt.Sprintf("the policy will not read: %v", err))
 		}
 		return check.Answer(asked, chosen)
+	}
+}
+
+func loaded(path string) (policy.Policy, error) {
+	switch path {
+	case "":
+		return policy.Load()
+	default:
+		return policy.LoadFile(path)
 	}
 }
 

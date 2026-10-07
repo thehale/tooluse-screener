@@ -5,21 +5,12 @@ package policy
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
-
-func Read(path string) (Policy, error) {
-	written, err := os.ReadFile(path)
-	if err != nil {
-		return Policy{}, err
-	}
-	return Parse(written)
-}
 
 func Parse(written []byte) (Policy, error) {
 	var configuration file

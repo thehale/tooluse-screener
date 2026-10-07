@@ -36,7 +36,7 @@ func TestThePathCorpus(t *testing.T) {
 
 func testPolicy(t *testing.T) policy.Policy {
 	t.Helper()
-	asked, err := policy.Read(filepath.Join("testdata", "policy.yaml"))
+	asked, err := policy.LoadFile(filepath.Join("testdata", "policy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

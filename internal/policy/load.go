@@ -8,33 +8,39 @@ import (
 	"path/filepath"
 )
 
-func Chosen(named string) (Policy, error) {
-	path, err := preferred(named)
+func Load() (Policy, error) {
+	path, err := configured()
 	switch {
 	case err != nil:
 		return Policy{}, err
 	case path == "":
 		return Default(), nil
 	default:
-		return Read(path)
+		return LoadFile(path)
 	}
+}
+
+func LoadFile(path string) (Policy, error) {
+	written, err := os.ReadFile(path)
+	if err != nil {
+		return Policy{}, err
+	}
+	return Parse(written)
 }
 
 const Variable = "TOOLUSE_SCREENER_POLICY_FILE"
-
 const fileName = "tooluse-screener/policy.yaml"
 
-func preferred(named string) (string, error) {
-	if named != "" {
-		return named, nil
-	}
-	if set := os.Getenv(Variable); set != "" {
+func configured() (string, error) {
+	switch set := os.Getenv(Variable); set {
+	case "":
+		return inConfigDirectory()
+	default:
 		return set, nil
 	}
-	return configured()
 }
 
-func configured() (string, error) {
+func inConfigDirectory() (string, error) {
 	directory, err := os.UserConfigDir()
 	if err != nil {
 		return "", nil
