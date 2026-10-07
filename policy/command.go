@@ -23,11 +23,13 @@ func (p Policy) CheckCommand(line string) Verdict {
 	case len(commands) > 0 && lists.Every(vouchersByCommand, isVouchedFor):
 		return Verdict{Allow, permission(vouchersByCommand)}
 	default:
-		return unlistedCommand
+		return unlisted("Command")
 	}
 }
 
-var unlistedCommand = Verdict{Ask, "Command is not in the shared allow list"}
+func unlisted(subject string) Verdict {
+	return Verdict{Ask, fmt.Sprintf("%s is not in the shared allow list", subject)}
+}
 
 func (p Policy) refusals(commands []command.Command) []string {
 	var reasons []string

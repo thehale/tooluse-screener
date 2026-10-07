@@ -15,8 +15,6 @@ func (p Policy) CheckPath(path string) Verdict {
 	case len(allowingGlobs) > 0:
 		return Verdict{Allow, fmt.Sprintf("Path is allowed: %s", allowingGlobs[0])}
 	default:
-		return unlistedPath
+		return unlisted("Path")
 	}
 }
-
-var unlistedPath = Verdict{Ask, "Path is not in the shared allow list"}
