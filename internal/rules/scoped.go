@@ -6,7 +6,7 @@ package rules
 import commands "github.com/thehale/tooluse-screener/internal/command"
 
 type Scoped struct {
-	rule  Rule
+	Rule
 	scope Scope
 }
 
@@ -17,7 +17,7 @@ func NewScoped(rule Rule, scope Scope) Rule {
 func (r Scoped) At(command commands.Command) int {
 	switch {
 	case r.scope.includes(command):
-		return r.rule.At(command)
+		return r.Rule.At(command)
 	default:
 		return -1
 	}
@@ -26,16 +26,8 @@ func (r Scoped) At(command commands.Command) int {
 func (r Scoped) Span(command commands.Command) int {
 	switch {
 	case r.scope.includes(command):
-		return r.rule.Span(command)
+		return r.Rule.Span(command)
 	default:
 		return 0
 	}
-}
-
-func (r Scoped) Reason(command commands.Command) string {
-	return r.rule.Reason(command)
-}
-
-func (r Scoped) String() string {
-	return r.rule.String()
 }

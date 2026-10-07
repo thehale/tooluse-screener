@@ -10,7 +10,7 @@ import (
 )
 
 type Reaching struct {
-	rule    Rule
+	Rule
 	trusted []string
 }
 
@@ -21,7 +21,7 @@ func NewReaching(rule Rule, trusted []string) Rule {
 func (r Reaching) At(command commands.Command) int {
 	switch {
 	case r.reaches(command):
-		return r.rule.At(command)
+		return r.Rule.At(command)
 	default:
 		return -1
 	}
@@ -30,7 +30,7 @@ func (r Reaching) At(command commands.Command) int {
 func (r Reaching) Span(command commands.Command) int {
 	switch {
 	case r.reaches(command):
-		return r.rule.Span(command)
+		return r.Rule.Span(command)
 	default:
 		return 0
 	}
@@ -39,12 +39,4 @@ func (r Reaching) Span(command commands.Command) int {
 func (r Reaching) reaches(command commands.Command) bool {
 	invocation := git.Read(command.Text)
 	return !invocation.Git || directories.AllUnder(actedIn(command.Moved, invocation.PointedAt()), r.trusted)
-}
-
-func (r Reaching) Reason(command commands.Command) string {
-	return r.rule.Reason(command)
-}
-
-func (r Reaching) String() string {
-	return r.rule.String()
 }

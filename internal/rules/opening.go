@@ -6,7 +6,7 @@ package rules
 import commands "github.com/thehale/tooluse-screener/internal/command"
 
 type Opening struct {
-	rule Rule
+	Rule
 }
 
 func NewOpening(rule Rule) Rule {
@@ -24,9 +24,9 @@ func (o Opening) At(command commands.Command) int {
 
 func (o Opening) Span(command commands.Command) int {
 	spoken := commands.Command{Text: commands.Spoken(command.Text), Moved: command.Moved}
-	accounted := o.rule.Span(spoken)
+	accounted := o.Rule.Span(spoken)
 	switch {
-	case o.rule.At(spoken) == 0 && endsAWord(spoken.Text, accounted):
+	case o.Rule.At(spoken) == 0 && endsAWord(spoken.Text, accounted):
 		return accounted
 	default:
 		return 0
@@ -35,12 +35,4 @@ func (o Opening) Span(command commands.Command) int {
 
 func endsAWord(spoken string, at int) bool {
 	return at > 0 && (at == len(spoken) || spoken[at] == ' ')
-}
-
-func (o Opening) Reason(command commands.Command) string {
-	return o.rule.Reason(command)
-}
-
-func (o Opening) String() string {
-	return o.rule.String()
 }
