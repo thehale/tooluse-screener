@@ -157,8 +157,8 @@ func repository(t *testing.T, branch string, settings ...string) string {
 
 func runs(t *testing.T, dir string, arguments ...string) {
 	t.Helper()
-	if said, err := exec.Command("git", append([]string{"-C", dir}, arguments...)...).CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v\n%s", arguments, err, said)
+	if output, err := exec.Command("git", append([]string{"-C", dir}, arguments...)...).CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", arguments, err, output)
 	}
 }
 
@@ -169,9 +169,9 @@ func lands(t *testing.T, command, wanted string) {
 
 func landsFrom(t *testing.T, dirs []string, command, wanted string) {
 	t.Helper()
-	branch, known := git.Read(command).Landing(dirs)
-	if !known || branch != wanted {
-		t.Errorf("Landing(%q) = %q, %v, wanted %q, true", command, branch, known, wanted)
+	branch, isKnown := git.Read(command).Landing(dirs)
+	if !isKnown || branch != wanted {
+		t.Errorf("Landing(%q) = %q, %v, wanted %q, true", command, branch, isKnown, wanted)
 	}
 }
 
@@ -182,7 +182,7 @@ func isUnread(t *testing.T, command string) {
 
 func isUnreadFrom(t *testing.T, dirs []string, command string) {
 	t.Helper()
-	if branch, known := git.Read(command).Landing(dirs); known {
+	if branch, isKnown := git.Read(command).Landing(dirs); isKnown {
 		t.Errorf("Landing(%q) = %q, true, wanted it unread", command, branch)
 	}
 }

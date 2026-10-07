@@ -11,10 +11,10 @@ import (
 )
 
 func TestTheCorpus(t *testing.T) {
-	asked := testPolicy(t)
+	corpusPolicy := testPolicy(t)
 	for _, line := range corpus(t, "corpus.txt") {
 		wanted, command := readLine(t, line)
-		if verdict := asked.CheckCommand(command); verdict.Decision != wanted {
+		if verdict := corpusPolicy.CheckCommand(command); verdict.Decision != wanted {
 			t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
 		}
 	}
@@ -22,10 +22,10 @@ func TestTheCorpus(t *testing.T) {
 
 func TestThePathCorpus(t *testing.T) {
 	t.Setenv("HOME", "/home/me")
-	asked := testPolicy(t)
+	corpusPolicy := testPolicy(t)
 	for _, line := range corpus(t, "paths.txt") {
 		wanted, path := readLine(t, line)
-		if verdict := asked.CheckPath(path); verdict.Decision != wanted {
+		if verdict := corpusPolicy.CheckPath(path); verdict.Decision != wanted {
 			t.Errorf("%q -> %s, wanted %s", path, verdict, wanted)
 		}
 	}
@@ -33,32 +33,32 @@ func TestThePathCorpus(t *testing.T) {
 
 func testPolicy(t *testing.T) Policy {
 	t.Helper()
-	asked, err := LoadFile(filepath.Join("testdata", "policy.yaml"))
+	corpusPolicy, err := LoadFile(filepath.Join("testdata", "policy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	return asked
+	return corpusPolicy
 }
 
-func corpus(t *testing.T, named string) []string {
+func corpus(t *testing.T, fileName string) []string {
 	t.Helper()
-	written, err := os.ReadFile(filepath.Join("testdata", named))
+	contents, err := os.ReadFile(filepath.Join("testdata", fileName))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var found []string
-	for _, line := range strings.Split(string(written), "\n") {
-		if trimmed := strings.TrimSpace(line); trimmed != "" && !strings.HasPrefix(trimmed, "#") {
-			found = append(found, trimmed)
+	var lines []string
+	for _, line := range strings.Split(string(contents), "\n") {
+		if entry := strings.TrimSpace(line); entry != "" && !strings.HasPrefix(entry, "#") {
+			lines = append(lines, entry)
 		}
 	}
-	return found
+	return lines
 }
 
 func readLine(t *testing.T, line string) (Decision, string) {
 	t.Helper()
-	wanted, command, spelled := strings.Cut(line, " ")
-	if !spelled {
+	wanted, command, hasCommand := strings.Cut(line, " ")
+	if !hasCommand {
 		t.Fatalf("a corpus line is a verdict and a command: %q", line)
 	}
 	return Decision(wanted), strings.TrimSpace(command)

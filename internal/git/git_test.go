@@ -163,28 +163,28 @@ func TestHasAll(t *testing.T) {
 
 func hasSubcommand(t *testing.T, command, wanted string) {
 	t.Helper()
-	if read := git.Read(command).Subcommand; read != wanted {
-		t.Errorf("Read(%q).Subcommand = %q, wanted %q", command, read, wanted)
+	if got := git.Read(command).Subcommand; got != wanted {
+		t.Errorf("Read(%q).Subcommand = %q, wanted %q", command, got, wanted)
 	}
 }
 
 func hasArguments(t *testing.T, command string, wanted ...string) {
 	t.Helper()
-	if read := git.Read(command).Arguments; !slices.Equal(read, wanted) {
-		t.Errorf("Read(%q).Arguments = %q, wanted %q", command, read, wanted)
+	if got := git.Read(command).Arguments; !slices.Equal(got, wanted) {
+		t.Errorf("Read(%q).Arguments = %q, wanted %q", command, got, wanted)
 	}
 }
 
 func pointsAt(t *testing.T, command string, wanted ...string) {
 	t.Helper()
-	if read := git.Read(command).Directories; !slices.Equal(read, wanted) {
-		t.Errorf("Read(%q).Directories = %q, wanted %q", command, read, wanted)
+	if got := git.Read(command).Directories; !slices.Equal(got, wanted) {
+		t.Errorf("Read(%q).Directories = %q, wanted %q", command, got, wanted)
 	}
 }
 
 func hasAll(t *testing.T, wanted bool, command string, words ...string) {
 	t.Helper()
-	if read := git.Read(command).HasAll(words); read != wanted {
-		t.Errorf("Read(%q).HasAll(%q) = %v, wanted %v", command, words, read, wanted)
+	if got := git.Read(command).HasAll(words); got != wanted {
+		t.Errorf("Read(%q).HasAll(%q) = %v, wanted %v", command, words, got, wanted)
 	}
 }

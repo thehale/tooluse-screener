@@ -10,7 +10,7 @@ import (
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
-var madeUp = Policy{
+var examplePolicy = Policy{
 	denied: side{commandRules: rules.Group{
 		pattern("sudo", "", ""),
 		pattern("shutdown", "Ask a human first.", ""),
@@ -98,10 +98,10 @@ func TestWhichRuleOutranksWhich(t *testing.T) {
 	})
 
 	t.Run("and the denial answers everywhere that permission does not", func(t *testing.T) {
-		vouched := policyFrom(t, landing)
-		answers(t, Deny, vouched, "git -C "+root+" push origin main")
-		answers(t, Deny, vouched, "git -C "+root+" push")
-		answers(t, Deny, vouched, "git -C /elsewhere push origin topic")
+		landingPolicy := policyFrom(t, landing)
+		answers(t, Deny, landingPolicy, "git -C "+root+" push origin main")
+		answers(t, Deny, landingPolicy, "git -C "+root+" push")
+		answers(t, Deny, landingPolicy, "git -C /elsewhere push origin topic")
 	})
 
 	t.Run("a permission accounting for less does not outrank it", func(t *testing.T) {
@@ -121,15 +121,15 @@ func TestWhichRuleOutranksWhich(t *testing.T) {
 
 func TestAnAddendum(t *testing.T) {
 	root := t.TempDir()
-	chosen := policyFrom(t, "denied:\n  - commands: git push\n    reason: Ask first.\n"+
+	addendumPolicy := policyFrom(t, "denied:\n  - commands: git push\n    reason: Ask first.\n"+
 		"    addendum:\n      - only: {dirs: ["+root+"]}\n        reason: Push your own branch by name.\n")
 
 	t.Run("ends the reason where the command runs inside its dirs", func(t *testing.T) {
-		refusesWith(t, chosen, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+		refusesWith(t, addendumPolicy, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
 	t.Run("is left out elsewhere", func(t *testing.T) {
-		refusesWith(t, chosen, "git -C /elsewhere push", "Ask first.")
+		refusesWith(t, addendumPolicy, "git -C /elsewhere push", "Ask first.")
 	})
 }
 
@@ -149,30 +149,30 @@ func pattern(expression, reason, name string) rules.Rule {
 	return rule
 }
 
-func answers(t *testing.T, wanted Decision, chosen Policy, command string) {
+func answers(t *testing.T, wanted Decision, policy Policy, command string) {
 	t.Helper()
-	if verdict := chosen.CheckCommand(command); verdict.Decision != wanted {
+	if verdict := policy.CheckCommand(command); verdict.Decision != wanted {
 		t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
 	}
 }
 
 func decides(t *testing.T, wanted Decision, command string) {
 	t.Helper()
-	if verdict := madeUp.CheckCommand(command); verdict.Decision != wanted {
+	if verdict := examplePolicy.CheckCommand(command); verdict.Decision != wanted {
 		t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
 	}
 }
 
-func refusesWith(t *testing.T, chosen Policy, command, wanted string) {
+func refusesWith(t *testing.T, policy Policy, command, wanted string) {
 	t.Helper()
-	if reason := chosen.CheckCommand(command).Reason; !strings.HasSuffix(reason, ": git push. "+wanted) {
+	if reason := policy.CheckCommand(command).Reason; !strings.HasSuffix(reason, ": git push. "+wanted) {
 		t.Errorf("%q -> %q, wanted it to end with %q", command, reason, wanted)
 	}
 }
 
 func ends(t *testing.T, command, wanted string) {
 	t.Helper()
-	if reason := madeUp.CheckCommand(command).Reason; !strings.HasSuffix(reason, wanted) {
+	if reason := examplePolicy.CheckCommand(command).Reason; !strings.HasSuffix(reason, wanted) {
 		t.Errorf("%q -> %q, wanted it to end with %q", command, reason, wanted)
 	}
 }

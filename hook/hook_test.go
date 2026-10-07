@@ -92,14 +92,14 @@ func TestNotOurBusiness(t *testing.T) {
 	})
 
 	t.Run("a tool input that is not an object", func(t *testing.T) {
-		for _, given := range []any{nil, []any{}, "ls", 7} {
-			leavesUndecided(t, toolCall{"tool_name": "Bash", "tool_input": given})
+		for _, input := range []any{nil, []any{}, "ls", 7} {
+			leavesUndecided(t, toolCall{"tool_name": "Bash", "tool_input": input})
 		}
 	})
 
 	t.Run("a command that is not a string", func(t *testing.T) {
-		for _, given := range []any{nil, []any{}, map[string]any{}, 7} {
-			payload := toolCall{"tool_name": "Bash", "tool_input": map[string]any{"command": given}}
+		for _, input := range []any{nil, []any{}, map[string]any{}, 7} {
+			payload := toolCall{"tool_name": "Bash", "tool_input": map[string]any{"command": input}}
 			leavesUndecided(t, payload)
 		}
 	})
@@ -143,11 +143,11 @@ func TestWhatIsAsked(t *testing.T) {
 	})
 
 	t.Run("a denied path gets a block envelope and a blocking exit", func(t *testing.T) {
-		written, code := outcomeOf(t, inputOf(writeCall("Edit", "file_path", "/work/notes.md")), deny)
+		output, code := outcomeOf(t, inputOf(writeCall("Edit", "file_path", "/work/notes.md")), deny)
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
-		says(t, section(t, envelopeIn(t, written), "hookSpecificOutput"), "permissionDecisionReason", deny.Reason)
+		says(t, section(t, envelopeIn(t, output), "hookSpecificOutput"), "permissionDecisionReason", deny.Reason)
 	})
 }
 
@@ -205,9 +205,9 @@ func TestWhatEachEventAnswersWith(t *testing.T) {
 
 func speaks(t *testing.T, envelope map[string]any, wanted string) {
 	t.Helper()
-	spelled, _ := json.Marshal(envelope)
-	if !strings.Contains(string(spelled), `"`+wanted+`"`) {
-		t.Errorf("%s does not answer %q", spelled, wanted)
+	envelopeJSON, _ := json.Marshal(envelope)
+	if !strings.Contains(string(envelopeJSON), `"`+wanted+`"`) {
+		t.Errorf("%s does not answer %q", envelopeJSON, wanted)
 	}
 }
 
@@ -288,11 +288,11 @@ func TestCodexPermissionRequest(t *testing.T) {
 
 func TestStdinToStdout(t *testing.T) {
 	t.Run("writes the envelope and the blocking exit code", func(t *testing.T) {
-		written, code := outcomeOf(t, inputOf(claude("ls", "PreToolUse")), deny)
+		output, code := outcomeOf(t, inputOf(claude("ls", "PreToolUse")), deny)
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
-		says(t, envelopeIn(t, written), "decision", "block")
+		says(t, envelopeIn(t, output), "decision", "block")
 	})
 
 	t.Run("a denial carries its reason on stderr, where Codex reads it", func(t *testing.T) {
@@ -333,9 +333,9 @@ func TestStdinToStdout(t *testing.T) {
 	})
 
 	t.Run("a payload with only blank space after it is answered", func(t *testing.T) {
-		written, code := outcomeOf(t, inputWithTrailer("ls", "  \n\n"), deny)
+		output, code := outcomeOf(t, inputWithTrailer("ls", "  \n\n"), deny)
 		if code != 2 {
-			t.Errorf("exit %d wrote %q, wanted 2", code, written)
+			t.Errorf("exit %d wrote %q, wanted 2", code, output)
 		}
 	})
 
@@ -346,7 +346,7 @@ func TestStdinToStdout(t *testing.T) {
 
 func leavesUndecided(t *testing.T, payload toolCall) {
 	t.Helper()
-	if verdict, asked := verdictOn(payload, always(deny)); asked {
+	if verdict, isAsked := verdictOn(payload, always(deny)); isAsked {
 		t.Errorf("%v -> %s, wanted no opinion", payload, verdict)
 	}
 }
@@ -370,11 +370,11 @@ func staysQuiet(t *testing.T, payload toolCall, verdict policy.Verdict, wanted i
 
 func section(t *testing.T, envelope map[string]any, key string) map[string]any {
 	t.Helper()
-	nested, is := envelope[key].(map[string]any)
-	if !is {
+	inner, isMap := envelope[key].(map[string]any)
+	if !isMap {
 		t.Fatalf("%v has no %s", envelope, key)
 	}
-	return nested
+	return inner
 }
 
 func decision(t *testing.T, envelope map[string]any) map[string]any {
@@ -384,19 +384,19 @@ func decision(t *testing.T, envelope map[string]any) map[string]any {
 
 func says(t *testing.T, envelope map[string]any, key, wanted string) {
 	t.Helper()
-	if said, _ := envelope[key].(string); said != wanted {
-		t.Errorf("%s = %q, wanted %q", key, said, wanted)
+	if value, _ := envelope[key].(string); value != wanted {
+		t.Errorf("%s = %q, wanted %q", key, value, wanted)
 	}
 }
 
 func inputWithTrailer(command, after string) io.Reader {
-	written, _ := json.Marshal(claude(command, "PreToolUse"))
-	return strings.NewReader(string(written) + after)
+	payloadJSON, _ := json.Marshal(claude(command, "PreToolUse"))
+	return strings.NewReader(string(payloadJSON) + after)
 }
 
 func inputOf(payload toolCall) *bytes.Reader {
-	written, _ := json.Marshal(payload)
-	return bytes.NewReader(written)
+	payloadJSON, _ := json.Marshal(payload)
+	return bytes.NewReader(payloadJSON)
 }
 
 func outcomeOf(t *testing.T, in io.Reader, verdict policy.Verdict) (string, int) {
@@ -406,18 +406,18 @@ func outcomeOf(t *testing.T, in io.Reader, verdict policy.Verdict) (string, int)
 	return out.String(), code
 }
 
-func envelopeIn(t *testing.T, written string) map[string]any {
+func envelopeIn(t *testing.T, output string) map[string]any {
 	t.Helper()
 	var envelope map[string]any
-	if err := json.Unmarshal([]byte(written), &envelope); err != nil {
-		t.Fatalf("%q: %v", written, err)
+	if err := json.Unmarshal([]byte(output), &envelope); err != nil {
+		t.Fatalf("%q: %v", output, err)
 	}
 	return envelope
 }
 
 func writesNothing(t *testing.T, in io.Reader, verdict policy.Verdict) {
 	t.Helper()
-	if written, code := outcomeOf(t, in, verdict); written != "" || code != 0 {
-		t.Errorf("wrote %q and exited %d, wanted nothing and 0", written, code)
+	if output, code := outcomeOf(t, in, verdict); output != "" || code != 0 {
+		t.Errorf("wrote %q and exited %d, wanted nothing and 0", output, code)
 	}
 }

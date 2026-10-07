@@ -12,10 +12,10 @@ import (
 	"testing"
 )
 
-const madeUp = "denied: [shutdown]\nallowed: [git status]\n"
+const examplePolicyYAML = "denied: [shutdown]\nallowed: [git status]\n"
 
 func TestCheckingOneCommand(t *testing.T) {
-	policy := policyFile(t, madeUp)
+	policy := policyFile(t, examplePolicyYAML)
 
 	t.Run("an allowed command prints its verdict and exits 0", func(t *testing.T) {
 		out, code := outcomeOf(t, "--config-file", policy, "git status")
@@ -75,14 +75,14 @@ func TestSayingWhatItIs(t *testing.T) {
 	})
 
 	t.Run("one dash is not how a flag is spelled", func(t *testing.T) {
-		for _, wrong := range []string{"-hook", "-version", "-config-file", "-help"} {
+		for _, badFlag := range []string{"-hook", "-version", "-config-file", "-help"} {
 			var out, complaints bytes.Buffer
-			code := run([]string{wrong}, strings.NewReader(""), &out, &complaints)
+			code := run([]string{badFlag}, strings.NewReader(""), &out, &complaints)
 			if code != usageError {
-				t.Errorf("%s exited %d, wanted %d", wrong, code, usageError)
+				t.Errorf("%s exited %d, wanted %d", badFlag, code, usageError)
 			}
-			if !strings.Contains(complaints.String(), "Write -"+wrong) {
-				t.Errorf("%s was not told how to spell it: %q", wrong, complaints.String())
+			if !strings.Contains(complaints.String(), "Write -"+badFlag) {
+				t.Errorf("%s was not told how to spell it: %q", badFlag, complaints.String())
 			}
 		}
 	})
@@ -110,7 +110,7 @@ func TestSayingWhatItIs(t *testing.T) {
 }
 
 func TestAnsweringAHook(t *testing.T) {
-	policy := policyFile(t, madeUp)
+	policy := policyFile(t, examplePolicyYAML)
 
 	t.Run("a denied command is blocked", func(t *testing.T) {
 		out, code := hookOutcome(t, policy, "shutdown now")
@@ -198,8 +198,8 @@ func payloadFor(command string) *bytes.Reader {
 		"tool_name":  "Bash",
 		"tool_input": map[string]any{"command": command},
 	}
-	written, _ := json.Marshal(payload)
-	return bytes.NewReader(written)
+	payloadJSON, _ := json.Marshal(payload)
+	return bytes.NewReader(payloadJSON)
 }
 
 func envelopeIn(t *testing.T, out string) map[string]any {

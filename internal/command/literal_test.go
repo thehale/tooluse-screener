@@ -21,7 +21,7 @@ func TestLiteral(t *testing.T) {
 	})
 
 	t.Run("a word the shell would expand is no literal", func(t *testing.T) {
-		for _, word := range []string{`"$REPO"`, "$REPO", "${REPO}", "/work/*", "/work/{a,b}", `/work\ app`, "`pwd`", held} {
+		for _, word := range []string{`"$REPO"`, "$REPO", "${REPO}", "/work/*", "/work/{a,b}", `/work\ app`, "`pwd`", placeholder} {
 			readsLiterally(t, word, "")
 		}
 	})

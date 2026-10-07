@@ -316,10 +316,10 @@ func TestScoped(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		scoped := rules.NewScoped(pushing, rules.NewScope([]string{here}, rules.Branches{}))
-		matchesAfterMoving(t, true, scoped, "git push origin topic", filepath.Join(here, "nested"))
-		matchesAfterMoving(t, false, scoped, "git push origin topic", "/elsewhere")
-		matchesAfterMoving(t, false, scoped, "git push origin topic", "")
+		pushingHere := rules.NewScoped(pushing, rules.NewScope([]string{here}, rules.Branches{}))
+		matchesAfterMoving(t, true, pushingHere, "git push origin topic", filepath.Join(here, "nested"))
+		matchesAfterMoving(t, false, pushingHere, "git push origin topic", "/elsewhere")
+		matchesAfterMoving(t, false, pushingHere, "git push origin topic", "")
 		matchesAfterMoving(t, false, rules.NewScoped(pushing, rules.NewScope([]string{root}, rules.Branches{})), "git push origin topic", root)
 	})
 
@@ -342,25 +342,25 @@ func TestScoped(t *testing.T) {
 func TestAddended(t *testing.T) {
 	root := t.TempDir()
 	pushing := rules.NewGitSubcommand("push", nil, "Ask first.", "")
-	approved := rules.NewAddendum(rules.NewScope([]string{root}, rules.Branches{}), "Push your own branch by name.")
-	addended := rules.NewAddended(pushing, []rules.Addendum{approved})
+	approvedAddendum := rules.NewAddendum(rules.NewScope([]string{root}, rules.Branches{}), "Push your own branch by name.")
+	pushingWithAddendum := rules.NewAddended(pushing, []rules.Addendum{approvedAddendum})
 
 	t.Run("adds a reason where its addendum's scope includes the command", func(t *testing.T) {
-		givesReason(t, addended, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+		givesReason(t, pushingWithAddendum, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
 	t.Run("keeps the reason as it was elsewhere", func(t *testing.T) {
-		givesReason(t, addended, "git -C /elsewhere push", "Ask first.")
+		givesReason(t, pushingWithAddendum, "git -C /elsewhere push", "Ask first.")
 	})
 
 	t.Run("an addendum may be the only reason", func(t *testing.T) {
-		bare := rules.NewAddended(rules.NewGitSubcommand("push", nil, "", ""), []rules.Addendum{approved})
-		givesReason(t, bare, "git -C "+root+" push", "Push your own branch by name.")
+		pushingWithoutReason := rules.NewAddended(rules.NewGitSubcommand("push", nil, "", ""), []rules.Addendum{approvedAddendum})
+		givesReason(t, pushingWithoutReason, "git -C "+root+" push", "Push your own branch by name.")
 	})
 
 	t.Run("matches as the rule it adds to", func(t *testing.T) {
-		matches(t, true, addended, "git -C /elsewhere push")
-		isNamed(t, addended, "git push")
+		matches(t, true, pushingWithAddendum, "git -C /elsewhere push")
+		isNamed(t, pushingWithAddendum, "git push")
 	})
 }
 
@@ -401,11 +401,11 @@ func TestGlob(t *testing.T) {
 
 	t.Run("follows a symlink on the way to the file", func(t *testing.T) {
 		outside, home := t.TempDir(), t.TempDir()
-		linked, private := filepath.Join(outside, "linked"), filepath.Join(home, ".ssh")
-		if err := errors.Join(os.Mkdir(private, 0o700), os.Symlink(private, linked)); err != nil {
+		linkPath, sshDir := filepath.Join(outside, "linked"), filepath.Join(home, ".ssh")
+		if err := errors.Join(os.Mkdir(sshDir, 0o700), os.Symlink(sshDir, linkPath)); err != nil {
 			t.Fatal(err)
 		}
-		writes(t, true, glob(t, home+"/.ssh/**"), filepath.Join(linked, "id_rsa"))
+		writes(t, true, glob(t, home+"/.ssh/**"), filepath.Join(linkPath, "id_rsa"))
 	})
 
 	t.Run("expands a leading tilde", func(t *testing.T) {
@@ -414,9 +414,9 @@ func TestGlob(t *testing.T) {
 	})
 
 	t.Run("a path from anywhere but / or ~ is refused", func(t *testing.T) {
-		for _, written := range []string{".ssh/**", "./.ssh/**", "**/.ssh/**"} {
-			if _, err := rules.NewGlob(written, "", ""); err == nil {
-				t.Errorf("%s: wanted an error", written)
+		for _, globText := range []string{".ssh/**", "./.ssh/**", "**/.ssh/**"} {
+			if _, err := rules.NewGlob(globText, "", ""); err == nil {
+				t.Errorf("%s: wanted an error", globText)
 			}
 		}
 	})
@@ -428,8 +428,8 @@ func TestGlob(t *testing.T) {
 	})
 
 	t.Run("it names itself as written", func(t *testing.T) {
-		if said := keys.String(); said != "/home/me/**/.ssh/**" {
-			t.Errorf("named itself %q", said)
+		if text := keys.String(); text != "/home/me/**/.ssh/**" {
+			t.Errorf("named itself %q", text)
 		}
 	})
 }
@@ -493,8 +493,8 @@ func TestGroup(t *testing.T) {
 	})
 
 	t.Run("it lists every rule that matched", func(t *testing.T) {
-		narrow := rules.NewOpening(rules.NewWords("ls -la", "", ""))
-		matchesRules(t, rules.Group{listing, narrow}, "ls -la", listing, narrow)
+		listingLong := rules.NewOpening(rules.NewWords("ls -la", "", ""))
+		matchesRules(t, rules.Group{listing, listingLong}, "ls -la", listing, listingLong)
 	})
 
 	t.Run("it lists nothing when none matched", func(t *testing.T) {
@@ -553,16 +553,16 @@ func givesReason(t *testing.T, rule rules.Rule, command, wanted string) {
 func repositoryOn(t *testing.T, branch string) string {
 	t.Helper()
 	dir := t.TempDir()
-	if said, err := exec.Command("git", "-C", dir, "init", "--quiet", "--initial-branch", branch).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v\n%s", err, said)
+	if output, err := exec.Command("git", "-C", dir, "init", "--quiet", "--initial-branch", branch).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, output)
 	}
 	return dir
 }
 
-func matchesAfterMoving(t *testing.T, wanted bool, rule rules.Rule, text string, moved ...string) {
+func matchesAfterMoving(t *testing.T, wanted bool, rule rules.Rule, text string, destinations ...string) {
 	t.Helper()
-	if got := rule.At(command.Command{Text: text, Moved: moved}) >= 0; got != wanted {
-		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, moved, got, wanted)
+	if got := rule.At(command.Command{Text: text, Moved: destinations}) >= 0; got != wanted {
+		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, destinations, got, wanted)
 	}
 }
 
@@ -594,19 +594,19 @@ func matchesRules(t *testing.T, group rules.Group, command string, wanted ...rul
 	}
 }
 
-func glob(t *testing.T, written string) rules.Glob {
+func glob(t *testing.T, globText string) rules.Glob {
 	t.Helper()
-	made, err := rules.NewGlob(written, "", "")
+	globRule, err := rules.NewGlob(globText, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return made
+	return globRule
 }
 
 func writes(t *testing.T, wanted bool, rule rules.Glob, file string) {
 	t.Helper()
-	if matched := rule.IsMatchFor(file); matched != wanted {
-		t.Errorf("%s matches %q = %v, wanted %v", rule, file, matched, wanted)
+	if isMatch := rule.IsMatchFor(file); isMatch != wanted {
+		t.Errorf("%s matches %q = %v, wanted %v", rule, file, isMatch, wanted)
 	}
 }
 

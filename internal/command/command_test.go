@@ -10,7 +10,7 @@ import (
 	"github.com/thehale/tooluse-screener/internal/command"
 )
 
-const held = command.Unquotable
+const placeholder = command.Unquotable
 
 func TestSeparators(t *testing.T) {
 	t.Run("one command is one command", func(t *testing.T) {
@@ -51,23 +51,23 @@ func TestSeparators(t *testing.T) {
 
 func TestSubstitutions(t *testing.T) {
 	t.Run("a substitution is its own command", func(t *testing.T) {
-		finds(t, `echo "$(cat foo)"`, `echo "`+held+`"`, "cat foo")
+		finds(t, `echo "$(cat foo)"`, `echo "`+placeholder+`"`, "cat foo")
 	})
 
 	t.Run("backticks are too", func(t *testing.T) {
-		finds(t, "echo `cat foo`", "echo "+held, "cat foo")
+		finds(t, "echo `cat foo`", "echo "+placeholder, "cat foo")
 	})
 
 	t.Run("process substitutions are too", func(t *testing.T) {
-		finds(t, "diff <(cat a) <(cat b)", "diff "+held+" "+held, "cat a", "cat b")
+		finds(t, "diff <(cat a) <(cat b)", "diff "+placeholder+" "+placeholder, "cat a", "cat b")
 	})
 
 	t.Run("nested substitutions are found", func(t *testing.T) {
-		finds(t, `echo "$(cat "$(cat foo)")"`, `echo "`+held+`"`, `cat "`+held+`"`, "cat foo")
+		finds(t, `echo "$(cat "$(cat foo)")"`, `echo "`+placeholder+`"`, `cat "`+placeholder+`"`, "cat foo")
 	})
 
 	t.Run("what is left behind cannot join its neighbours", func(t *testing.T) {
-		finds(t, "ls$(cat foo)blk", "ls"+held+"blk", "cat foo")
+		finds(t, "ls$(cat foo)blk", "ls"+placeholder+"blk", "cat foo")
 	})
 
 	t.Run("arithmetic is not a command", func(t *testing.T) {
@@ -79,12 +79,12 @@ func TestSubstitutions(t *testing.T) {
 	})
 
 	t.Run("an unterminated substitution is read to the end", func(t *testing.T) {
-		finds(t, "echo $(cat foo", "echo "+held, "cat foo")
-		finds(t, "echo `cat foo", "echo "+held, "cat foo")
+		finds(t, "echo $(cat foo", "echo "+placeholder, "cat foo")
+		finds(t, "echo `cat foo", "echo "+placeholder, "cat foo")
 	})
 
 	t.Run("separators inside a substitution still separate", func(t *testing.T) {
-		finds(t, `echo "$(ls && cat foo)"`, `echo "`+held+`"`, "ls", "cat foo")
+		finds(t, `echo "$(ls && cat foo)"`, `echo "`+placeholder+`"`, "ls", "cat foo")
 	})
 }
 
@@ -96,9 +96,9 @@ func finds(t *testing.T, text string, wanted ...string) {
 }
 
 func texts(commands []command.Command) []string {
-	var spoken []string
+	var lines []string
 	for _, one := range commands {
-		spoken = append(spoken, one.Text)
+		lines = append(lines, one.Text)
 	}
-	return spoken
+	return lines
 }
