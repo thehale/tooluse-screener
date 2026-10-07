@@ -13,10 +13,6 @@ func NewOpening(rule Rule) Rule {
 	return Opening{rule}
 }
 
-func (o Opening) Matches(command commands.Command) bool {
-	return o.At(command) >= 0
-}
-
 func (o Opening) At(command commands.Command) int {
 	switch {
 	case o.Span(command) > 0:

@@ -6,7 +6,6 @@ package rules
 import commands "github.com/thehale/tooluse-screener/internal/command"
 
 type Rule interface {
-	Matches(command commands.Command) bool
 	At(command commands.Command) int
 	Span(command commands.Command) int
 	Reason(command commands.Command) string

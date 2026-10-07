@@ -23,10 +23,6 @@ func NewPattern(expression, reason, name string) (Rule, error) {
 	return Pattern{named{reason, name}, built, expression}, nil
 }
 
-func (p Pattern) Matches(command commands.Command) bool {
-	return p.At(command) >= 0
-}
-
 func (p Pattern) At(command commands.Command) int {
 	return opened(p.expression.FindStringIndex(command.Text))
 }

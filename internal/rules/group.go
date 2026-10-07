@@ -11,13 +11,13 @@ import (
 type Group []Rule
 
 func (g Group) Matches(command commands.Command) bool {
-	return lists.Some(g, func(rule Rule) bool { return rule.Matches(command) })
+	return lists.Some(g, func(rule Rule) bool { return rule.At(command) >= 0 })
 }
 
 func (g Group) Matching(command commands.Command) Group {
 	var matched Group
 	for _, rule := range g {
-		if rule.Matches(command) {
+		if rule.At(command) >= 0 {
 			matched = append(matched, rule)
 		}
 	}

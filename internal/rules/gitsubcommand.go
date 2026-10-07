@@ -21,14 +21,14 @@ func NewGitSubcommand(subcommand string, having []string, reason, name string) R
 	return GitSubcommand{named{reason, name}, subcommand, having}
 }
 
-func (g GitSubcommand) Matches(command commands.Command) bool {
+func (g GitSubcommand) matches(command commands.Command) bool {
 	invocation := git.Read(command.Text)
 	return invocation.IsA(g.subcommand) && invocation.Carries(g.having)
 }
 
 func (g GitSubcommand) At(command commands.Command) int {
 	switch {
-	case g.Matches(command):
+	case g.matches(command):
 		return 0
 	default:
 		return -1
@@ -37,7 +37,7 @@ func (g GitSubcommand) At(command commands.Command) int {
 
 func (g GitSubcommand) Span(command commands.Command) int {
 	switch {
-	case g.Matches(command):
+	case g.matches(command):
 		return past(command.Text, append([]string{g.subcommand}, g.having...))
 	default:
 		return 0

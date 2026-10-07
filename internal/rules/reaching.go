@@ -18,10 +18,6 @@ func NewReaching(rule Rule, trusted []string) Rule {
 	return Reaching{rule, trusted}
 }
 
-func (r Reaching) Matches(command commands.Command) bool {
-	return r.At(command) >= 0
-}
-
 func (r Reaching) At(command commands.Command) int {
 	switch {
 	case r.reaches(command):

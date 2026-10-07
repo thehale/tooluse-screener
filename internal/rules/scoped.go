@@ -14,10 +14,6 @@ func NewScoped(rule Rule, scope Scope) Rule {
 	return Scoped{rule, scope}
 }
 
-func (r Scoped) Matches(command commands.Command) bool {
-	return r.At(command) >= 0
-}
-
 func (r Scoped) At(command commands.Command) int {
 	switch {
 	case r.scope.includes(command):

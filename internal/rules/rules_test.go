@@ -477,15 +477,15 @@ func TestGroup(t *testing.T) {
 	listing, reading := rules.NewOpening(rules.NewWords("ls", "", "")), rules.NewOpening(rules.NewWords("cat", "", ""))
 
 	t.Run("matches when one of its rules does", func(t *testing.T) {
-		matches(t, true, rules.Group{listing, reading}, "cat foo")
+		groupMatches(t, true, rules.Group{listing, reading}, "cat foo")
 	})
 
 	t.Run("does not match when none of them does", func(t *testing.T) {
-		matches(t, false, rules.Group{listing}, "nmap localhost")
+		groupMatches(t, false, rules.Group{listing}, "nmap localhost")
 	})
 
 	t.Run("an empty group matches nothing", func(t *testing.T) {
-		matches(t, false, rules.Group{}, "anything")
+		groupMatches(t, false, rules.Group{}, "anything")
 	})
 
 	t.Run("it lists the rules that matched rather than itself", func(t *testing.T) {
@@ -532,17 +532,13 @@ func leading(t *testing.T, expression, reason, name string) rules.Rule {
 	return rules.NewOpening(pattern(t, expression, reason, name))
 }
 
-type matcher interface {
-	Matches(command command.Command) bool
-}
-
 type spanner interface {
 	Span(command command.Command) int
 }
 
-func matches(t *testing.T, wanted bool, rule matcher, command string) {
+func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
 	t.Helper()
-	if got := rule.Matches(said(command)); got != wanted {
+	if got := rule.At(said(command)) >= 0; got != wanted {
 		t.Errorf("%v matching %q = %v, wanted %v", rule, command, got, wanted)
 	}
 }
@@ -565,8 +561,15 @@ func checkedOut(t *testing.T, branch string) string {
 
 func movedMatches(t *testing.T, wanted bool, rule rules.Rule, text string, moved ...string) {
 	t.Helper()
-	if got := rule.Matches(command.Command{Text: text, Moved: moved}); got != wanted {
+	if got := rule.At(command.Command{Text: text, Moved: moved}) >= 0; got != wanted {
 		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, moved, got, wanted)
+	}
+}
+
+func groupMatches(t *testing.T, wanted bool, group rules.Group, command string) {
+	t.Helper()
+	if got := group.Matches(said(command)); got != wanted {
+		t.Errorf("%v matching %q = %v, wanted %v", group, command, got, wanted)
 	}
 }
 

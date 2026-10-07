@@ -18,10 +18,6 @@ func NewWords(text, reason, name string) Rule {
 	return Words{named{reason, name}, text}
 }
 
-func (w Words) Matches(command commands.Command) bool {
-	return w.At(command) >= 0
-}
-
 func (w Words) At(command commands.Command) int {
 	text := command.Text
 	for from := 0; w.text != "" && from+len(w.text) <= len(text); {
@@ -62,7 +58,7 @@ func joinsAWord(letter byte) bool {
 
 func (w Words) Span(command commands.Command) int {
 	switch {
-	case w.Matches(command):
+	case w.At(command) >= 0:
 		return len(w.text)
 	default:
 		return 0
