@@ -12,7 +12,6 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/hook"
 	"github.com/thehale/tooluse-screener/internal/policy"
 )
@@ -65,7 +64,7 @@ func (o options) answer(spelled []string, in io.Reader, out, complaints io.Write
 		_, _ = fmt.Fprintln(out, name, version())
 		return 0
 	case *o.answering:
-		return hook.Main(in, out, complaints, checking(*o.path))
+		return hook.Main(in, out, complaints, configured(*o.path))
 	default:
 		return checkOne(o.flags, out, complaints, *o.path)
 	}
@@ -114,7 +113,7 @@ func version() string {
 	}
 }
 
-var exitCodes = map[check.Decision]int{check.Allow: 0, check.Deny: 1, check.Ask: 2}
+var exitCodes = map[policy.Decision]int{policy.Allow: 0, policy.Deny: 1, policy.Ask: 2}
 
 func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 	if asked.NArg() != 1 {
@@ -126,19 +125,27 @@ func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
 		_, _ = fmt.Fprintf(complaints, "tooluse-screener: %v\n", err)
 		return usageError
 	}
-	verdict := check.Evaluate(asked.Arg(0), chosen)
+	verdict := chosen.CheckCommand(asked.Arg(0))
 	_, _ = fmt.Fprintln(out, verdict)
 	return exitCodes[verdict.Decision]
 }
 
-func checking(path string) hook.Checking {
-	return func(asked check.Question) (check.Verdict, bool) {
-		chosen, err := loaded(path)
-		if err != nil {
-			panic(fmt.Sprintf("the policy will not read: %v", err))
-		}
-		return check.Answer(asked, chosen)
+type configured string
+
+func (c configured) CheckCommand(line string) policy.Verdict {
+	return c.policy().CheckCommand(line)
+}
+
+func (c configured) CheckPath(path string) (policy.Verdict, bool) {
+	return c.policy().CheckPath(path)
+}
+
+func (c configured) policy() policy.Policy {
+	found, err := loaded(string(c))
+	if err != nil {
+		panic(fmt.Sprintf("the policy will not read: %v", err))
 	}
+	return found
 }
 
 func loaded(path string) (policy.Policy, error) {

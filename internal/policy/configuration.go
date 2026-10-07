@@ -214,7 +214,7 @@ func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, er
 	}
 	var found []rules.Rule
 	for _, text := range written.Commands {
-		found = append(found, read(command(text, written.Reason, written.Name)))
+		found = append(found, read(commandRule(text, written.Reason, written.Name)))
 	}
 	for _, expression := range written.Patterns {
 		made, err := rules.NewPattern(expression, written.Reason, written.Name)
@@ -226,7 +226,7 @@ func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, er
 	return found, nil
 }
 
-func command(text, reason, name string) rules.Rule {
+func commandRule(text, reason, name string) rules.Rule {
 	if invocation, named := gitInvocation(text); named {
 		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, name)
 	}

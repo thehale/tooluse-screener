@@ -1,12 +1,11 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package check_test
+package policy_test
 
 import (
 	"testing"
 
-	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/policy"
 )
 
@@ -38,43 +37,25 @@ func TestWritingAPath(t *testing.T) {
 	})
 
 	t.Run("a path the policy does not name gets no answer", func(t *testing.T) {
-		if verdict, answered := check.Writing("/work/main.go", guarded); answered {
+		if verdict, answered := guarded.CheckPath("/work/main.go"); answered {
 			t.Errorf("answered %s", verdict)
 		}
 	})
 
 	t.Run("a path is never judged by a command", func(t *testing.T) {
-		if verdict, answered := check.Writing("cat /secrets", guarded); answered {
+		if verdict, answered := guarded.CheckPath("cat /secrets"); answered {
 			t.Errorf("answered %s", verdict)
 		}
 	})
 
 	t.Run("a command is never judged by a path", func(t *testing.T) {
-		answers(t, check.Ask, guarded, "/notes/today.md")
-	})
-}
-
-func TestAnswer(t *testing.T) {
-	guarded := parsed(t, guarding)
-
-	t.Run("judges a command as a command", func(t *testing.T) {
-		verdict, answered := check.Answer(check.Question{Command: "cat /secrets"}, guarded)
-		if !answered || verdict.Decision != check.Deny {
-			t.Errorf("answered %s", verdict)
-		}
-	})
-
-	t.Run("judges a path as a path", func(t *testing.T) {
-		verdict, answered := check.Answer(check.Question{Path: "/notes/today.md"}, guarded)
-		if !answered || verdict.Decision != check.Allow {
-			t.Errorf("answered %s", verdict)
-		}
+		answers(t, policy.Ask, guarded, "/notes/today.md")
 	})
 }
 
 func wrote(t *testing.T, chosen policy.Policy, path, wanted string) {
 	t.Helper()
-	if verdict, _ := check.Writing(path, chosen); verdict.String() != wanted {
+	if verdict, _ := chosen.CheckPath(path); verdict.String() != wanted {
 		t.Errorf("%q -> %s, wanted %s", path, verdict, wanted)
 	}
 }

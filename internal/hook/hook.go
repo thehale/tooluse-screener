@@ -9,22 +9,25 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/thehale/tooluse-screener/internal/check"
+	"github.com/thehale/tooluse-screener/internal/policy"
 )
 
 type Payload map[string]any
 
-type Checking func(asked check.Question) (check.Verdict, bool)
-
-func Decide(payload Payload, checking Checking) (check.Verdict, bool) {
-	asked, posed := questionIn(payload)
-	if !posed {
-		return check.Verdict{}, false
-	}
-	return checking(asked)
+type Checker interface {
+	CheckCommand(line string) policy.Verdict
+	CheckPath(path string) (policy.Verdict, bool)
 }
 
-func Respond(payload Payload, verdict check.Verdict) (envelope map[string]any, code int) {
+func Decide(payload Payload, checker Checker) (policy.Verdict, bool) {
+	asked, posed := questionIn(payload)
+	if !posed {
+		return policy.Verdict{}, false
+	}
+	return asked(checker)
+}
+
+func Respond(payload Payload, verdict policy.Verdict) (envelope map[string]any, code int) {
 	switch event(payload) {
 	case "PermissionRequest":
 		return permissionRequest(verdict), 0
@@ -35,12 +38,12 @@ func Respond(payload Payload, verdict check.Verdict) (envelope map[string]any, c
 	}
 }
 
-func Main(in io.Reader, out, complaints io.Writer, checking Checking) int {
+func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
 	payload, read := payloadOn(in)
 	if !read {
 		return 0
 	}
-	verdict, asked := Decide(payload, noting(checking, complaints))
+	verdict, asked := decided(payload, checker, complaints)
 	if !asked {
 		return 0
 	}
@@ -59,25 +62,39 @@ func wrote(envelope map[string]any, out io.Writer) {
 	}
 }
 
-var failOpen = check.Verdict{Decision: check.Ask, Reason: "The policy could not answer"}
+var failOpen = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
 
 const blocked = 2
 
-func questionIn(payload Payload) (check.Question, bool) {
+type question func(checker Checker) (policy.Verdict, bool)
+
+func questionIn(payload Payload) (question, bool) {
 	arguments, given := payload["tool_input"].(map[string]any)
 	tool := text(payload, "tool_name")
 	target, writes := targets[tool]
 	switch {
 	case !given:
-		return check.Question{}, false
+		return nil, false
 	case tool == "Bash":
 		command := text(Payload(arguments), "command")
-		return check.Question{Command: command}, command != ""
+		return aboutCommand(command), command != ""
 	case writes:
 		path := text(Payload(arguments), target)
-		return check.Question{Path: resolved(text(payload, "cwd"), path)}, path != ""
+		return aboutPath(resolved(text(payload, "cwd"), path)), path != ""
 	default:
-		return check.Question{}, false
+		return nil, false
+	}
+}
+
+func aboutCommand(line string) question {
+	return func(checker Checker) (policy.Verdict, bool) {
+		return checker.CheckCommand(line), true
+	}
+}
+
+func aboutPath(path string) question {
+	return func(checker Checker) (policy.Verdict, bool) {
+		return checker.CheckPath(path)
 	}
 }
 
@@ -97,16 +114,14 @@ func resolved(cwd, path string) string {
 	}
 }
 
-func noting(checking Checking, complaints io.Writer) Checking {
-	return func(asked check.Question) (verdict check.Verdict, answered bool) {
-		defer func() {
-			if failure := recover(); failure != nil {
-				_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
-				verdict, answered = failOpen, true
-			}
-		}()
-		return checking(asked)
-	}
+func decided(payload Payload, checker Checker, complaints io.Writer) (verdict policy.Verdict, asked bool) {
+	defer func() {
+		if failure := recover(); failure != nil {
+			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
+			verdict, asked = failOpen, true
+		}
+	}()
+	return Decide(payload, checker)
 }
 
 func event(payload Payload) string {
@@ -116,9 +131,9 @@ func event(payload Payload) string {
 	return "PreToolUse"
 }
 
-func preToolUse(verdict check.Verdict) (map[string]any, int) {
+func preToolUse(verdict policy.Verdict) (map[string]any, int) {
 	switch verdict.Decision {
-	case check.Deny:
+	case policy.Deny:
 		return map[string]any{
 			"decision": "block",
 			"reason":   verdict.Reason,
@@ -128,7 +143,7 @@ func preToolUse(verdict check.Verdict) (map[string]any, int) {
 				"permissionDecisionReason": verdict.Reason,
 			},
 		}, blocked
-	case check.Allow:
+	case policy.Allow:
 		return map[string]any{
 			"hookSpecificOutput": map[string]any{
 				"hookEventName":            "PreToolUse",
@@ -141,12 +156,12 @@ func preToolUse(verdict check.Verdict) (map[string]any, int) {
 	}
 }
 
-func permissionRequest(verdict check.Verdict) map[string]any {
+func permissionRequest(verdict policy.Verdict) map[string]any {
 	var decision map[string]any
 	switch verdict.Decision {
-	case check.Deny:
+	case policy.Deny:
 		decision = map[string]any{"behavior": "deny", "message": verdict.Reason}
-	case check.Allow:
+	case policy.Allow:
 		decision = map[string]any{"behavior": "allow"}
 	default:
 		return nil

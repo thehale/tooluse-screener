@@ -1,7 +1,7 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package check
+package policy
 
 import (
 	"fmt"
@@ -9,28 +9,10 @@ import (
 
 	"github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/lists"
-	"github.com/thehale/tooluse-screener/internal/policy"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
-type Decision string
-
-const (
-	Allow Decision = "allow"
-	Deny  Decision = "deny"
-	Ask   Decision = "ask"
-)
-
-type Verdict struct {
-	Decision Decision
-	Reason   string
-}
-
-func (v Verdict) String() string {
-	return fmt.Sprintf("%s: %s", v.Decision, v.Reason)
-}
-
-func Evaluate(line string, p policy.Policy) Verdict {
+func (p Policy) CheckCommand(line string) Verdict {
 	found := command.All(line)
 	refused := refusals(p, found)
 	permitted := permissions(p.Allowed.CommandRules, found)
@@ -47,7 +29,7 @@ func Evaluate(line string, p policy.Policy) Verdict {
 
 var undecided = Verdict{Ask, "Command is not in the shared allow list"}
 
-func refusals(p policy.Policy, found []command.Command) []string {
+func refusals(p Policy, found []command.Command) []string {
 	var reasons []string
 	for _, one := range found {
 		for _, rule := range standing(p.Denied.CommandRules.Matching(one), p.Allowed.CommandRules, one) {

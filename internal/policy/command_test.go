@@ -1,13 +1,12 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package check_test
+package policy_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/policy"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
@@ -25,37 +24,37 @@ var madeUp = policy.Policy{
 
 func TestTheThreeAnswers(t *testing.T) {
 	t.Run("a command matching an allowed rule", func(t *testing.T) {
-		decides(t, check.Allow, "ls -la")
+		decides(t, policy.Allow, "ls -la")
 	})
 
 	t.Run("a command matching a denied rule", func(t *testing.T) {
-		decides(t, check.Deny, "sudo whoami")
+		decides(t, policy.Deny, "sudo whoami")
 	})
 
 	t.Run("a command matching neither", func(t *testing.T) {
-		decides(t, check.Ask, "nmap localhost")
+		decides(t, policy.Ask, "nmap localhost")
 	})
 
 	t.Run("no command at all", func(t *testing.T) {
-		decides(t, check.Ask, "   ")
+		decides(t, policy.Ask, "   ")
 	})
 }
 
 func TestAcrossACommandLine(t *testing.T) {
 	t.Run("every command allowed allows the line", func(t *testing.T) {
-		decides(t, check.Allow, "ls && cat foo")
+		decides(t, policy.Allow, "ls && cat foo")
 	})
 
 	t.Run("one unvetted command leaves the line to be asked about", func(t *testing.T) {
-		decides(t, check.Ask, "ls && nmap localhost")
+		decides(t, policy.Ask, "ls && nmap localhost")
 	})
 
 	t.Run("one denied command denies the line", func(t *testing.T) {
-		decides(t, check.Deny, "ls && sudo whoami")
+		decides(t, policy.Deny, "ls && sudo whoami")
 	})
 
 	t.Run("a denied command inside a substitution denies the line", func(t *testing.T) {
-		decides(t, check.Deny, `ls "$(sudo whoami)"`)
+		decides(t, policy.Deny, `ls "$(sudo whoami)"`)
 	})
 
 	t.Run("a denial outranks a permission", func(t *testing.T) {
@@ -63,7 +62,7 @@ func TestAcrossACommandLine(t *testing.T) {
 			Denied:  policy.Side{CommandRules: rules.NewGroup("denied", pattern("ls", "", ""))},
 			Allowed: policy.Side{CommandRules: rules.NewGroup("allowed", rules.NewOpening(rules.NewWords("ls", "", "")))},
 		}
-		if decision := check.Evaluate("ls", both).Decision; decision != check.Deny {
+		if decision := both.CheckCommand("ls").Decision; decision != policy.Deny {
 			t.Errorf("ls -> %s, wanted deny", decision)
 		}
 	})
@@ -96,28 +95,28 @@ func TestWhichRuleOutranksWhich(t *testing.T) {
 		"    only:\n      dirs: [" + root + "]\n      branches: [{not: main}]\n"
 
 	t.Run("a permission accounting for more of the command outranks the denial", func(t *testing.T) {
-		answers(t, check.Allow, parsed(t, landing), "git -C "+root+" push origin topic")
+		answers(t, policy.Allow, parsed(t, landing), "git -C "+root+" push origin topic")
 	})
 
 	t.Run("and the denial answers everywhere that permission does not", func(t *testing.T) {
 		vouched := parsed(t, landing)
-		answers(t, check.Deny, vouched, "git -C "+root+" push origin main")
-		answers(t, check.Deny, vouched, "git -C "+root+" push")
-		answers(t, check.Deny, vouched, "git -C /elsewhere push origin topic")
+		answers(t, policy.Deny, vouched, "git -C "+root+" push origin main")
+		answers(t, policy.Deny, vouched, "git -C "+root+" push")
+		answers(t, policy.Deny, vouched, "git -C /elsewhere push origin topic")
 	})
 
 	t.Run("a permission accounting for less does not outrank it", func(t *testing.T) {
-		answers(t, check.Deny, parsed(t, denial+"allowed: [git]\n"), "git push origin topic")
+		answers(t, policy.Deny, parsed(t, denial+"allowed: [git]\n"), "git push origin topic")
 	})
 
 	t.Run("a tie goes to the denial", func(t *testing.T) {
-		answers(t, check.Deny, parsed(t, denial+"allowed: [git push]\n"), "git push")
+		answers(t, policy.Deny, parsed(t, denial+"allowed: [git push]\n"), "git push")
 	})
 
 	t.Run("and the same measure runs the other way", func(t *testing.T) {
 		removing := parsed(t, "allowed: [rm]\ndenied:\n  - patterns: ['^rm -(rf|fr) /$']\n")
-		answers(t, check.Deny, removing, "rm -rf /")
-		answers(t, check.Allow, removing, "rm ./notes.txt")
+		answers(t, policy.Deny, removing, "rm -rf /")
+		answers(t, policy.Allow, removing, "rm ./notes.txt")
 	})
 }
 
@@ -127,17 +126,17 @@ func TestAnAddendum(t *testing.T) {
 		"    addendum:\n      - only: {dirs: ["+root+"]}\n        reason: Push your own branch by name.\n")
 
 	t.Run("ends the reason where the command runs inside its dirs", func(t *testing.T) {
-		reasons(t, chosen, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+		refusedWith(t, chosen, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
 	t.Run("is left out elsewhere", func(t *testing.T) {
-		reasons(t, chosen, "git -C /elsewhere push", "Ask first.")
+		refusedWith(t, chosen, "git -C /elsewhere push", "Ask first.")
 	})
 }
 
 func TestAnEmptyPolicy(t *testing.T) {
 	t.Run("decides nothing", func(t *testing.T) {
-		if decision := check.Evaluate("anything at all", policy.Policy{}).Decision; decision != check.Ask {
+		if decision := (policy.Policy{}).CheckCommand("anything at all").Decision; decision != policy.Ask {
 			t.Errorf("wanted ask, got %s", decision)
 		}
 	})
@@ -151,39 +150,30 @@ func pattern(expression, reason, name string) rules.Rule {
 	return rule
 }
 
-func parsed(t *testing.T, configuration string) policy.Policy {
+func answers(t *testing.T, wanted policy.Decision, chosen policy.Policy, command string) {
 	t.Helper()
-	built, err := policy.Parse([]byte(configuration))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return built
-}
-
-func answers(t *testing.T, wanted check.Decision, chosen policy.Policy, command string) {
-	t.Helper()
-	if verdict := check.Evaluate(command, chosen); verdict.Decision != wanted {
+	if verdict := chosen.CheckCommand(command); verdict.Decision != wanted {
 		t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
 	}
 }
 
-func decides(t *testing.T, wanted check.Decision, command string) {
+func decides(t *testing.T, wanted policy.Decision, command string) {
 	t.Helper()
-	if verdict := check.Evaluate(command, madeUp); verdict.Decision != wanted {
+	if verdict := madeUp.CheckCommand(command); verdict.Decision != wanted {
 		t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
 	}
 }
 
-func reasons(t *testing.T, chosen policy.Policy, command, wanted string) {
+func refusedWith(t *testing.T, chosen policy.Policy, command, wanted string) {
 	t.Helper()
-	if reason := check.Evaluate(command, chosen).Reason; !strings.HasSuffix(reason, ": git push. "+wanted) {
+	if reason := chosen.CheckCommand(command).Reason; !strings.HasSuffix(reason, ": git push. "+wanted) {
 		t.Errorf("%q -> %q, wanted it to end with %q", command, reason, wanted)
 	}
 }
 
 func ends(t *testing.T, command, wanted string) {
 	t.Helper()
-	if reason := check.Evaluate(command, madeUp).Reason; !strings.HasSuffix(reason, wanted) {
+	if reason := madeUp.CheckCommand(command).Reason; !strings.HasSuffix(reason, wanted) {
 		t.Errorf("%q -> %q, wanted it to end with %q", command, reason, wanted)
 	}
 }

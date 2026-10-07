@@ -10,26 +10,54 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/hook"
+	"github.com/thehale/tooluse-screener/internal/policy"
 )
 
 var (
-	allow = check.Verdict{Decision: check.Allow, Reason: "matches a prefix"}
-	deny  = check.Verdict{Decision: check.Deny, Reason: "not on my watch"}
-	ask   = check.Verdict{Decision: check.Ask, Reason: "no opinion"}
+	allow = policy.Verdict{Decision: policy.Allow, Reason: "matches a prefix"}
+	deny  = policy.Verdict{Decision: policy.Deny, Reason: "not on my watch"}
+	ask   = policy.Verdict{Decision: policy.Ask, Reason: "no opinion"}
 )
 
-func always(verdict check.Verdict) hook.Checking {
-	return func(check.Question) (check.Verdict, bool) { return verdict, true }
+type always policy.Verdict
+
+func (a always) CheckCommand(string) policy.Verdict {
+	return policy.Verdict(a)
 }
 
-func panics(check.Question) (check.Verdict, bool) {
+func (a always) CheckPath(string) (policy.Verdict, bool) {
+	return policy.Verdict(a), true
+}
+
+type panics struct{}
+
+func (panics) CheckCommand(string) policy.Verdict {
 	panic("something went sideways")
 }
 
-func echoing(asked check.Question) (check.Verdict, bool) {
-	return check.Verdict{Decision: check.Deny, Reason: asked.Command + asked.Path}, true
+func (panics) CheckPath(string) (policy.Verdict, bool) {
+	panic("something went sideways")
+}
+
+type echoing struct{}
+
+func (echoing) CheckCommand(line string) policy.Verdict {
+	return policy.Verdict{Decision: policy.Deny, Reason: line}
+}
+
+func (echoing) CheckPath(path string) (policy.Verdict, bool) {
+	return policy.Verdict{Decision: policy.Deny, Reason: path}, true
+}
+
+type silent struct{}
+
+func (silent) CheckCommand(string) policy.Verdict {
+	return policy.Verdict{}
+}
+
+func (silent) CheckPath(string) (policy.Verdict, bool) {
+	return policy.Verdict{}, false
 }
 
 func writing(tool, key, path string) hook.Payload {
@@ -118,9 +146,8 @@ func TestWhatIsAsked(t *testing.T) {
 	})
 
 	t.Run("a path the policy says nothing about gets no envelope", func(t *testing.T) {
-		silent := func(check.Question) (check.Verdict, bool) { return check.Verdict{}, false }
 		var out bytes.Buffer
-		code := hook.Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, silent)
+		code := hook.Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, silent{})
 		if code != 0 || out.String() != "" {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
@@ -137,7 +164,7 @@ func TestWhatIsAsked(t *testing.T) {
 
 func asks(t *testing.T, payload hook.Payload, wanted string) {
 	t.Helper()
-	if verdict, _ := hook.Decide(payload, echoing); verdict.Reason != wanted {
+	if verdict, _ := hook.Decide(payload, echoing{}); verdict.Reason != wanted {
 		t.Errorf("%v asked about %q, wanted %q", payload, verdict.Reason, wanted)
 	}
 }
@@ -145,7 +172,7 @@ func asks(t *testing.T, payload hook.Payload, wanted string) {
 func TestAPolicyThatFails(t *testing.T) {
 	t.Run("is treated as ask, said so on stderr, and writes no envelope", func(t *testing.T) {
 		var out, complaints bytes.Buffer
-		code := hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, panics)
+		code := hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, panics{})
 		if code != 0 || out.String() != "" {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
@@ -158,7 +185,7 @@ func TestAPolicyThatFails(t *testing.T) {
 func TestWhatEachEventAnswersWith(t *testing.T) {
 	answers := []struct {
 		event    string
-		verdict  check.Verdict
+		verdict  policy.Verdict
 		envelope string
 		code     int
 	}{
@@ -262,7 +289,7 @@ func TestCodexPermissionRequest(t *testing.T) {
 	})
 
 	t.Run("never blocks by exit code, because the envelope says everything", func(t *testing.T) {
-		for _, verdict := range []check.Verdict{allow, deny, ask} {
+		for _, verdict := range []policy.Verdict{allow, deny, ask} {
 			if _, code := hook.Respond(codex("ls", "PermissionRequest"), verdict); code != 0 {
 				t.Errorf("%s -> exit %d, wanted 0", verdict, code)
 			}
@@ -291,7 +318,7 @@ func TestStdinToStdout(t *testing.T) {
 	})
 
 	t.Run("anything but a denial leaves stderr alone", func(t *testing.T) {
-		for _, verdict := range []check.Verdict{allow, ask} {
+		for _, verdict := range []policy.Verdict{allow, ask} {
 			var out, complaints bytes.Buffer
 			hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(verdict))
 			if complaints.String() != "" {
@@ -335,7 +362,7 @@ func undecided(t *testing.T, payload hook.Payload) {
 	}
 }
 
-func answered(t *testing.T, payload hook.Payload, verdict check.Verdict) (map[string]any, int) {
+func answered(t *testing.T, payload hook.Payload, verdict policy.Verdict) (map[string]any, int) {
 	t.Helper()
 	envelope, code := hook.Respond(payload, verdict)
 	if envelope == nil {
@@ -344,7 +371,7 @@ func answered(t *testing.T, payload hook.Payload, verdict check.Verdict) (map[st
 	return envelope, code
 }
 
-func quiet(t *testing.T, payload hook.Payload, verdict check.Verdict, wanted int) {
+func quiet(t *testing.T, payload hook.Payload, verdict policy.Verdict, wanted int) {
 	t.Helper()
 	envelope, code := hook.Respond(payload, verdict)
 	if envelope != nil || code != wanted {
@@ -383,7 +410,7 @@ func sent(payload hook.Payload) *bytes.Reader {
 	return bytes.NewReader(written)
 }
 
-func ran(t *testing.T, in io.Reader, verdict check.Verdict) (string, int) {
+func ran(t *testing.T, in io.Reader, verdict policy.Verdict) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
 	code := hook.Main(in, &out, &bytes.Buffer{}, always(verdict))
@@ -399,7 +426,7 @@ func read(t *testing.T, written string) map[string]any {
 	return envelope
 }
 
-func wroteNothing(t *testing.T, in io.Reader, verdict check.Verdict) {
+func wroteNothing(t *testing.T, in io.Reader, verdict policy.Verdict) {
 	t.Helper()
 	if written, code := ran(t, in, verdict); written != "" || code != 0 {
 		t.Errorf("wrote %q and exited %d, wanted nothing and 0", written, code)

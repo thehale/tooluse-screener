@@ -1,16 +1,15 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package check
+package policy
 
 import (
 	"fmt"
 
-	"github.com/thehale/tooluse-screener/internal/policy"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
-func Writing(path string, p policy.Policy) (Verdict, bool) {
+func (p Policy) CheckPath(path string) (Verdict, bool) {
 	refused := globsMatching(p.Denied.PathRules, path)
 	permitted := globsMatching(p.Allowed.PathRules, path)
 

@@ -1,7 +1,7 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package check_test
+package policy_test
 
 import (
 	"os"
@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thehale/tooluse-screener/internal/check"
 	"github.com/thehale/tooluse-screener/internal/policy"
 )
 
@@ -17,7 +16,7 @@ func TestTheCorpus(t *testing.T) {
 	asked := testPolicy(t)
 	for _, line := range corpus(t, "corpus.txt") {
 		wanted, command := readLine(t, line)
-		if verdict := check.Evaluate(command, asked); verdict.Decision != wanted {
+		if verdict := asked.CheckCommand(command); verdict.Decision != wanted {
 			t.Errorf("%q -> %s, wanted %s", command, verdict, wanted)
 		}
 	}
@@ -28,7 +27,7 @@ func TestThePathCorpus(t *testing.T) {
 	asked := testPolicy(t)
 	for _, line := range corpus(t, "paths.txt") {
 		wanted, path := readLine(t, line)
-		if answered := written(path, asked); answered != wanted {
+		if answered := decidedOn(path, asked); answered != wanted {
 			t.Errorf("%q -> %s, wanted %s", path, answered, wanted)
 		}
 	}
@@ -43,8 +42,8 @@ func testPolicy(t *testing.T) policy.Policy {
 	return asked
 }
 
-func written(path string, asked policy.Policy) check.Decision {
-	switch verdict, answered := check.Writing(path, asked); {
+func decidedOn(path string, asked policy.Policy) policy.Decision {
+	switch verdict, answered := asked.CheckPath(path); {
 	case answered:
 		return verdict.Decision
 	default:
@@ -52,7 +51,7 @@ func written(path string, asked policy.Policy) check.Decision {
 	}
 }
 
-const unanswered check.Decision = "none"
+const unanswered policy.Decision = "none"
 
 func corpus(t *testing.T, named string) []string {
 	t.Helper()
@@ -69,11 +68,11 @@ func corpus(t *testing.T, named string) []string {
 	return found
 }
 
-func readLine(t *testing.T, line string) (check.Decision, string) {
+func readLine(t *testing.T, line string) (policy.Decision, string) {
 	t.Helper()
 	wanted, command, spelled := strings.Cut(line, " ")
 	if !spelled {
 		t.Fatalf("a corpus line is a verdict and a command: %q", line)
 	}
-	return check.Decision(wanted), strings.TrimSpace(command)
+	return policy.Decision(wanted), strings.TrimSpace(command)
 }
