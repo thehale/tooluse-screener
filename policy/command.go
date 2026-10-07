@@ -41,8 +41,8 @@ func (p Policy) refusals(commands []command.Command) []string {
 	return reasons
 }
 
-func standingDenials(denials []rules.Rule, allowRules rules.Group, line command.Command) []rules.Rule {
-	var standing []rules.Rule
+func standingDenials(denials rules.Group, allowRules rules.Group, line command.Command) rules.Group {
+	var standing rules.Group
 	for _, rule := range denials {
 		if !line.IsAccountedForBy(allowRules) || line.IsAccountedForBy(rule) {
 			standing = append(standing, rule)
@@ -51,15 +51,15 @@ func standingDenials(denials []rules.Rule, allowRules rules.Group, line command.
 	return standing
 }
 
-func permissions(allowRules rules.Group, commands []command.Command) [][]rules.Rule {
-	vouchersByCommand := make([][]rules.Rule, 0, len(commands))
+func permissions(allowRules rules.Group, commands []command.Command) []rules.Group {
+	vouchersByCommand := make([]rules.Group, 0, len(commands))
 	for _, one := range commands {
 		vouchersByCommand = append(vouchersByCommand, allowRules.RulesMatching(one))
 	}
 	return vouchersByCommand
 }
 
-func isVouchedFor(vouchers []rules.Rule) bool {
+func isVouchedFor(vouchers rules.Group) bool {
 	return len(vouchers) > 0
 }
 
@@ -72,11 +72,11 @@ func refusal(subject string, rule fmt.Stringer, reason string) string {
 	}
 }
 
-func permission(vouchersByCommand [][]rules.Rule) string {
+func permission(vouchersByCommand []rules.Group) string {
 	return fmt.Sprintf("Every command is allowed: %s", strings.Join(names(vouchersByCommand), ", "))
 }
 
-func names(vouchersByCommand [][]rules.Rule) []string {
+func names(vouchersByCommand []rules.Group) []string {
 	var ruleNames []string
 	nameSet := map[string]bool{}
 	for _, vouchers := range vouchersByCommand {

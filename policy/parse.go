@@ -86,7 +86,7 @@ func allowanceIn(trusted []string) func(rules.Rule) rules.Rule {
 }
 
 func commandRulesOf(entries []entry, wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
-	var commandRules []rules.Rule
+	var commandRules rules.Group
 	for _, one := range entries {
 		list, err := one.commandRules(wrap)
 		if err != nil {
@@ -94,10 +94,10 @@ func commandRulesOf(entries []entry, wrap func(rules.Rule) rules.Rule) (rules.Gr
 		}
 		commandRules = append(commandRules, list...)
 	}
-	return rules.Group(commandRules), nil
+	return commandRules, nil
 }
 
-func (e entry) commandRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+func (e entry) commandRules(wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
 	commandRules, err := e.unscopedRules(wrap)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (e entry) commandRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, err
 	return addendedRules(commandRules, e.Addendum)
 }
 
-func scopedRules(commandRules []rules.Rule, only *scope) ([]rules.Rule, error) {
+func scopedRules(commandRules rules.Group, only *scope) (rules.Group, error) {
 	if only == nil {
 		return commandRules, nil
 	} else {
@@ -118,17 +118,17 @@ func scopedRules(commandRules []rules.Rule, only *scope) ([]rules.Rule, error) {
 	}
 }
 
-func rulesScopedTo(commandRules []rules.Rule, scope rules.Scope) []rules.Rule {
-	rulesInScope := make([]rules.Rule, 0, len(commandRules))
+func rulesScopedTo(commandRules rules.Group, scope rules.Scope) rules.Group {
+	rulesInScope := make(rules.Group, 0, len(commandRules))
 	for _, rule := range commandRules {
 		rulesInScope = append(rulesInScope, rules.NewScoped(rule, scope))
 	}
 	return rulesInScope
 }
 
-func addendedRules(commandRules []rules.Rule, additions []addition) ([]rules.Rule, error) {
+func addendedRules(commandRules rules.Group, additions []addition) (rules.Group, error) {
 	addenda, err := addendaOf(additions)
-	rulesWithAddenda := make([]rules.Rule, 0, len(commandRules))
+	rulesWithAddenda := make(rules.Group, 0, len(commandRules))
 	for _, rule := range commandRules {
 		rulesWithAddenda = append(rulesWithAddenda, rules.NewAddended(rule, addenda))
 	}
@@ -150,7 +150,7 @@ func addendaOf(additions []addition) ([]rules.Addendum, error) {
 	return addenda, nil
 }
 
-func (e entry) unscopedRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+func (e entry) unscopedRules(wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
 	if len(e.Commands) == 0 && len(e.Patterns) == 0 && len(e.Paths) == 0 {
 		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", e)
 	} else {
@@ -158,8 +158,8 @@ func (e entry) unscopedRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, er
 	}
 }
 
-func (e entry) writtenRules(wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	var commandRules []rules.Rule
+func (e entry) writtenRules(wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
+	var commandRules rules.Group
 	for _, text := range e.Commands {
 		commandRules = append(commandRules, wrap(e.commandRule(text)))
 	}

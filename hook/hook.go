@@ -51,7 +51,7 @@ var failOpen = policy.Verdict{Decision: policy.Ask, Reason: "The policy could no
 func write(envelope map[string]any, out io.Writer) {
 	if envelope != nil {
 		envelopeJSON, _ := json.Marshal(envelope)
-		_, _ = fmt.Fprint(out, string(envelopeJSON))
+		_, _ = out.Write(envelopeJSON)
 	}
 }
 
