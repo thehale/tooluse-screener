@@ -1,15 +1,13 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package policy_test
+package policy
 
 import (
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/thehale/tooluse-screener/internal/policy"
 )
 
 func TestTheCorpus(t *testing.T) {
@@ -33,16 +31,16 @@ func TestThePathCorpus(t *testing.T) {
 	}
 }
 
-func testPolicy(t *testing.T) policy.Policy {
+func testPolicy(t *testing.T) Policy {
 	t.Helper()
-	asked, err := policy.LoadFile(filepath.Join("testdata", "policy.yaml"))
+	asked, err := LoadFile(filepath.Join("testdata", "policy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return asked
 }
 
-func decidedOn(path string, asked policy.Policy) policy.Decision {
+func decidedOn(path string, asked Policy) Decision {
 	if verdict, answered := asked.CheckPath(path); answered {
 		return verdict.Decision
 	} else {
@@ -50,7 +48,7 @@ func decidedOn(path string, asked policy.Policy) policy.Decision {
 	}
 }
 
-const unanswered policy.Decision = "none"
+const unanswered Decision = "none"
 
 func corpus(t *testing.T, named string) []string {
 	t.Helper()
@@ -67,11 +65,11 @@ func corpus(t *testing.T, named string) []string {
 	return found
 }
 
-func readLine(t *testing.T, line string) (policy.Decision, string) {
+func readLine(t *testing.T, line string) (Decision, string) {
 	t.Helper()
 	wanted, command, spelled := strings.Cut(line, " ")
 	if !spelled {
 		t.Fatalf("a corpus line is a verdict and a command: %q", line)
 	}
-	return policy.Decision(wanted), strings.TrimSpace(command)
+	return Decision(wanted), strings.TrimSpace(command)
 }

@@ -3,7 +3,7 @@
 
 package hook
 
-import "github.com/thehale/tooluse-screener/internal/policy"
+import "github.com/thehale/tooluse-screener/policy"
 
 func Respond(payload Payload, verdict policy.Verdict) (envelope map[string]any, code int) {
 	switch event(payload) {

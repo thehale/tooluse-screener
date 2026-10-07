@@ -1,7 +1,7 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package policy_test
+package policy
 
 import (
 	"os"
@@ -10,26 +10,25 @@ import (
 	"testing"
 
 	"github.com/thehale/tooluse-screener/internal/command"
-	"github.com/thehale/tooluse-screener/internal/policy"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
 func TestWhereACommandIsLookedFor(t *testing.T) {
 	t.Run("a denied command is looked for anywhere", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - deploy now\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - deploy now\n").denied.commandRules
 		matches(t, true, denied, "deploy now")
 		matches(t, true, denied, "RELEASE_CHANNEL=live deploy now")
 	})
 
 	t.Run("an allowed command only at the start", func(t *testing.T) {
-		allowed := parsed(t, "allowed:\n  - ls\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed:\n  - ls\n").allowed.commandRules
 		matches(t, true, allowed, "ls -la")
 		matches(t, false, allowed, "lsblk")
 		matches(t, false, allowed, "echo ls")
 	})
 
 	t.Run("a command is literal text", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - a.c\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - a.c\n").denied.commandRules
 		matches(t, true, denied, "a.c")
 		matches(t, false, denied, "abc")
 	})
@@ -37,12 +36,12 @@ func TestWhereACommandIsLookedFor(t *testing.T) {
 
 func TestWhereAPatternIsLookedFor(t *testing.T) {
 	t.Run("a denied pattern is looked for anywhere", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n").denied.commandRules
 		matches(t, true, denied, "do never run this")
 	})
 
 	t.Run("an allowed pattern only at the start", func(t *testing.T) {
-		allowed := parsed(t, "allowed:\n  - patterns: ['ls|cat']\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed:\n  - patterns: ['ls|cat']\n").allowed.commandRules
 		matches(t, true, allowed, "cat foo")
 		matches(t, false, allowed, "echo cat")
 	})
@@ -50,54 +49,54 @@ func TestWhereAPatternIsLookedFor(t *testing.T) {
 
 func TestACommandStartingWithGit(t *testing.T) {
 	t.Run("is read as a git command", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - git push\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - git push\n").denied.commandRules
 		matches(t, true, denied, "git push origin main")
 		matches(t, true, denied, "git -C /anywhere push")
 		matches(t, false, denied, "git status")
 	})
 
 	t.Run("carries its arguments", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - git config --unset\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - git config --unset\n").denied.commandRules
 		matches(t, true, denied, "git config --unset user.name")
 		matches(t, true, denied, "git -C /x config --global --unset user.name")
 		matches(t, false, denied, "git config --get user.name")
 	})
 
 	t.Run("is not looked for as text", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - git push\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - git push\n").denied.commandRules
 		matches(t, false, denied, "grep -rn 'git push' docs")
 	})
 
 	t.Run("a bare git is left as text", func(t *testing.T) {
-		matches(t, true, parsed(t, "denied:\n  - git\n").Denied.CommandRules, "git status")
+		matches(t, true, parsed(t, "denied:\n  - git\n").denied.commandRules, "git status")
 	})
 
 	t.Run("a pattern is never read as one", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - patterns: ['git push']\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - patterns: ['git push']\n").denied.commandRules
 		matches(t, true, denied, "grep -rn 'git push' docs")
 	})
 }
 
 func TestAnEntryWithAReason(t *testing.T) {
 	t.Run("one command may be written alone", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - commands: shutdown\n    reason: Ask first.\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - commands: shutdown\n    reason: Ask first.\n").denied.commandRules
 		matches(t, true, denied, "shutdown now")
 		reasons(t, denied, "shutdown now", "Ask first.")
 	})
 
 	t.Run("several share it", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - commands: [shutdown, reboot]\n    reason: Ask first.\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - commands: [shutdown, reboot]\n    reason: Ask first.\n").denied.commandRules
 		reasons(t, denied, "shutdown now", "Ask first.")
 		reasons(t, denied, "reboot now", "Ask first.")
 	})
 
 	t.Run("it is optional", func(t *testing.T) {
-		reasons(t, parsed(t, "denied:\n  - commands: [shutdown]\n").Denied.CommandRules, "shutdown now", "")
+		reasons(t, parsed(t, "denied:\n  - commands: [shutdown]\n").denied.commandRules, "shutdown now", "")
 	})
 
 	t.Run("a bare command is the same entry without one", func(t *testing.T) {
-		bare := parsed(t, "denied:\n  - shutdown\n").Denied.CommandRules
-		grouped := parsed(t, "denied:\n  - commands: shutdown\n").Denied.CommandRules
+		bare := parsed(t, "denied:\n  - shutdown\n").denied.commandRules
+		grouped := parsed(t, "denied:\n  - commands: shutdown\n").denied.commandRules
 		if bare.Matches(said("shutdown now")) != grouped.Matches(said("shutdown now")) {
 			t.Error("a bare command is not the same as one written out")
 		}
@@ -105,23 +104,23 @@ func TestAnEntryWithAReason(t *testing.T) {
 	})
 
 	t.Run("a git command carries it too", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - commands: git push\n    reason: Open a pull request.\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - commands: git push\n    reason: Open a pull request.\n").denied.commandRules
 		reasons(t, denied, "git push", "Open a pull request.")
 	})
 }
 
 func TestNames(t *testing.T) {
 	t.Run("a name is what the rules call themselves", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n    name: Say never\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n    name: Say never\n").denied.commandRules
 		named(t, denied, "never", "Say never")
 	})
 
 	t.Run("without one a rule calls itself what it is written as", func(t *testing.T) {
-		named(t, parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n").Denied.CommandRules, "never", `\bnever\b`)
+		named(t, parsed(t, "denied:\n  - patterns: ['\\bnever\\b']\n").denied.commandRules, "never", `\bnever\b`)
 	})
 
 	t.Run("it covers every command and pattern in its entry", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - commands: [shutdown]\n    patterns: ['\\breboot\\b']\n    name: Take the machine down\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - commands: [shutdown]\n    patterns: ['\\breboot\\b']\n    name: Take the machine down\n").denied.commandRules
 		named(t, denied, "shutdown now", "Take the machine down")
 		named(t, denied, "reboot now", "Take the machine down")
 	})
@@ -135,17 +134,17 @@ func TestTrustedDirectories(t *testing.T) {
 	const written = "trusted_git_directories: [/trusted]\ndenied: [git push]\nallowed: [git status]\n"
 
 	t.Run("bind an allowed git command", func(t *testing.T) {
-		allowed := parsed(t, written).Allowed.CommandRules
+		allowed := parsed(t, written).allowed.commandRules
 		matches(t, true, allowed, "git -C /trusted/repo status")
 		matches(t, false, allowed, "git -C /elsewhere status")
 	})
 
 	t.Run("do not bind a denied one", func(t *testing.T) {
-		matches(t, true, parsed(t, written).Denied.CommandRules, "git -C /elsewhere push")
+		matches(t, true, parsed(t, written).denied.commandRules, "git -C /elsewhere push")
 	})
 
 	t.Run("naming none leaves every -C unallowed", func(t *testing.T) {
-		allowed := parsed(t, "allowed: [git status]\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed: [git status]\n").allowed.commandRules
 		matches(t, true, allowed, "git status")
 		matches(t, false, allowed, "git -C /anywhere status")
 	})
@@ -159,26 +158,26 @@ func TestOnlyDirs(t *testing.T) {
 	}
 
 	t.Run("a command with no directory of its own is judged where it runs", func(t *testing.T) {
-		matches(t, true, parsed(t, "allowed:\n  - commands: ls\n    only:\n      dirs: ["+here+"]\n").Allowed.CommandRules, "ls -la")
-		matches(t, false, parsed(t, "allowed:\n  - commands: ls\n    only:\n      dirs: ["+root+"]\n").Allowed.CommandRules, "ls -la")
+		matches(t, true, parsed(t, "allowed:\n  - commands: ls\n    only:\n      dirs: ["+here+"]\n").allowed.commandRules, "ls -la")
+		matches(t, false, parsed(t, "allowed:\n  - commands: ls\n    only:\n      dirs: ["+root+"]\n").allowed.commandRules, "ls -la")
 	})
 
 	t.Run("a git command is judged by the directory it names", func(t *testing.T) {
-		allowed := parsed(t, "trusted_git_directories: ["+root+"]\nallowed:\n  - patterns: ['^git -C \\S+ status$']\n    only:\n      dirs: ["+root+"]\n").Allowed.CommandRules
+		allowed := parsed(t, "trusted_git_directories: ["+root+"]\nallowed:\n  - patterns: ['^git -C \\S+ status$']\n    only:\n      dirs: ["+root+"]\n").allowed.commandRules
 		matches(t, true, allowed, "git -C "+root+" status")
 		matches(t, false, allowed, "git -C /elsewhere status")
 	})
 
 	t.Run("scopes a denial the same way", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - commands: git status\n    only:\n      dirs: ["+root+"]\n").Denied.CommandRules
+		denied := parsed(t, "denied:\n  - commands: git status\n    only:\n      dirs: ["+root+"]\n").denied.commandRules
 		matches(t, true, denied, "git -C "+root+" status")
 		matches(t, false, denied, "git -C /elsewhere status")
 	})
 
 	t.Run("an allowed git command still answers to trusted_git_directories as well", func(t *testing.T) {
 		written := "allowed:\n  - commands: git status\n    only:\n      dirs: [" + root + "]\n"
-		matches(t, false, parsed(t, written).Allowed.CommandRules, "git -C "+root+" status")
-		matches(t, true, parsed(t, "trusted_git_directories: ["+root+"]\n"+written).Allowed.CommandRules, "git -C "+root+" status")
+		matches(t, false, parsed(t, written).allowed.commandRules, "git -C "+root+" status")
+		matches(t, true, parsed(t, "trusted_git_directories: ["+root+"]\n"+written).allowed.commandRules, "git -C "+root+" status")
 	})
 }
 
@@ -191,13 +190,13 @@ func TestOnlyBranches(t *testing.T) {
 		"    only:\n      dirs: [" + root + "]\n      branches: [{not: [main, master, trunk]}]\n"
 
 	t.Run("lets a branch outside the list through", func(t *testing.T) {
-		allowed := parsed(t, written).Allowed.CommandRules
+		allowed := parsed(t, written).allowed.commandRules
 		matches(t, true, allowed, "git -C "+root+" push origin topic")
 		matches(t, true, allowed, "git -C "+root+" push origin HEAD:topic")
 	})
 
 	t.Run("leaves out every spelling of one inside it", func(t *testing.T) {
-		allowed := parsed(t, written).Allowed.CommandRules
+		allowed := parsed(t, written).allowed.commandRules
 		matches(t, false, allowed, "git -C "+root+" push origin main")
 		matches(t, false, allowed, "git -C "+root+" push origin HEAD:main")
 		matches(t, false, allowed, "git -C "+root+" push origin refs/heads/trunk")
@@ -205,7 +204,7 @@ func TestOnlyBranches(t *testing.T) {
 	})
 
 	t.Run("leaves out a landing it cannot read at all", func(t *testing.T) {
-		allowed := parsed(t, written).Allowed.CommandRules
+		allowed := parsed(t, written).allowed.commandRules
 		matches(t, false, allowed, "git -C "+root+" push origin +topic:main")
 		matches(t, false, allowed, "git -C /elsewhere push origin topic")
 	})
@@ -215,20 +214,20 @@ func TestOnlyBranches(t *testing.T) {
 	})
 
 	t.Run("one name may be written without a list", func(t *testing.T) {
-		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}]\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}]\n").allowed.commandRules
 		matches(t, true, allowed, "git push origin topic")
 		matches(t, false, allowed, "git push origin main")
 	})
 
 	t.Run("several conditions all have to be met", func(t *testing.T) {
-		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}, {not: [release]}]\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [{not: main}, {not: [release]}]\n").allowed.commandRules
 		matches(t, true, allowed, "git push origin topic")
 		matches(t, false, allowed, "git push origin main")
 		matches(t, false, allowed, "git push origin release")
 	})
 
 	t.Run("a branch named plainly is one the push may land on", func(t *testing.T) {
-		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, release]\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, release]\n").allowed.commandRules
 		matches(t, true, allowed, "git push origin ci-fix")
 		matches(t, true, allowed, "git push origin release")
 		matches(t, false, allowed, "git push origin main")
@@ -236,7 +235,7 @@ func TestOnlyBranches(t *testing.T) {
 	})
 
 	t.Run("names and exclusions both have to be met", func(t *testing.T) {
-		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, {not: ci-fix}]\n").Allowed.CommandRules
+		allowed := parsed(t, "allowed:\n  - patterns: ['^git push origin \\S+$']\n    only:\n      branches: [ci-fix, {not: ci-fix}]\n").allowed.commandRules
 		matches(t, false, allowed, "git push origin ci-fix")
 	})
 
@@ -251,11 +250,11 @@ func TestAddendum(t *testing.T) {
 		"    addendum:\n      - only: {dirs: [" + root + "]}\n        reason: Push your own branch by name.\n"
 
 	t.Run("adds to the reason where its scope includes the command", func(t *testing.T) {
-		reasons(t, parsed(t, written).Denied.CommandRules, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+		reasons(t, parsed(t, written).denied.commandRules, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
 	t.Run("leaves the reason alone elsewhere", func(t *testing.T) {
-		reasons(t, parsed(t, written).Denied.CommandRules, "git -C /elsewhere push", "Ask first.")
+		reasons(t, parsed(t, written).denied.commandRules, "git -C /elsewhere push", "Ask first.")
 	})
 
 	t.Run("needs both an only and a reason", func(t *testing.T) {
@@ -265,7 +264,7 @@ func TestAddendum(t *testing.T) {
 
 	t.Run("may stand without a reason of its own", func(t *testing.T) {
 		bare := "denied:\n  - commands: git push\n    addendum:\n      - only: {dirs: [" + root + "]}\n        reason: Push your own branch by name.\n"
-		reasons(t, parsed(t, bare).Denied.CommandRules, "git -C "+root+" push", "Push your own branch by name.")
+		reasons(t, parsed(t, bare).denied.commandRules, "git -C "+root+" push", "Push your own branch by name.")
 	})
 
 	t.Run("adds to an allowed entry's reason the same way", func(t *testing.T) {
@@ -275,7 +274,7 @@ func TestAddendum(t *testing.T) {
 		}
 		allowed := "allowed:\n  - commands: ls\n    reason: Listing is harmless.\n" +
 			"    addendum:\n      - only: {dirs: [" + here + "]}\n        reason: Even here.\n"
-		reasons(t, parsed(t, allowed).Allowed.CommandRules, "ls", "Listing is harmless. Even here.")
+		reasons(t, parsed(t, allowed).allowed.commandRules, "ls", "Listing is harmless. Even here.")
 	})
 
 	t.Run("is refused beside paths", func(t *testing.T) {
@@ -286,12 +285,12 @@ func TestAddendum(t *testing.T) {
 func TestPaths(t *testing.T) {
 	t.Run("are read under denied and allowed alike", func(t *testing.T) {
 		both := parsed(t, "denied:\n  - paths: /secrets/**\nallowed:\n  - paths: ['/notes/*', '/drafts/*']\n")
-		globbed(t, both.Denied.PathRules, "/secrets/**")
-		globbed(t, both.Allowed.PathRules, "/notes/*", "/drafts/*")
+		globbed(t, both.denied.pathRules, "/secrets/**")
+		globbed(t, both.allowed.pathRules, "/notes/*", "/drafts/*")
 	})
 
 	t.Run("carry their entry's reason and name", func(t *testing.T) {
-		denied := parsed(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n").Denied.PathRules
+		denied := parsed(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n").denied.pathRules
 		globbed(t, denied, "Write a secret")
 		if reason := denied[0].Reason(); reason != "Ask first." {
 			t.Errorf("reason %q", reason)
@@ -299,7 +298,7 @@ func TestPaths(t *testing.T) {
 	})
 
 	t.Run("are never read as commands", func(t *testing.T) {
-		matches(t, false, parsed(t, "denied:\n  - paths: /secrets/**\n").Denied.CommandRules, "cat /secrets/key")
+		matches(t, false, parsed(t, "denied:\n  - paths: /secrets/**\n").denied.commandRules, "cat /secrets/key")
 	})
 
 	t.Run("a relative one is refused", func(t *testing.T) {
@@ -338,22 +337,22 @@ func TestWhatIsRefused(t *testing.T) {
 func TestAnEmptyConfiguration(t *testing.T) {
 	t.Run("decides nothing", func(t *testing.T) {
 		empty := parsed(t, "")
-		matches(t, false, empty.Denied.CommandRules, "anything")
-		matches(t, false, empty.Allowed.CommandRules, "anything")
+		matches(t, false, empty.denied.commandRules, "anything")
+		matches(t, false, empty.allowed.commandRules, "anything")
 	})
 }
 
 func TestReadingAFile(t *testing.T) {
 	t.Run("reads a policy off disk", func(t *testing.T) {
-		matches(t, true, read(t, "denied:\n  - shutdown\n").Denied.CommandRules, "shutdown now")
+		matches(t, true, read(t, "denied:\n  - shutdown\n").denied.commandRules, "shutdown now")
 	})
 
 	t.Run("an empty file decides nothing", func(t *testing.T) {
-		matches(t, false, read(t, "").Denied.CommandRules, "anything")
+		matches(t, false, read(t, "").denied.commandRules, "anything")
 	})
 
 	t.Run("a file that is not there is an error", func(t *testing.T) {
-		if _, err := policy.LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		if _, err := LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
 			t.Error("wanted an error")
 		}
 	})
@@ -361,32 +360,32 @@ func TestReadingAFile(t *testing.T) {
 
 func TestTheBuiltInPolicy(t *testing.T) {
 	t.Run("is the one this module ships", func(t *testing.T) {
-		matches(t, true, policy.Default().Denied.CommandRules, "rm -rf /")
-		matches(t, true, policy.Default().Allowed.CommandRules, "git status")
+		matches(t, true, Default().denied.commandRules, "rm -rf /")
+		matches(t, true, Default().allowed.commandRules, "git status")
 	})
 
 	t.Run("gives way to a policy file that is named", func(t *testing.T) {
 		named := loadedFile(t, written(t, "denied:\n  - shutdown\n"))
-		matches(t, true, named.Denied.CommandRules, "shutdown now")
-		matches(t, false, named.Denied.CommandRules, "rm -rf /")
+		matches(t, true, named.denied.commandRules, "shutdown now")
+		matches(t, false, named.denied.commandRules, "rm -rf /")
 	})
 }
 
 func TestWhichPolicyAnswers(t *testing.T) {
 	t.Run("a file named outright pays the environment no mind", func(t *testing.T) {
-		t.Setenv(policy.Variable, written(t, "denied:\n  - reboot\n"))
+		t.Setenv(Variable, written(t, "denied:\n  - reboot\n"))
 		named := loadedFile(t, written(t, "denied:\n  - shutdown\n"))
-		matches(t, true, named.Denied.CommandRules, "shutdown now")
-		matches(t, false, named.Denied.CommandRules, "reboot now")
+		matches(t, true, named.denied.commandRules, "shutdown now")
+		matches(t, false, named.denied.commandRules, "reboot now")
 	})
 
 	t.Run("the environment answers first", func(t *testing.T) {
-		t.Setenv(policy.Variable, written(t, "denied:\n  - reboot\n"))
-		matches(t, true, loaded(t).Denied.CommandRules, "reboot now")
+		t.Setenv(Variable, written(t, "denied:\n  - reboot\n"))
+		matches(t, true, loaded(t).denied.commandRules, "reboot now")
 	})
 
 	t.Run("then the config directory", func(t *testing.T) {
-		t.Setenv(policy.Variable, "")
+		t.Setenv(Variable, "")
 		home := t.TempDir()
 		t.Setenv("XDG_CONFIG_HOME", home)
 		configured := filepath.Join(home, "tooluse-screener", "policy.yaml")
@@ -396,58 +395,58 @@ func TestWhichPolicyAnswers(t *testing.T) {
 		if err := os.WriteFile(configured, []byte("denied:\n  - reboot\n"), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		matches(t, true, loaded(t).Denied.CommandRules, "reboot now")
+		matches(t, true, loaded(t).denied.commandRules, "reboot now")
 	})
 
 	t.Run("and nothing in either leaves the built-in one", func(t *testing.T) {
-		t.Setenv(policy.Variable, "")
+		t.Setenv(Variable, "")
 		t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-		matches(t, true, loaded(t).Denied.CommandRules, "rm -rf /")
+		matches(t, true, loaded(t).denied.commandRules, "rm -rf /")
 	})
 
 	t.Run("a policy that answers is the only one read", func(t *testing.T) {
 		named := loadedFile(t, written(t, "denied:\n  - shutdown\n"))
-		matches(t, false, named.Denied.CommandRules, "rm -rf /")
-		matches(t, false, named.Allowed.CommandRules, "git status")
+		matches(t, false, named.denied.commandRules, "rm -rf /")
+		matches(t, false, named.allowed.commandRules, "git status")
 	})
 
 	t.Run("one that is named and not there is an error, not a fallback", func(t *testing.T) {
-		if _, err := policy.LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		if _, err := LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
 			t.Error("wanted an error")
 		}
 	})
 }
 
-func loaded(t *testing.T) policy.Policy {
+func loaded(t *testing.T) Policy {
 	t.Helper()
-	found, err := policy.Load()
+	found, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	return found
 }
 
-func loadedFile(t *testing.T, path string) policy.Policy {
+func loadedFile(t *testing.T, path string) Policy {
 	t.Helper()
-	found, err := policy.LoadFile(path)
+	found, err := LoadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return found
 }
 
-func parsed(t *testing.T, configuration string) policy.Policy {
+func parsed(t *testing.T, configuration string) Policy {
 	t.Helper()
-	built, err := policy.Parse([]byte(configuration))
+	built, err := Parse([]byte(configuration))
 	if err != nil {
 		t.Fatalf("Parse(%q): %v", configuration, err)
 	}
 	return built
 }
 
-func read(t *testing.T, configuration string) policy.Policy {
+func read(t *testing.T, configuration string) Policy {
 	t.Helper()
-	built, err := policy.LoadFile(written(t, configuration))
+	built, err := LoadFile(written(t, configuration))
 	if err != nil {
 		t.Fatalf("Read(%q): %v", configuration, err)
 	}
@@ -465,7 +464,7 @@ func written(t *testing.T, configuration string) string {
 
 func refuses(t *testing.T, configuration, complaint string) {
 	t.Helper()
-	_, err := policy.Parse([]byte(configuration))
+	_, err := Parse([]byte(configuration))
 	if err == nil {
 		t.Fatalf("Parse(%q) was accepted", configuration)
 	}

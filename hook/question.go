@@ -6,7 +6,7 @@ package hook
 import (
 	"path/filepath"
 
-	"github.com/thehale/tooluse-screener/internal/policy"
+	"github.com/thehale/tooluse-screener/policy"
 )
 
 type Checker interface {

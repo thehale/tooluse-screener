@@ -260,6 +260,31 @@ allowed:
         - not: [main, master, trunk]
 ```
 
+## Library
+
+The command line is built on a Go library you can import yourself:
+
+```go
+import "github.com/thehale/tooluse-screener/policy"
+
+// as the command line finds it
+defaultPolicy, err := policy.Load()
+// a file named outright
+teamPolicy, err := policy.LoadFile("team-policy.yaml")
+// YAML already in hand
+parsedPolicy, err := policy.Parse(policyYAML)
+
+verdict := defaultPolicy.CheckCommand("rm -rf /")
+fmt.Println(verdict) // deny: Command matches a denied rule: Empty a whole tree
+
+// judged is false when no path rule applies
+verdict, judged := defaultPolicy.CheckPath("/home/me/.ssh/id_ed25519")
+```
+
+`github.com/thehale/tooluse-screener/hook` answers an agent's hook
+payload with any value that can check a command and a path, a policy
+among them.
+
 ## Contributing
 
 ```bash

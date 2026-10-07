@@ -6,11 +6,11 @@ package policy
 import "github.com/thehale/tooluse-screener/internal/rules"
 
 type Policy struct {
-	Denied  Side
-	Allowed Side
+	denied  side
+	allowed side
 }
 
-type Side struct {
-	CommandRules rules.Group
-	PathRules    rules.Globs
+type side struct {
+	commandRules rules.Group
+	pathRules    rules.Globs
 }

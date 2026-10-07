@@ -1,12 +1,10 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package policy_test
+package policy
 
 import (
 	"testing"
-
-	"github.com/thehale/tooluse-screener/internal/policy"
 )
 
 const guarding = `
@@ -49,11 +47,11 @@ func TestWritingAPath(t *testing.T) {
 	})
 
 	t.Run("a command is never judged by a path", func(t *testing.T) {
-		answers(t, policy.Ask, guarded, "/notes/today.md")
+		answers(t, Ask, guarded, "/notes/today.md")
 	})
 }
 
-func wrote(t *testing.T, chosen policy.Policy, path, wanted string) {
+func wrote(t *testing.T, chosen Policy, path, wanted string) {
 	t.Helper()
 	if verdict, _ := chosen.CheckPath(path); verdict.String() != wanted {
 		t.Errorf("%q -> %s, wanted %s", path, verdict, wanted)

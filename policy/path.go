@@ -6,8 +6,8 @@ package policy
 import "fmt"
 
 func (p Policy) CheckPath(path string) (Verdict, bool) {
-	refused := p.Denied.PathRules.Matching(path)
-	permitted := p.Allowed.PathRules.Matching(path)
+	refused := p.denied.pathRules.Matching(path)
+	permitted := p.allowed.pathRules.Matching(path)
 
 	switch {
 	case len(refused) > 0:

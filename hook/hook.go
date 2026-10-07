@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/thehale/tooluse-screener/internal/policy"
+	"github.com/thehale/tooluse-screener/policy"
 )
 
 func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {

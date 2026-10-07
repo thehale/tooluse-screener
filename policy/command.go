@@ -15,7 +15,7 @@ import (
 func (p Policy) CheckCommand(line string) Verdict {
 	found := command.All(line)
 	refused := p.refusals(found)
-	permitted := permissions(p.Allowed.CommandRules, found)
+	permitted := permissions(p.allowed.commandRules, found)
 
 	switch {
 	case len(refused) > 0:
@@ -32,7 +32,7 @@ var undecided = Verdict{Ask, "Command is not in the shared allow list"}
 func (p Policy) refusals(found []command.Command) []string {
 	var reasons []string
 	for _, one := range found {
-		for _, rule := range standing(p.Denied.CommandRules.Matching(one), p.Allowed.CommandRules, one) {
+		for _, rule := range standing(p.denied.commandRules.Matching(one), p.allowed.commandRules, one) {
 			reasons = append(reasons, refusal("Command", rule, rule.Reason(one)))
 		}
 	}

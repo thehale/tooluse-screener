@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thehale/tooluse-screener/internal/hook"
-	"github.com/thehale/tooluse-screener/internal/policy"
+	"github.com/thehale/tooluse-screener/hook"
+	"github.com/thehale/tooluse-screener/policy"
 )
 
 var (

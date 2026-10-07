@@ -21,21 +21,21 @@ func Parse(written []byte) (Policy, error) {
 }
 
 func built(configuration file) (Policy, error) {
-	denied, err := side(configuration.Denied, asWritten)
+	denied, err := sideFrom(configuration.Denied, asWritten)
 	if err != nil {
 		return Policy{}, err
 	}
-	allowed, err := side(configuration.Allowed, vouching(configuration.Trusted))
-	return Policy{Denied: denied, Allowed: allowed}, err
+	allowed, err := sideFrom(configuration.Allowed, vouching(configuration.Trusted))
+	return Policy{denied: denied, allowed: allowed}, err
 }
 
-func side(entries []entry, read func(rules.Rule) rules.Rule) (Side, error) {
+func sideFrom(entries []entry, read func(rules.Rule) rules.Rule) (side, error) {
 	commandRules, err := group(entries, read)
 	if err != nil {
-		return Side{}, err
+		return side{}, err
 	}
 	pathRules, err := globs(entries)
-	return Side{CommandRules: commandRules, PathRules: pathRules}, err
+	return side{commandRules: commandRules, pathRules: pathRules}, err
 }
 
 func globs(entries []entry) (rules.Globs, error) {
