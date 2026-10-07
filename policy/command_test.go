@@ -94,26 +94,26 @@ func TestWhichRuleOutranksWhich(t *testing.T) {
 		"    only:\n      dirs: [" + root + "]\n      branches: [{not: main}]\n"
 
 	t.Run("a permission accounting for more of the command outranks the denial", func(t *testing.T) {
-		answers(t, Allow, parsed(t, landing), "git -C "+root+" push origin topic")
+		answers(t, Allow, policyFrom(t, landing), "git -C "+root+" push origin topic")
 	})
 
 	t.Run("and the denial answers everywhere that permission does not", func(t *testing.T) {
-		vouched := parsed(t, landing)
+		vouched := policyFrom(t, landing)
 		answers(t, Deny, vouched, "git -C "+root+" push origin main")
 		answers(t, Deny, vouched, "git -C "+root+" push")
 		answers(t, Deny, vouched, "git -C /elsewhere push origin topic")
 	})
 
 	t.Run("a permission accounting for less does not outrank it", func(t *testing.T) {
-		answers(t, Deny, parsed(t, denial+"allowed: [git]\n"), "git push origin topic")
+		answers(t, Deny, policyFrom(t, denial+"allowed: [git]\n"), "git push origin topic")
 	})
 
 	t.Run("a tie goes to the denial", func(t *testing.T) {
-		answers(t, Deny, parsed(t, denial+"allowed: [git push]\n"), "git push")
+		answers(t, Deny, policyFrom(t, denial+"allowed: [git push]\n"), "git push")
 	})
 
 	t.Run("and the same measure runs the other way", func(t *testing.T) {
-		removing := parsed(t, "allowed: [rm]\ndenied:\n  - patterns: ['^rm -(rf|fr) /$']\n")
+		removing := policyFrom(t, "allowed: [rm]\ndenied:\n  - patterns: ['^rm -(rf|fr) /$']\n")
 		answers(t, Deny, removing, "rm -rf /")
 		answers(t, Allow, removing, "rm ./notes.txt")
 	})
@@ -121,15 +121,15 @@ func TestWhichRuleOutranksWhich(t *testing.T) {
 
 func TestAnAddendum(t *testing.T) {
 	root := t.TempDir()
-	chosen := parsed(t, "denied:\n  - commands: git push\n    reason: Ask first.\n"+
+	chosen := policyFrom(t, "denied:\n  - commands: git push\n    reason: Ask first.\n"+
 		"    addendum:\n      - only: {dirs: ["+root+"]}\n        reason: Push your own branch by name.\n")
 
 	t.Run("ends the reason where the command runs inside its dirs", func(t *testing.T) {
-		refusedWith(t, chosen, "git -C "+root+" push", "Ask first. Push your own branch by name.")
+		refusesWith(t, chosen, "git -C "+root+" push", "Ask first. Push your own branch by name.")
 	})
 
 	t.Run("is left out elsewhere", func(t *testing.T) {
-		refusedWith(t, chosen, "git -C /elsewhere push", "Ask first.")
+		refusesWith(t, chosen, "git -C /elsewhere push", "Ask first.")
 	})
 }
 
@@ -163,7 +163,7 @@ func decides(t *testing.T, wanted Decision, command string) {
 	}
 }
 
-func refusedWith(t *testing.T, chosen Policy, command, wanted string) {
+func refusesWith(t *testing.T, chosen Policy, command, wanted string) {
 	t.Helper()
 	if reason := chosen.CheckCommand(command).Reason; !strings.HasSuffix(reason, ": git push. "+wanted) {
 		t.Errorf("%q -> %q, wanted it to end with %q", command, reason, wanted)

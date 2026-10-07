@@ -49,56 +49,56 @@ func TestTheBranchAPushLandsOn(t *testing.T) {
 
 func TestWhereAPushIsUnread(t *testing.T) {
 	t.Run("a spelling that does not say where it lands", func(t *testing.T) {
-		unread(t, "git push")
-		unread(t, "git push origin")
-		unread(t, "git push origin topic other")
+		isUnread(t, "git push")
+		isUnread(t, "git push origin")
+		isUnread(t, "git push origin topic other")
 	})
 
 	t.Run("an option that moves what lands", func(t *testing.T) {
-		unread(t, "git push --delete origin topic")
-		unread(t, "git push --mirror origin topic")
-		unread(t, "git push --all origin topic")
-		unread(t, "git push --repo=elsewhere origin topic")
-		unread(t, "git push --receive-pack=evil origin topic")
-		unread(t, "git push --no-verify origin topic")
+		isUnread(t, "git push --delete origin topic")
+		isUnread(t, "git push --mirror origin topic")
+		isUnread(t, "git push --all origin topic")
+		isUnread(t, "git push --repo=elsewhere origin topic")
+		isUnread(t, "git push --receive-pack=evil origin topic")
+		isUnread(t, "git push --no-verify origin topic")
 	})
 
 	t.Run("a refspec that does anything but update a branch", func(t *testing.T) {
-		unread(t, "git push origin :topic")
-		unread(t, "git push origin topic:refs/tags/v1")
-		unread(t, "git push origin 'refs/heads/*:refs/heads/*'")
-		unread(t, "git push origin HEAD:../escape")
+		isUnread(t, "git push origin :topic")
+		isUnread(t, "git push origin topic:refs/tags/v1")
+		isUnread(t, "git push origin 'refs/heads/*:refs/heads/*'")
+		isUnread(t, "git push origin HEAD:../escape")
 	})
 
 	t.Run("a global option that changes what the words mean", func(t *testing.T) {
-		unread(t, "git -c remote.origin.pushurl=https://example.com/x.git push origin topic")
-		unread(t, "git --namespace=sneaky push origin topic")
-		unread(t, "git --git-dir=/elsewhere/.git push origin topic")
-		unread(t, "git --work-tree=/elsewhere push origin topic")
-		unread(t, "git --no-pager push origin topic")
+		isUnread(t, "git -c remote.origin.pushurl=https://example.com/x.git push origin topic")
+		isUnread(t, "git --namespace=sneaky push origin topic")
+		isUnread(t, "git --git-dir=/elsewhere/.git push origin topic")
+		isUnread(t, "git --work-tree=/elsewhere push origin topic")
+		isUnread(t, "git --no-pager push origin topic")
 	})
 
 	t.Run("an assignment git reads as one of those options", func(t *testing.T) {
-		unread(t, "GIT_DIR=/elsewhere/.git git push origin topic")
-		unread(t, "GIT_WORK_TREE=/elsewhere git push origin topic")
-		unread(t, "GIT_NAMESPACE=sneaky git push origin topic")
+		isUnread(t, "GIT_DIR=/elsewhere/.git git push origin topic")
+		isUnread(t, "GIT_WORK_TREE=/elsewhere git push origin topic")
+		isUnread(t, "GIT_NAMESPACE=sneaky git push origin topic")
 	})
 
 	t.Run("an assignment that changes the config git reads", func(t *testing.T) {
-		unread(t, "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.pushurl GIT_CONFIG_VALUE_0=/x git push origin topic")
-		unread(t, "HOME=/elsewhere git push origin topic")
+		isUnread(t, "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.pushurl GIT_CONFIG_VALUE_0=/x git push origin topic")
+		isUnread(t, "HOME=/elsewhere git push origin topic")
 	})
 
 	t.Run("a remote that is a place rather than a name", func(t *testing.T) {
-		unread(t, "git push git@github.com:acme/repo.git topic")
-		unread(t, "git push https://example.com/repo topic")
-		unread(t, "git push ../another/repo topic")
+		isUnread(t, "git push git@github.com:acme/repo.git topic")
+		isUnread(t, "git push https://example.com/repo topic")
+		isUnread(t, "git push ../another/repo topic")
 	})
 
 	t.Run("another subcommand, or none", func(t *testing.T) {
-		unread(t, "git status")
-		unread(t, "git pushy origin topic")
-		unread(t, "ls origin topic")
+		isUnread(t, "git status")
+		isUnread(t, "git pushy origin topic")
+		isUnread(t, "ls origin topic")
 	})
 }
 
@@ -125,22 +125,22 @@ func TestTheBranchARepositorySays(t *testing.T) {
 	})
 
 	t.Run("a push the repository spreads over several branches", func(t *testing.T) {
-		unreadFrom(t, []string{repository(t, "topic", "push.default", "matching")}, "git push")
-		unreadFrom(t, []string{repository(t, "topic", "remote.origin.push", "refs/heads/*:refs/heads/*")}, "git push")
+		isUnreadFrom(t, []string{repository(t, "topic", "push.default", "matching")}, "git push")
+		isUnreadFrom(t, []string{repository(t, "topic", "remote.origin.push", "refs/heads/*:refs/heads/*")}, "git push")
 	})
 
 	t.Run("a remote the repository names that is a place rather than a name", func(t *testing.T) {
-		unreadFrom(t, []string{repository(t, "topic", "remote.pushDefault", "../elsewhere")}, "git push")
+		isUnreadFrom(t, []string{repository(t, "topic", "remote.pushDefault", "../elsewhere")}, "git push")
 	})
 
 	t.Run("directories that disagree, or one nobody can read", func(t *testing.T) {
-		unreadFrom(t, []string{repository(t, "topic"), repository(t, "other")}, "git push")
+		isUnreadFrom(t, []string{repository(t, "topic"), repository(t, "other")}, "git push")
 		landsFrom(t, []string{repository(t, "topic"), repository(t, "topic")}, "git push", "topic")
-		unreadFrom(t, []string{repository(t, "topic"), ""}, "git push")
+		isUnreadFrom(t, []string{repository(t, "topic"), ""}, "git push")
 	})
 
 	t.Run("a directory that is no repository", func(t *testing.T) {
-		unreadFrom(t, []string{t.TempDir()}, "git push origin HEAD")
+		isUnreadFrom(t, []string{t.TempDir()}, "git push origin HEAD")
 	})
 }
 
@@ -175,12 +175,12 @@ func landsFrom(t *testing.T, dirs []string, command, wanted string) {
 	}
 }
 
-func unread(t *testing.T, command string) {
+func isUnread(t *testing.T, command string) {
 	t.Helper()
-	unreadFrom(t, []string{t.TempDir()}, command)
+	isUnreadFrom(t, []string{t.TempDir()}, command)
 }
 
-func unreadFrom(t *testing.T, dirs []string, command string) {
+func isUnreadFrom(t *testing.T, dirs []string, command string) {
 	t.Helper()
 	if branch, known := git.Read(command).Landing(dirs); known {
 		t.Errorf("Landing(%q) = %q, true, wanted it unread", command, branch)

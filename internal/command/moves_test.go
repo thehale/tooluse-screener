@@ -13,14 +13,14 @@ import (
 
 func TestMoves(t *testing.T) {
 	t.Run("a line that goes nowhere moves nothing", func(t *testing.T) {
-		moved(t, "ls && git status")
+		moves(t, "ls && git status")
 	})
 
 	t.Run("a command after cd may be where cd went", func(t *testing.T) {
-		moved(t, "cd /work && git status", "/work")
-		moved(t, "pushd /work && git status", "/work")
-		moved(t, `cd "/work" ; git status`, "/work")
-		moved(t, "cd -- /work | git status", "/work")
+		moves(t, "cd /work && git status", "/work")
+		moves(t, "pushd /work && git status", "/work")
+		moves(t, `cd "/work" ; git status`, "/work")
+		moves(t, "cd -- /work | git status", "/work")
 	})
 
 	t.Run("a command before it has not moved", func(t *testing.T) {
@@ -30,12 +30,12 @@ func TestMoves(t *testing.T) {
 	})
 
 	t.Run("every cd is taken from everywhere the line may be", func(t *testing.T) {
-		moved(t, "cd /work; cd app; git status", "/work", "/work/app", "app")
+		moves(t, "cd /work; cd app; git status", "/work", "/work/app", "app")
 	})
 
 	t.Run("a step back is taken the way cd takes it", func(t *testing.T) {
-		moved(t, "cd /work/app/../lib && git status", "/work/lib")
-		moved(t, "cd app && cd .. && git status", "..", "app")
+		moves(t, "cd /work/app/../lib && git status", "/work/lib")
+		moves(t, "cd app && cd .. && git status", "..", "app")
 	})
 
 	t.Run("a bare cd goes home", func(t *testing.T) {
@@ -43,19 +43,19 @@ func TestMoves(t *testing.T) {
 		if err != nil {
 			t.Skip("no home directory")
 		}
-		moved(t, "cd && git status", home)
-		moved(t, "cd ~/work && git status", home+"/work")
+		moves(t, "cd && git status", home)
+		moves(t, "cd ~/work && git status", home+"/work")
 	})
 
 	t.Run("an assignment that points it elsewhere, kept for the commands after it, is unknown", func(t *testing.T) {
-		moved(t, "export GIT_DIR=/elsewhere/.git && git status", "")
-		moved(t, "GH_REPO=other/repo; gh pr view", "")
-		moved(t, "export HOME && git status", "")
+		moves(t, "export GIT_DIR=/elsewhere/.git && git status", "")
+		moves(t, "GH_REPO=other/repo; gh pr view", "")
+		moves(t, "export HOME && git status", "")
 	})
 
 	t.Run("an assignment that points nowhere moves nothing", func(t *testing.T) {
-		moved(t, "export GIT_TRACE=1 && git status")
-		moved(t, "LANG=C; git status")
+		moves(t, "export GIT_TRACE=1 && git status")
+		moves(t, "LANG=C; git status")
 	})
 
 	t.Run("where the shell decides is unknown", func(t *testing.T) {
@@ -71,12 +71,12 @@ func TestMoves(t *testing.T) {
 			". env.sh && git status",
 			`eval "$MOVE" && git status`,
 		} {
-			moved(t, line, "")
+			moves(t, line, "")
 		}
 	})
 }
 
-func moved(t *testing.T, line string, wanted ...string) {
+func moves(t *testing.T, line string, wanted ...string) {
 	t.Helper()
 	all := command.All(line)
 	if last := all[len(all)-1]; !slices.Equal(last.Moved, wanted) {

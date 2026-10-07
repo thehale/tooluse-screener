@@ -15,37 +15,37 @@ import (
 const madeUp = "denied: [shutdown]\nallowed: [git status]\n"
 
 func TestCheckingOneCommand(t *testing.T) {
-	policy := written(t, madeUp)
+	policy := policyFile(t, madeUp)
 
 	t.Run("an allowed command prints its verdict and exits 0", func(t *testing.T) {
-		out, code := ran(t, "--config-file", policy, "git status")
+		out, code := outcomeOf(t, "--config-file", policy, "git status")
 		if code != 0 || !strings.HasPrefix(out, "allow: ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
 	})
 
 	t.Run("a denied command exits 1", func(t *testing.T) {
-		out, code := ran(t, "--config-file", policy, "shutdown now")
+		out, code := outcomeOf(t, "--config-file", policy, "shutdown now")
 		if code != 1 || !strings.HasPrefix(out, "deny: ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
 	})
 
 	t.Run("an unknown command exits 2", func(t *testing.T) {
-		out, code := ran(t, "--config-file", policy, "nmap localhost")
+		out, code := outcomeOf(t, "--config-file", policy, "nmap localhost")
 		if code != 2 || !strings.HasPrefix(out, "ask: ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
 	})
 
 	t.Run("no command at all is a usage error", func(t *testing.T) {
-		if _, code := ran(t, "--config-file", policy); code != usageError {
+		if _, code := outcomeOf(t, "--config-file", policy); code != usageError {
 			t.Errorf("exit %d, wanted %d", code, usageError)
 		}
 	})
 
 	t.Run("a policy that will not read is an error, not a verdict", func(t *testing.T) {
-		out, code := ran(t, "--config-file", missing(t), "ls")
+		out, code := outcomeOf(t, "--config-file", missingFile(t), "ls")
 		if code != usageError || out != "" {
 			t.Errorf("exit %d said %q", code, out)
 		}
@@ -55,7 +55,7 @@ func TestCheckingOneCommand(t *testing.T) {
 func TestSayingWhatItIs(t *testing.T) {
 	t.Run("asking for help is not an error, however it is asked", func(t *testing.T) {
 		for _, asking := range [][]string{{"help"}, {"-h"}, {"--help"}} {
-			out, code := ran(t, asking...)
+			out, code := outcomeOf(t, asking...)
 			if code != 0 {
 				t.Errorf("%q exited %d, wanted 0", asking, code)
 			}
@@ -66,7 +66,7 @@ func TestSayingWhatItIs(t *testing.T) {
 	})
 
 	t.Run("help lists every flag it takes", func(t *testing.T) {
-		out, _ := ran(t, "help")
+		out, _ := outcomeOf(t, "help")
 		for _, flag := range []string{"--hook", "--version", "--config-file"} {
 			if !strings.Contains(out, flag) {
 				t.Errorf("help does not mention %s", flag)
@@ -99,7 +99,7 @@ func TestSayingWhatItIs(t *testing.T) {
 	})
 
 	t.Run("it says which build it is", func(t *testing.T) {
-		out, code := ran(t, "--version")
+		out, code := outcomeOf(t, "--version")
 		if code != 0 || !strings.HasPrefix(out, "tooluse-screener ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
@@ -110,38 +110,38 @@ func TestSayingWhatItIs(t *testing.T) {
 }
 
 func TestAnsweringAHook(t *testing.T) {
-	policy := written(t, madeUp)
+	policy := policyFile(t, madeUp)
 
 	t.Run("a denied command is blocked", func(t *testing.T) {
-		out, code := answered(t, policy, "shutdown now")
+		out, code := hookOutcome(t, policy, "shutdown now")
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
-		if read(t, out)["decision"] != "block" {
+		if envelopeIn(t, out)["decision"] != "block" {
 			t.Errorf("wrote %q", out)
 		}
 	})
 
 	t.Run("an allowed command is allowed", func(t *testing.T) {
-		out, code := answered(t, policy, "git status")
+		out, code := hookOutcome(t, policy, "git status")
 		if code != 0 {
 			t.Errorf("exit %d, wanted 0", code)
 		}
-		output, _ := read(t, out)["hookSpecificOutput"].(map[string]any)
+		output, _ := envelopeIn(t, out)["hookSpecificOutput"].(map[string]any)
 		if output["permissionDecision"] != "allow" {
 			t.Errorf("wrote %q", out)
 		}
 	})
 
 	t.Run("an unknown command says nothing", func(t *testing.T) {
-		if out, code := answered(t, policy, "nmap localhost"); out != "" || code != 0 {
+		if out, code := hookOutcome(t, policy, "nmap localhost"); out != "" || code != 0 {
 			t.Errorf("wrote %q and exited %d", out, code)
 		}
 	})
 
 	t.Run("a policy that will not read enforces nothing, and says so", func(t *testing.T) {
 		var out, complaints bytes.Buffer
-		code := run([]string{"--hook", "--config-file", missing(t)}, sent("shutdown now"), &out, &complaints)
+		code := run([]string{"--hook", "--config-file", missingFile(t)}, payloadFor("shutdown now"), &out, &complaints)
 		if out.String() != "" || code != 0 {
 			t.Errorf("wrote %q and exited %d, wanted nothing and 0", out.String(), code)
 		}
@@ -152,40 +152,40 @@ func TestAnsweringAHook(t *testing.T) {
 }
 
 func TestAnsweringAFileWrite(t *testing.T) {
-	policy := written(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n")
+	policy := policyFile(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n")
 
 	t.Run("a write to a denied path is blocked with its reason", func(t *testing.T) {
-		out, code := wrote(t, policy, "/secrets/key")
+		out, code := hookOutcomeForWrite(t, policy, "/secrets/key")
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
-		if reason := read(t, out)["reason"]; reason != "Path matches a denied rule: Write a secret. Ask first." {
+		if reason := envelopeIn(t, out)["reason"]; reason != "Path matches a denied rule: Write a secret. Ask first." {
 			t.Errorf("gave the reason %q", reason)
 		}
 	})
 
 	t.Run("a write anywhere else says nothing", func(t *testing.T) {
-		if out, code := wrote(t, policy, "/work/notes.md"); out != "" || code != 0 {
+		if out, code := hookOutcomeForWrite(t, policy, "/work/notes.md"); out != "" || code != 0 {
 			t.Errorf("wrote %q and exited %d", out, code)
 		}
 	})
 }
 
-func ran(t *testing.T, arguments ...string) (string, int) {
+func outcomeOf(t *testing.T, arguments ...string) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
 	code := run(arguments, strings.NewReader(""), &out, &bytes.Buffer{})
 	return out.String(), code
 }
 
-func answered(t *testing.T, policy, command string) (string, int) {
+func hookOutcome(t *testing.T, policy, command string) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
-	code := run([]string{"--hook", "--config-file", policy}, sent(command), &out, &bytes.Buffer{})
+	code := run([]string{"--hook", "--config-file", policy}, payloadFor(command), &out, &bytes.Buffer{})
 	return out.String(), code
 }
 
-func wrote(t *testing.T, policy, path string) (string, int) {
+func hookOutcomeForWrite(t *testing.T, policy, path string) (string, int) {
 	t.Helper()
 	payload, _ := json.Marshal(map[string]any{"tool_name": "Write", "tool_input": map[string]any{"file_path": path}})
 	var out bytes.Buffer
@@ -193,7 +193,7 @@ func wrote(t *testing.T, policy, path string) (string, int) {
 	return out.String(), code
 }
 
-func sent(command string) *bytes.Reader {
+func payloadFor(command string) *bytes.Reader {
 	payload := map[string]any{
 		"tool_name":  "Bash",
 		"tool_input": map[string]any{"command": command},
@@ -202,7 +202,7 @@ func sent(command string) *bytes.Reader {
 	return bytes.NewReader(written)
 }
 
-func read(t *testing.T, out string) map[string]any {
+func envelopeIn(t *testing.T, out string) map[string]any {
 	t.Helper()
 	var envelope map[string]any
 	if err := json.Unmarshal([]byte(out), &envelope); err != nil {
@@ -211,7 +211,7 @@ func read(t *testing.T, out string) map[string]any {
 	return envelope
 }
 
-func written(t *testing.T, configuration string) string {
+func policyFile(t *testing.T, configuration string) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "policy.yaml")
 	if err := os.WriteFile(path, []byte(configuration), 0o600); err != nil {
@@ -220,7 +220,7 @@ func written(t *testing.T, configuration string) string {
 	return path
 }
 
-func missing(t *testing.T) string {
+func missingFile(t *testing.T) string {
 	t.Helper()
 	return filepath.Join(t.TempDir(), "missing.yaml")
 }
