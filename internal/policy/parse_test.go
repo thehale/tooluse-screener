@@ -504,7 +504,7 @@ func matching(t *testing.T, group rules.Group, command string) rules.Rule {
 	return matched[0]
 }
 
-func globbed(t *testing.T, found []rules.Glob, wanted ...string) {
+func globbed(t *testing.T, found rules.Globs, wanted ...string) {
 	t.Helper()
 	var named []string
 	for _, glob := range found {

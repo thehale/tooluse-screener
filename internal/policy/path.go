@@ -3,15 +3,11 @@
 
 package policy
 
-import (
-	"fmt"
-
-	"github.com/thehale/tooluse-screener/internal/rules"
-)
+import "fmt"
 
 func (p Policy) CheckPath(path string) (Verdict, bool) {
-	refused := globsMatching(p.Denied.PathRules, path)
-	permitted := globsMatching(p.Allowed.PathRules, path)
+	refused := p.Denied.PathRules.Matching(path)
+	permitted := p.Allowed.PathRules.Matching(path)
 
 	switch {
 	case len(refused) > 0:
@@ -21,14 +17,4 @@ func (p Policy) CheckPath(path string) (Verdict, bool) {
 	default:
 		return Verdict{}, false
 	}
-}
-
-func globsMatching(globs []rules.Glob, path string) []rules.Glob {
-	var matched []rules.Glob
-	for _, glob := range globs {
-		if glob.Matches(path) {
-			matched = append(matched, glob)
-		}
-	}
-	return matched
 }

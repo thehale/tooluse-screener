@@ -12,5 +12,5 @@ type Policy struct {
 
 type Side struct {
 	CommandRules rules.Group
-	PathRules    []rules.Glob
+	PathRules    rules.Globs
 }

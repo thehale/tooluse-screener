@@ -38,8 +38,8 @@ func side(name string, entries []entry, read func(rules.Rule) rules.Rule) (Side,
 	return Side{CommandRules: commandRules, PathRules: pathRules}, err
 }
 
-func globs(entries []entry) ([]rules.Glob, error) {
-	var found []rules.Glob
+func globs(entries []entry) (rules.Globs, error) {
+	var found rules.Globs
 	for _, written := range entries {
 		list, err := entryGlobs(written)
 		if err != nil {
@@ -50,7 +50,7 @@ func globs(entries []entry) ([]rules.Glob, error) {
 	return found, nil
 }
 
-func entryGlobs(written entry) ([]rules.Glob, error) {
+func entryGlobs(written entry) (rules.Globs, error) {
 	switch {
 	case len(written.Paths) == 0:
 		return nil, nil
@@ -59,7 +59,7 @@ func entryGlobs(written entry) ([]rules.Glob, error) {
 	case written.Only != nil || len(written.Addendum) > 0:
 		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", written)
 	}
-	var found []rules.Glob
+	var found rules.Globs
 	for _, text := range written.Paths {
 		made, err := rules.NewGlob(text, written.Reason, written.Name)
 		if err != nil {
