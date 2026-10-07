@@ -32,17 +32,17 @@ var unlistedCommand = Verdict{Ask, "Command is not in the shared allow list"}
 func (p Policy) refusals(found []command.Command) []string {
 	var reasons []string
 	for _, one := range found {
-		for _, rule := range standing(p.denied.commandRules.Matching(one), p.allowed.commandRules, one) {
+		for _, rule := range standingDenials(p.denied.commandRules.Matching(one), p.allowed.commandRules, one) {
 			reasons = append(reasons, refusal("Command", rule, rule.Reason(one)))
 		}
 	}
 	return reasons
 }
 
-func standing(denials []rules.Rule, allowed rules.Group, line command.Command) []rules.Rule {
+func standingDenials(denials []rules.Rule, allowed rules.Group, line command.Command) []rules.Rule {
 	var matched []rules.Rule
 	for _, rule := range denials {
-		if !accountsForAll(allowed, line) || accountsForAll(rule, line) {
+		if !isAccountedForBy(line, allowed) || isAccountedForBy(line, rule) {
 			matched = append(matched, rule)
 		}
 	}
@@ -53,7 +53,7 @@ type spanning interface {
 	Span(command command.Command) int
 }
 
-func accountsForAll(rule spanning, line command.Command) bool {
+func isAccountedForBy(line command.Command, rule spanning) bool {
 	spoken := command.Spoken(line.Text)
 	return spoken != "" && rule.Span(line) == len(spoken)
 }

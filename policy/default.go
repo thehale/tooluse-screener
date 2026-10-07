@@ -12,9 +12,9 @@ func Default() Policy {
 //go:embed default.yaml
 var defaultYAML []byte
 
-var builtIn = parsedOrPanic(defaultYAML)
+var builtIn = mustParse(defaultYAML)
 
-func parsedOrPanic(written []byte) Policy {
+func mustParse(written []byte) Policy {
 	built, err := Parse(written)
 	if err != nil {
 		panic(err)

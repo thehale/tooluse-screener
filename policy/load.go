@@ -9,7 +9,7 @@ import (
 )
 
 func Load() (Policy, error) {
-	path, err := configured()
+	path, err := configuredPath()
 	switch {
 	case err != nil:
 		return Policy{}, err
@@ -31,15 +31,15 @@ func LoadFile(path string) (Policy, error) {
 const Variable = "TOOLUSE_SCREENER_POLICY_FILE"
 const fileName = "tooluse-screener/policy.yaml"
 
-func configured() (string, error) {
+func configuredPath() (string, error) {
 	if set := os.Getenv(Variable); set == "" {
-		return inConfigDirectory()
+		return pathInConfigDirectory()
 	} else {
 		return set, nil
 	}
 }
 
-func inConfigDirectory() (string, error) {
+func pathInConfigDirectory() (string, error) {
 	directory, err := os.UserConfigDir()
 	if err != nil {
 		return "", nil

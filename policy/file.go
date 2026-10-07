@@ -56,12 +56,12 @@ func (c *condition) UnmarshalYAML(node *yaml.Node) error {
 
 type texts []string
 
-func (s scope) built() (rules.Scope, error) {
-	branches, err := branchesNamed(s.Branches)
+func (s scope) rulesScope() (rules.Scope, error) {
+	branches, err := branchesOf(s.Branches)
 	return rules.NewScope(s.Dirs, branches), err
 }
 
-func branchesNamed(conditions []condition) (rules.Branches, error) {
+func branchesOf(conditions []condition) (rules.Branches, error) {
 	var named rules.Branches
 	for _, written := range conditions {
 		switch {
@@ -81,11 +81,11 @@ func (e *entry) UnmarshalYAML(node *yaml.Node) error {
 		return node.Decode(&e.Commands)
 	} else {
 		type mapping entry
-		return cmp.Or(node.Decode((*mapping)(e)), renamed(e.Description))
+		return cmp.Or(node.Decode((*mapping)(e)), renameError(e.Description))
 	}
 }
 
-func renamed(description string) error {
+func renameError(description string) error {
 	if description == "" {
 		return nil
 	} else {
@@ -95,7 +95,7 @@ func renamed(description string) error {
 
 func (t *texts) UnmarshalYAML(node *yaml.Node) error {
 	var read []string
-	for _, written := range writtenIn(node) {
+	for _, written := range nodesIn(node) {
 		if !isText(written) {
 			return fmt.Errorf("a command or expression is written as text, and this is not: %v", written.Value)
 		}
@@ -105,7 +105,7 @@ func (t *texts) UnmarshalYAML(node *yaml.Node) error {
 	return nil
 }
 
-func writtenIn(node *yaml.Node) []*yaml.Node {
+func nodesIn(node *yaml.Node) []*yaml.Node {
 	if node.Kind == yaml.SequenceNode {
 		return node.Content
 	} else {

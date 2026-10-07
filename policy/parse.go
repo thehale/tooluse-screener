@@ -17,15 +17,15 @@ func Parse(written []byte) (Policy, error) {
 	if err := yaml.Unmarshal(written, &configuration); err != nil {
 		return Policy{}, err
 	}
-	return built(configuration)
+	return rulesScope(configuration)
 }
 
-func built(configuration file) (Policy, error) {
-	denied, err := sideFrom(configuration.Denied, asWritten)
+func rulesScope(configuration file) (Policy, error) {
+	denied, err := sideFrom(configuration.Denied, denial)
 	if err != nil {
 		return Policy{}, err
 	}
-	allowed, err := sideFrom(configuration.Allowed, vouching(configuration.Trusted))
+	allowed, err := sideFrom(configuration.Allowed, allowanceIn(configuration.Trusted))
 	return Policy{denied: denied, allowed: allowed}, err
 }
 
@@ -75,11 +75,11 @@ func globsIn(written entry) (rules.Globs, error) {
 	return found, nil
 }
 
-func asWritten(rule rules.Rule) rules.Rule {
+func denial(rule rules.Rule) rules.Rule {
 	return rule
 }
 
-func vouching(trusted []string) func(rules.Rule) rules.Rule {
+func allowanceIn(trusted []string) func(rules.Rule) rules.Rule {
 	return func(rule rules.Rule) rules.Rule {
 		return rules.NewReaching(rules.NewOpening(rule), trusted)
 	}
@@ -102,23 +102,23 @@ func entryRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, 
 	if err != nil {
 		return nil, err
 	}
-	found, err = scoped(found, written.Only)
+	found, err = scopedRules(found, written.Only)
 	if err != nil {
 		return nil, err
 	}
-	return addended(found, written.Addendum)
+	return addendedRules(found, written.Addendum)
 }
 
-func scoped(found []rules.Rule, only *scope) ([]rules.Rule, error) {
+func scopedRules(found []rules.Rule, only *scope) ([]rules.Rule, error) {
 	if only == nil {
 		return found, nil
 	} else {
-		built, err := only.built()
-		return within(found, built), err
+		built, err := only.rulesScope()
+		return rulesScopedTo(found, built), err
 	}
 }
 
-func within(found []rules.Rule, scope rules.Scope) []rules.Rule {
+func rulesScopedTo(found []rules.Rule, scope rules.Scope) []rules.Rule {
 	narrower := make([]rules.Rule, 0, len(found))
 	for _, rule := range found {
 		narrower = append(narrower, rules.NewScoped(rule, scope))
@@ -126,7 +126,7 @@ func within(found []rules.Rule, scope rules.Scope) []rules.Rule {
 	return narrower
 }
 
-func addended(found []rules.Rule, written []addition) ([]rules.Rule, error) {
+func addendedRules(found []rules.Rule, written []addition) ([]rules.Rule, error) {
 	addenda, err := addendaOf(written)
 	reasoned := make([]rules.Rule, 0, len(found))
 	for _, rule := range found {
@@ -141,7 +141,7 @@ func addendaOf(written []addition) ([]rules.Addendum, error) {
 		if one.Only == nil || strings.TrimSpace(one.Reason) == "" {
 			return nil, fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", one)
 		}
-		scope, err := one.Only.built()
+		scope, err := one.Only.rulesScope()
 		if err != nil {
 			return nil, err
 		}
