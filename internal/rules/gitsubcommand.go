@@ -54,10 +54,6 @@ func past(command string, wanted []string) int {
 	return end
 }
 
-func (g GitSubcommand) required() string {
-	return strings.Join(append([]string{"git", g.subcommand}, g.having...), " ")
-}
-
 func (g GitSubcommand) String() string {
-	return g.calls(g.required())
+	return g.calls(strings.Join(append([]string{"git", g.subcommand}, g.having...), " "))
 }

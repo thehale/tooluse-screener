@@ -20,14 +20,14 @@ func (p Policy) CheckCommand(line string) Verdict {
 	switch {
 	case len(refused) > 0:
 		return Verdict{Deny, refused[0]}
-	case len(found) > 0 && lists.Every(permitted, anyOf):
+	case len(found) > 0 && lists.Every(permitted, isVouchedFor):
 		return Verdict{Allow, permission(permitted)}
 	default:
-		return undecided
+		return unlistedCommand
 	}
 }
 
-var undecided = Verdict{Ask, "Command is not in the shared allow list"}
+var unlistedCommand = Verdict{Ask, "Command is not in the shared allow list"}
 
 func (p Policy) refusals(found []command.Command) []string {
 	var reasons []string
@@ -66,7 +66,7 @@ func permissions(allowed rules.Group, found []command.Command) [][]rules.Rule {
 	return vouching
 }
 
-func anyOf(matched []rules.Rule) bool {
+func isVouchedFor(matched []rules.Rule) bool {
 	return len(matched) > 0
 }
 

@@ -15,8 +15,8 @@ func (p Policy) CheckPath(path string) Verdict {
 	case len(permitted) > 0:
 		return Verdict{Allow, fmt.Sprintf("Path is allowed: %s", permitted[0])}
 	default:
-		return unnamed
+		return unlistedPath
 	}
 }
 
-var unnamed = Verdict{Ask, "Path is not in the shared allow list"}
+var unlistedPath = Verdict{Ask, "Path is not in the shared allow list"}
