@@ -14,7 +14,7 @@ type Checker interface {
 	CheckPath(path string) policy.Verdict
 }
 
-func Decide(payload Payload, checker Checker) (policy.Verdict, bool) {
+func decide(payload toolCall, checker Checker) (policy.Verdict, bool) {
 	if asked, posed := questionIn(payload); !posed {
 		return policy.Verdict{}, false
 	} else {
@@ -24,7 +24,7 @@ func Decide(payload Payload, checker Checker) (policy.Verdict, bool) {
 
 type question func(checker Checker) policy.Verdict
 
-func questionIn(payload Payload) (question, bool) {
+func questionIn(payload toolCall) (question, bool) {
 	arguments, given := payload["tool_input"].(map[string]any)
 	tool := text(payload, "tool_name")
 	target, writes := targets[tool]
@@ -32,10 +32,10 @@ func questionIn(payload Payload) (question, bool) {
 	case !given:
 		return nil, false
 	case tool == "Bash":
-		command := text(Payload(arguments), "command")
+		command := text(toolCall(arguments), "command")
 		return aboutCommand(command), command != ""
 	case writes:
-		path := text(Payload(arguments), target)
+		path := text(toolCall(arguments), target)
 		return aboutPath(resolved(text(payload, "cwd"), path)), path != ""
 	default:
 		return nil, false

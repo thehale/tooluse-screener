@@ -15,20 +15,20 @@ func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
 	if payload, read := payloadOn(in); !read {
 		return 0
 	} else {
-		return answered(payload, checker, out, complaints)
+		return answer(payload, checker, out, complaints)
 	}
 }
 
-func answered(payload Payload, checker Checker, out, complaints io.Writer) int {
+func answer(payload toolCall, checker Checker, out, complaints io.Writer) int {
 	if verdict, asked := decided(payload, checker, complaints); !asked {
 		return 0
 	} else {
-		return responded(payload, verdict, out, complaints)
+		return reply(payload, verdict, out, complaints)
 	}
 }
 
-func responded(payload Payload, verdict policy.Verdict, out, complaints io.Writer) int {
-	envelope, code := Respond(payload, verdict)
+func reply(payload toolCall, verdict policy.Verdict, out, complaints io.Writer) int {
+	envelope, code := respond(payload, verdict)
 	wrote(envelope, out)
 	if code == blocked {
 		_, _ = fmt.Fprintln(complaints, verdict.Reason)
@@ -36,14 +36,14 @@ func responded(payload Payload, verdict policy.Verdict, out, complaints io.Write
 	return code
 }
 
-func decided(payload Payload, checker Checker, complaints io.Writer) (verdict policy.Verdict, asked bool) {
+func decided(payload toolCall, checker Checker, complaints io.Writer) (verdict policy.Verdict, asked bool) {
 	defer func() {
 		if failure := recover(); failure != nil {
 			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
 			verdict, asked = failOpen, true
 		}
 	}()
-	return Decide(payload, checker)
+	return decide(payload, checker)
 }
 
 var failOpen = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
@@ -55,9 +55,9 @@ func wrote(envelope map[string]any, out io.Writer) {
 	}
 }
 
-type Payload map[string]any
+type toolCall map[string]any
 
-func payloadOn(in io.Reader) (Payload, bool) {
+func payloadOn(in io.Reader) (toolCall, bool) {
 	var payload map[string]any
 	reading := json.NewDecoder(in)
 	if err := reading.Decode(&payload); err != nil {
@@ -69,7 +69,7 @@ func payloadOn(in io.Reader) (Payload, bool) {
 	return payload, payload != nil
 }
 
-func text(payload Payload, key string) string {
+func text(payload toolCall, key string) string {
 	written, _ := payload[key].(string)
 	return written
 }

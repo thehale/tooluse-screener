@@ -1,7 +1,7 @@
 // Copyright (c) Joseph Hale, 2026
 // SPDX-License-Identifier: MPL-2.0
 
-package hook_test
+package hook
 
 import (
 	"bytes"
@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/thehale/tooluse-screener/hook"
 	"github.com/thehale/tooluse-screener/policy"
 )
 
@@ -50,8 +49,8 @@ func (echoing) CheckPath(path string) policy.Verdict {
 	return policy.Verdict{Decision: policy.Deny, Reason: path}
 }
 
-func writing(tool, key, path string) hook.Payload {
-	return hook.Payload{
+func writing(tool, key, path string) toolCall {
+	return toolCall{
 		"tool_name":       tool,
 		"hook_event_name": "PreToolUse",
 		"cwd":             "/work/repo",
@@ -59,15 +58,15 @@ func writing(tool, key, path string) hook.Payload {
 	}
 }
 
-func claude(command, event string) hook.Payload {
-	return hook.Payload{
+func claude(command, event string) toolCall {
+	return toolCall{
 		"tool_name":       "Bash",
 		"hook_event_name": event,
 		"tool_input":      map[string]any{"command": command},
 	}
 }
 
-func codex(command, event string) hook.Payload {
+func codex(command, event string) toolCall {
 	payload := claude(command, event)
 	payload["model"] = "gpt-5.6-sol"
 	payload["tool_use_id"] = "exec-0e2a"
@@ -76,12 +75,12 @@ func codex(command, event string) hook.Payload {
 
 func TestNotOurBusiness(t *testing.T) {
 	t.Run("a tool that is not bash", func(t *testing.T) {
-		payload := hook.Payload{"tool_name": "Read", "tool_input": map[string]any{"file_path": "/etc/passwd"}}
+		payload := toolCall{"tool_name": "Read", "tool_input": map[string]any{"file_path": "/etc/passwd"}}
 		undecided(t, payload)
 	})
 
 	t.Run("a bash call with no command", func(t *testing.T) {
-		undecided(t, hook.Payload{"tool_name": "Bash", "tool_input": map[string]any{}})
+		undecided(t, toolCall{"tool_name": "Bash", "tool_input": map[string]any{}})
 	})
 
 	t.Run("a bash call with an empty command", func(t *testing.T) {
@@ -89,18 +88,18 @@ func TestNotOurBusiness(t *testing.T) {
 	})
 
 	t.Run("a payload with no tool at all", func(t *testing.T) {
-		undecided(t, hook.Payload{})
+		undecided(t, toolCall{})
 	})
 
 	t.Run("a tool input that is not an object", func(t *testing.T) {
 		for _, given := range []any{nil, []any{}, "ls", 7} {
-			undecided(t, hook.Payload{"tool_name": "Bash", "tool_input": given})
+			undecided(t, toolCall{"tool_name": "Bash", "tool_input": given})
 		}
 	})
 
 	t.Run("a command that is not a string", func(t *testing.T) {
 		for _, given := range []any{nil, []any{}, map[string]any{}, 7} {
-			payload := hook.Payload{"tool_name": "Bash", "tool_input": map[string]any{"command": given}}
+			payload := toolCall{"tool_name": "Bash", "tool_input": map[string]any{"command": given}}
 			undecided(t, payload)
 		}
 	})
@@ -137,7 +136,7 @@ func TestWhatIsAsked(t *testing.T) {
 
 	t.Run("a path the policy says nothing about gets no envelope", func(t *testing.T) {
 		var out bytes.Buffer
-		code := hook.Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, always(ask))
+		code := Main(sent(writing("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, always(ask))
 		if code != 0 || out.String() != "" {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
@@ -152,9 +151,9 @@ func TestWhatIsAsked(t *testing.T) {
 	})
 }
 
-func asks(t *testing.T, payload hook.Payload, wanted string) {
+func asks(t *testing.T, payload toolCall, wanted string) {
 	t.Helper()
-	if verdict, _ := hook.Decide(payload, echoing{}); verdict.Reason != wanted {
+	if verdict, _ := decide(payload, echoing{}); verdict.Reason != wanted {
 		t.Errorf("%v asked about %q, wanted %q", payload, verdict.Reason, wanted)
 	}
 }
@@ -162,7 +161,7 @@ func asks(t *testing.T, payload hook.Payload, wanted string) {
 func TestAPolicyThatFails(t *testing.T) {
 	t.Run("is treated as ask, said so on stderr, and writes no envelope", func(t *testing.T) {
 		var out, complaints bytes.Buffer
-		code := hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, panics{})
+		code := Main(sent(claude("ls", "PreToolUse")), &out, &complaints, panics{})
 		if code != 0 || out.String() != "" {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
@@ -239,7 +238,7 @@ func TestClaudePreToolUse(t *testing.T) {
 	})
 
 	t.Run("the event defaults to PreToolUse when absent", func(t *testing.T) {
-		payload := hook.Payload{"tool_name": "Bash", "tool_input": map[string]any{"command": "ls"}}
+		payload := toolCall{"tool_name": "Bash", "tool_input": map[string]any{"command": "ls"}}
 		envelope, _ := answered(t, payload, deny)
 		says(t, within(t, envelope, "hookSpecificOutput"), "hookEventName", "PreToolUse")
 	})
@@ -280,7 +279,7 @@ func TestCodexPermissionRequest(t *testing.T) {
 
 	t.Run("never blocks by exit code, because the envelope says everything", func(t *testing.T) {
 		for _, verdict := range []policy.Verdict{allow, deny, ask} {
-			if _, code := hook.Respond(codex("ls", "PermissionRequest"), verdict); code != 0 {
+			if _, code := respond(codex("ls", "PermissionRequest"), verdict); code != 0 {
 				t.Errorf("%s -> exit %d, wanted 0", verdict, code)
 			}
 		}
@@ -298,7 +297,7 @@ func TestStdinToStdout(t *testing.T) {
 
 	t.Run("a denial carries its reason on stderr, where Codex reads it", func(t *testing.T) {
 		var out, complaints bytes.Buffer
-		code := hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(deny))
+		code := Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(deny))
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
@@ -310,7 +309,7 @@ func TestStdinToStdout(t *testing.T) {
 	t.Run("anything but a denial leaves stderr alone", func(t *testing.T) {
 		for _, verdict := range []policy.Verdict{allow, ask} {
 			var out, complaints bytes.Buffer
-			hook.Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(verdict))
+			Main(sent(claude("ls", "PreToolUse")), &out, &complaints, always(verdict))
 			if complaints.String() != "" {
 				t.Errorf("%s wrote %q to stderr", verdict.Decision, complaints.String())
 			}
@@ -345,25 +344,25 @@ func TestStdinToStdout(t *testing.T) {
 	})
 }
 
-func undecided(t *testing.T, payload hook.Payload) {
+func undecided(t *testing.T, payload toolCall) {
 	t.Helper()
-	if verdict, asked := hook.Decide(payload, always(deny)); asked {
+	if verdict, asked := decide(payload, always(deny)); asked {
 		t.Errorf("%v -> %s, wanted no opinion", payload, verdict)
 	}
 }
 
-func answered(t *testing.T, payload hook.Payload, verdict policy.Verdict) (map[string]any, int) {
+func answered(t *testing.T, payload toolCall, verdict policy.Verdict) (map[string]any, int) {
 	t.Helper()
-	envelope, code := hook.Respond(payload, verdict)
+	envelope, code := respond(payload, verdict)
 	if envelope == nil {
 		t.Fatalf("%v -> nothing, wanted an envelope", payload)
 	}
 	return envelope, code
 }
 
-func quiet(t *testing.T, payload hook.Payload, verdict policy.Verdict, wanted int) {
+func quiet(t *testing.T, payload toolCall, verdict policy.Verdict, wanted int) {
 	t.Helper()
-	envelope, code := hook.Respond(payload, verdict)
+	envelope, code := respond(payload, verdict)
 	if envelope != nil || code != wanted {
 		t.Errorf("%v -> %v, exit %d, wanted nothing and %d", payload, envelope, code, wanted)
 	}
@@ -395,7 +394,7 @@ func trailed(command, after string) io.Reader {
 	return strings.NewReader(string(written) + after)
 }
 
-func sent(payload hook.Payload) *bytes.Reader {
+func sent(payload toolCall) *bytes.Reader {
 	written, _ := json.Marshal(payload)
 	return bytes.NewReader(written)
 }
@@ -403,7 +402,7 @@ func sent(payload hook.Payload) *bytes.Reader {
 func ran(t *testing.T, in io.Reader, verdict policy.Verdict) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
-	code := hook.Main(in, &out, &bytes.Buffer{}, always(verdict))
+	code := Main(in, &out, &bytes.Buffer{}, always(verdict))
 	return out.String(), code
 }
 
