@@ -12,12 +12,12 @@ import (
 
 var examplePolicy = Policy{
 	denied: side{commandRules: rules.Group{
-		pattern("sudo", "", ""),
-		pattern("shutdown", "Ask a human first.", ""),
+		pattern("sudo", rules.Wording{}),
+		pattern("shutdown", rules.Wording{Reason: "Ask a human first."}),
 	}},
 	allowed: side{commandRules: rules.Group{
-		rules.NewOpening(rules.NewWords("ls", "", "")),
-		rules.NewOpening(rules.NewWords("cat", "", "")),
+		rules.NewOpening(rules.NewWords("ls", rules.Wording{})),
+		rules.NewOpening(rules.NewWords("cat", rules.Wording{})),
 	}},
 }
 
@@ -58,8 +58,8 @@ func TestAcrossACommandLine(t *testing.T) {
 
 	t.Run("a denial outranks a permission", func(t *testing.T) {
 		both := Policy{
-			denied:  side{commandRules: rules.Group{pattern("ls", "", "")}},
-			allowed: side{commandRules: rules.Group{rules.NewOpening(rules.NewWords("ls", "", ""))}},
+			denied:  side{commandRules: rules.Group{pattern("ls", rules.Wording{})}},
+			allowed: side{commandRules: rules.Group{rules.NewOpening(rules.NewWords("ls", rules.Wording{}))}},
 		}
 		if decision := both.CheckCommand("ls").Decision; decision != Deny {
 			t.Errorf("ls -> %s, wanted deny", decision)
@@ -141,8 +141,8 @@ func TestAnEmptyPolicy(t *testing.T) {
 	})
 }
 
-func pattern(expression, reason, name string) rules.Rule {
-	rule, err := rules.NewPattern(expression, reason, name)
+func pattern(expression string, wording rules.Wording) rules.Rule {
+	rule, err := rules.NewPattern(expression, wording)
 	if err != nil {
 		panic(err)
 	}

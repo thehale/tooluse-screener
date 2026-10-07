@@ -22,13 +22,12 @@ type file struct {
 type entries []entry
 
 type entry struct {
-	Commands texts           `yaml:"commands"`
-	Patterns texts           `yaml:"patterns"`
-	Paths    texts           `yaml:"paths"`
-	Reason   string          `yaml:"reason"`
-	Name     string          `yaml:"name"`
-	Only     *onlyBlock      `yaml:"only"`
-	Addendum []addendumBlock `yaml:"addendum"`
+	Commands      texts `yaml:"commands"`
+	Patterns      texts `yaml:"patterns"`
+	Paths         texts `yaml:"paths"`
+	rules.Wording `yaml:",inline"`
+	Only          *onlyBlock      `yaml:"only"`
+	Addendum      []addendumBlock `yaml:"addendum"`
 }
 
 func (e *entry) UnmarshalYAML(node *yaml.Node) error {

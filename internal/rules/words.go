@@ -10,12 +10,12 @@ import (
 )
 
 type Words struct {
-	wording
-	text string
+	wording Wording
+	text    string
 }
 
-func NewWords(text, reason, name string) Rule {
-	return Words{wording{reason, name}, text}
+func NewWords(text string, wording Wording) Rule {
+	return Words{wording, text}
 }
 
 func (w Words) At(command commands.Command) int {
@@ -64,6 +64,10 @@ func (w Words) Span(command commands.Command) int {
 	}
 }
 
+func (w Words) Reason(commands.Command) string {
+	return w.wording.Reason
+}
+
 func (w Words) String() string {
-	return w.nameOr(w.text)
+	return w.wording.nameOr(w.text)
 }

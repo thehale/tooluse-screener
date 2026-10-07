@@ -10,17 +10,16 @@ import (
 )
 
 type Pattern struct {
-	wording
+	wording    Wording
 	expression *regexp.Regexp
-	written    string
 }
 
-func NewPattern(expression, reason, name string) (Rule, error) {
+func NewPattern(expression string, wording Wording) (Rule, error) {
 	regex, err := regexp.Compile(expression)
 	if err != nil {
 		return nil, err
 	}
-	return Pattern{wording{reason, name}, regex, expression}, nil
+	return Pattern{wording, regex}, nil
 }
 
 func (p Pattern) At(command commands.Command) int {
@@ -47,6 +46,10 @@ func width(at []int) int {
 	}
 }
 
+func (p Pattern) Reason(commands.Command) string {
+	return p.wording.Reason
+}
+
 func (p Pattern) String() string {
-	return p.nameOr(p.written)
+	return p.wording.nameOr(p.expression.String())
 }

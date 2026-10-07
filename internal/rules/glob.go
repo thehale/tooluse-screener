@@ -13,12 +13,12 @@ import (
 )
 
 type Glob struct {
-	wording
+	wording Wording
 	names   []string
 	written string
 }
 
-func NewGlob(text, reason, name string) (Glob, error) {
+func NewGlob(text string, wording Wording) (Glob, error) {
 	expandedPath := directories.WithHomeExpanded(text)
 	switch _, err := path.Match(filepath.ToSlash(expandedPath), ""); {
 	case !filepath.IsAbs(expandedPath):
@@ -26,7 +26,7 @@ func NewGlob(text, reason, name string) (Glob, error) {
 	case err != nil:
 		return Glob{}, fmt.Errorf("%s: %w", text, err)
 	default:
-		return Glob{wording{reason, name}, names(expandedPath), text}, nil
+		return Glob{wording, names(expandedPath), text}, nil
 	}
 }
 
@@ -55,9 +55,9 @@ func isNameMatch(glob, name string) bool {
 }
 
 func (g Glob) Reason() string {
-	return g.reason
+	return g.wording.Reason
 }
 
 func (g Glob) String() string {
-	return g.nameOr(g.written)
+	return g.wording.nameOr(g.written)
 }

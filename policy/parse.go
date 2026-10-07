@@ -76,7 +76,7 @@ func (e entry) pathRules() (rules.Globs, error) {
 func (e entry) globs() (rules.Globs, error) {
 	var pathRules rules.Globs
 	for _, text := range e.Paths {
-		glob, err := rules.NewGlob(text, e.Reason, e.Name)
+		glob, err := rules.NewGlob(text, e.Wording)
 		if err != nil {
 			return nil, err
 		}
@@ -136,7 +136,7 @@ func (e entry) writtenRules() (rules.Group, error) {
 		commandRules = append(commandRules, e.commandRule(text))
 	}
 	for _, expression := range e.Patterns {
-		pattern, err := rules.NewPattern(expression, e.Reason, e.Name)
+		pattern, err := rules.NewPattern(expression, e.Wording)
 		if err != nil {
 			return nil, err
 		}
@@ -147,9 +147,9 @@ func (e entry) writtenRules() (rules.Group, error) {
 
 func (e entry) commandRule(text string) rules.Rule {
 	if invocation, isGit := gitInvocation(text); isGit {
-		return rules.NewGitSubcommand(invocation[0], invocation[1:], e.Reason, e.Name)
+		return rules.NewGitSubcommand(invocation[0], invocation[1:], e.Wording)
 	} else {
-		return rules.NewWords(text, e.Reason, e.Name)
+		return rules.NewWords(text, e.Wording)
 	}
 }
 
