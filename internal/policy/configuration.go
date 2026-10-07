@@ -72,28 +72,21 @@ func (c *condition) UnmarshalYAML(node *yaml.Node) error {
 type texts []string
 
 func built(configuration file) (Policy, error) {
-	denied, err := group("denied", configuration.Denied, asWritten)
+	denied, err := side("denied", configuration.Denied, asWritten)
 	if err != nil {
 		return Policy{}, err
 	}
-	allowed, err := group("allowed", configuration.Allowed, vouching(configuration.Trusted))
-	if err != nil {
-		return Policy{}, err
-	}
-	paths, err := pathsIn(configuration)
-	if err != nil {
-		return Policy{}, err
-	}
-	return Policy{Denied: denied, Allowed: allowed, Paths: paths}, nil
+	allowed, err := side("allowed", configuration.Allowed, vouching(configuration.Trusted))
+	return Policy{Denied: denied, Allowed: allowed}, err
 }
 
-func pathsIn(configuration file) (Paths, error) {
-	denied, err := globs(configuration.Denied)
+func side(name string, entries []entry, read func(rules.Rule) rules.Rule) (Side, error) {
+	commandRules, err := group(name, entries, read)
 	if err != nil {
-		return Paths{}, err
+		return Side{}, err
 	}
-	allowed, err := globs(configuration.Allowed)
-	return Paths{Denied: denied, Allowed: allowed}, err
+	pathRules, err := globs(entries)
+	return Side{CommandRules: commandRules, PathRules: pathRules}, err
 }
 
 func globs(entries []entry) ([]rules.Glob, error) {

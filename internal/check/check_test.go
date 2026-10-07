@@ -13,14 +13,14 @@ import (
 )
 
 var madeUp = policy.Policy{
-	Denied: rules.NewGroup("denied",
+	Denied: policy.Side{CommandRules: rules.NewGroup("denied",
 		pattern("sudo", "", ""),
 		pattern("shutdown", "Ask a human first.", ""),
-	),
-	Allowed: rules.NewGroup("allowed",
+	)},
+	Allowed: policy.Side{CommandRules: rules.NewGroup("allowed",
 		rules.NewOpening(rules.NewWords("ls", "", "")),
 		rules.NewOpening(rules.NewWords("cat", "", "")),
-	),
+	)},
 }
 
 func TestTheThreeAnswers(t *testing.T) {
@@ -60,8 +60,8 @@ func TestAcrossACommandLine(t *testing.T) {
 
 	t.Run("a denial outranks a permission", func(t *testing.T) {
 		both := policy.Policy{
-			Denied:  rules.NewGroup("denied", pattern("ls", "", "")),
-			Allowed: rules.NewGroup("allowed", rules.NewOpening(rules.NewWords("ls", "", ""))),
+			Denied:  policy.Side{CommandRules: rules.NewGroup("denied", pattern("ls", "", ""))},
+			Allowed: policy.Side{CommandRules: rules.NewGroup("allowed", rules.NewOpening(rules.NewWords("ls", "", "")))},
 		}
 		if decision := check.Evaluate("ls", both).Decision; decision != check.Deny {
 			t.Errorf("ls -> %s, wanted deny", decision)

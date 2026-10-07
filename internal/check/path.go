@@ -11,8 +11,8 @@ import (
 )
 
 func Writing(path string, p policy.Policy) (Verdict, bool) {
-	refused := globsMatching(p.Paths.Denied, path)
-	permitted := globsMatching(p.Paths.Allowed, path)
+	refused := globsMatching(p.Denied.PathRules, path)
+	permitted := globsMatching(p.Allowed.PathRules, path)
 
 	switch {
 	case len(refused) > 0:
