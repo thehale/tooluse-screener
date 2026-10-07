@@ -182,8 +182,8 @@ func TestReaching(t *testing.T) {
 	})
 
 	t.Run("one untrusted directory spoils the command", func(t *testing.T) {
-		trusted := filepath.Join(root, "trusted")
-		matches(t, false, within(trusted), "git -C "+trusted+" -C "+filepath.Join(root, "outside")+" status")
+		trustedDir := filepath.Join(root, "trusted")
+		matches(t, false, within(trustedDir), "git -C "+trustedDir+" -C "+filepath.Join(root, "outside")+" status")
 	})
 
 	t.Run("a directory written with an equals sign", func(t *testing.T) {
