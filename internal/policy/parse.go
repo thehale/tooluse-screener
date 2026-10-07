@@ -21,16 +21,16 @@ func Parse(written []byte) (Policy, error) {
 }
 
 func built(configuration file) (Policy, error) {
-	denied, err := side("denied", configuration.Denied, asWritten)
+	denied, err := side(configuration.Denied, asWritten)
 	if err != nil {
 		return Policy{}, err
 	}
-	allowed, err := side("allowed", configuration.Allowed, vouching(configuration.Trusted))
+	allowed, err := side(configuration.Allowed, vouching(configuration.Trusted))
 	return Policy{Denied: denied, Allowed: allowed}, err
 }
 
-func side(name string, entries []entry, read func(rules.Rule) rules.Rule) (Side, error) {
-	commandRules, err := group(name, entries, read)
+func side(entries []entry, read func(rules.Rule) rules.Rule) (Side, error) {
+	commandRules, err := group(entries, read)
 	if err != nil {
 		return Side{}, err
 	}
@@ -80,7 +80,7 @@ func vouching(trusted []string) func(rules.Rule) rules.Rule {
 	}
 }
 
-func group(name string, entries []entry, read func(rules.Rule) rules.Rule) (rules.Group, error) {
+func group(entries []entry, read func(rules.Rule) rules.Rule) (rules.Group, error) {
 	var found []rules.Rule
 	for _, written := range entries {
 		list, err := entryRules(written, read)
@@ -89,7 +89,7 @@ func group(name string, entries []entry, read func(rules.Rule) rules.Rule) (rule
 		}
 		found = append(found, list...)
 	}
-	return rules.NewGroup(name, found...), nil
+	return rules.Group(found), nil
 }
 
 func entryRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {

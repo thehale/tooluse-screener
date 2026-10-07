@@ -468,7 +468,7 @@ func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 	})
 
 	t.Run("a group accounts for the widest of its rules", func(t *testing.T) {
-		both := rules.NewGroup("", rules.NewOpening(rules.NewWords("git", "", "")), rules.NewOpening(rules.NewWords("git push", "", "")))
+		both := rules.Group{rules.NewOpening(rules.NewWords("git", "", "")), rules.NewOpening(rules.NewWords("git push", "", ""))}
 		spans(t, 8, both, "git push origin topic")
 	})
 }
@@ -477,36 +477,28 @@ func TestGroup(t *testing.T) {
 	listing, reading := rules.NewOpening(rules.NewWords("ls", "", "")), rules.NewOpening(rules.NewWords("cat", "", ""))
 
 	t.Run("matches when one of its rules does", func(t *testing.T) {
-		matches(t, true, rules.NewGroup("", listing, reading), "cat foo")
+		matches(t, true, rules.Group{listing, reading}, "cat foo")
 	})
 
 	t.Run("does not match when none of them does", func(t *testing.T) {
-		matches(t, false, rules.NewGroup("", listing), "nmap localhost")
+		matches(t, false, rules.Group{listing}, "nmap localhost")
 	})
 
 	t.Run("an empty group matches nothing", func(t *testing.T) {
-		matches(t, false, rules.NewGroup(""), "anything")
+		matches(t, false, rules.Group{}, "anything")
 	})
 
 	t.Run("it lists the rules that matched rather than itself", func(t *testing.T) {
-		matched(t, rules.NewGroup("", listing, reading), "cat foo", reading)
+		matched(t, rules.Group{listing, reading}, "cat foo", reading)
 	})
 
 	t.Run("it lists every rule that matched", func(t *testing.T) {
 		narrow := rules.NewOpening(rules.NewWords("ls -la", "", ""))
-		matched(t, rules.NewGroup("", listing, narrow), "ls -la", listing, narrow)
+		matched(t, rules.Group{listing, narrow}, "ls -la", listing, narrow)
 	})
 
 	t.Run("it lists nothing when none matched", func(t *testing.T) {
-		matched(t, rules.NewGroup("", listing), "nmap localhost")
-	})
-
-	t.Run("a nested group lists the innermost rules", func(t *testing.T) {
-		matched(t, rules.NewGroup("", rules.NewGroup("", listing)), "ls -la", listing)
-	})
-
-	t.Run("it names itself", func(t *testing.T) {
-		named(t, rules.NewGroup("reading"), "reading")
+		matched(t, rules.Group{listing}, "nmap localhost")
 	})
 }
 
@@ -540,10 +532,18 @@ func leading(t *testing.T, expression, reason, name string) rules.Rule {
 	return rules.NewOpening(pattern(t, expression, reason, name))
 }
 
-func matches(t *testing.T, wanted bool, rule rules.Rule, command string) {
+type matcher interface {
+	Matches(command command.Command) bool
+}
+
+type spanner interface {
+	Span(command command.Command) int
+}
+
+func matches(t *testing.T, wanted bool, rule matcher, command string) {
 	t.Helper()
 	if got := rule.Matches(said(command)); got != wanted {
-		t.Errorf("%s matching %q = %v, wanted %v", rule, command, got, wanted)
+		t.Errorf("%v matching %q = %v, wanted %v", rule, command, got, wanted)
 	}
 }
 
@@ -570,10 +570,10 @@ func movedMatches(t *testing.T, wanted bool, rule rules.Rule, text string, moved
 	}
 }
 
-func spans(t *testing.T, wanted int, rule rules.Rule, command string) {
+func spans(t *testing.T, wanted int, rule spanner, command string) {
 	t.Helper()
 	if got := rule.Span(said(command)); got != wanted {
-		t.Errorf("%s spanning %q = %d, wanted %d", rule, command, got, wanted)
+		t.Errorf("%v spanning %q = %d, wanted %d", rule, command, got, wanted)
 	}
 }
 

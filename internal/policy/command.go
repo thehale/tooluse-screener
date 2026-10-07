@@ -49,7 +49,11 @@ func standing(denials []rules.Rule, allowed rules.Group, line command.Command) [
 	return matched
 }
 
-func accountsForAll(rule rules.Rule, line command.Command) bool {
+type spanning interface {
+	Span(command command.Command) int
+}
+
+func accountsForAll(rule spanning, line command.Command) bool {
 	spoken := command.Spoken(line.Text)
 	return spoken != "" && rule.Span(line) == len(spoken)
 }
