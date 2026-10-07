@@ -27,10 +27,6 @@ func (p Policy) CheckCommand(line string) Verdict {
 	}
 }
 
-func unlisted(subject string) Verdict {
-	return Verdict{Ask, fmt.Sprintf("%s is not in the shared allow list", subject)}
-}
-
 func (p Policy) refusals(commands []command.Command) []string {
 	var reasons []string
 	for _, one := range commands {
@@ -61,15 +57,6 @@ func permissions(allowRules rules.Group, commands []command.Command) []rules.Gro
 
 func isVouchedFor(vouchers rules.Group) bool {
 	return len(vouchers) > 0
-}
-
-func refusal(subject string, rule fmt.Stringer, reason string) string {
-	message := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
-	if reason == "" {
-		return message
-	} else {
-		return fmt.Sprintf("%s. %s", message, reason)
-	}
 }
 
 func permission(vouchersByCommand []rules.Group) string {

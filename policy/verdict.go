@@ -21,3 +21,16 @@ type Verdict struct {
 func (v Verdict) String() string {
 	return fmt.Sprintf("%s: %s", v.Decision, v.Reason)
 }
+
+func unlisted(subject string) Verdict {
+	return Verdict{Ask, fmt.Sprintf("%s is not in the shared allow list", subject)}
+}
+
+func refusal(subject string, rule fmt.Stringer, reason string) string {
+	message := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
+	if reason == "" {
+		return message
+	} else {
+		return fmt.Sprintf("%s. %s", message, reason)
+	}
+}

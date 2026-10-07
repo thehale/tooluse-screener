@@ -18,7 +18,3 @@ func (c Command) DirectoriesActedIn(targets []string) []string {
 	}
 	return dirs
 }
-
-func (c Command) WithoutAssignments() Command {
-	return Command{Text: WithoutAssignments(c.Text), Moved: c.Moved}
-}

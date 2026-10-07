@@ -11,20 +11,3 @@ type Rule interface {
 	Reason(command commands.Command) string
 	String() string
 }
-
-type wording struct {
-	reason string
-	name   string
-}
-
-func (w wording) Reason(commands.Command) string {
-	return w.reason
-}
-
-func (w wording) nameOr(text string) string {
-	if w.name == "" {
-		return text
-	} else {
-		return w.name
-	}
-}
