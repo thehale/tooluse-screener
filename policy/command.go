@@ -42,20 +42,11 @@ func (p Policy) refusals(found []command.Command) []string {
 func standingDenials(denials []rules.Rule, allowed rules.Group, line command.Command) []rules.Rule {
 	var matched []rules.Rule
 	for _, rule := range denials {
-		if !isAccountedForBy(line, allowed) || isAccountedForBy(line, rule) {
+		if !line.IsAccountedForBy(allowed) || line.IsAccountedForBy(rule) {
 			matched = append(matched, rule)
 		}
 	}
 	return matched
-}
-
-type spanning interface {
-	Span(command command.Command) int
-}
-
-func isAccountedForBy(line command.Command, rule spanning) bool {
-	spoken := command.Spoken(line.Text)
-	return spoken != "" && rule.Span(line) == len(spoken)
 }
 
 func permissions(allowed rules.Group, found []command.Command) [][]rules.Rule {
