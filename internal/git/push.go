@@ -17,11 +17,20 @@ func (i Invocation) Landing(dirs []string) (branch string, known bool) {
 	switch {
 	case !readable:
 		return "", false
-	case len(words) == 2 && words[1] != "HEAD":
-		return onto(words[0], branchOf(words[1]))
+	case len(words) == 2 && unforced(words[1]) != "HEAD":
+		return onto(words[0], branchOf(unforced(words[1])))
 	default:
 		return agreed(dirs, func(dir string) (string, bool) { return landingIn(dir, words) })
 	}
+}
+
+func forces(option string) bool {
+	spoken := []string{"-f", "--force", "--force-with-lease", "--force-if-includes"}
+	return slices.Contains(spoken, option) || strings.HasPrefix(option, "--force-with-lease=")
+}
+
+func unforced(refspec string) string {
+	return strings.TrimPrefix(refspec, "+")
 }
 
 func (i Invocation) pushed() (words []string, readable bool) {
@@ -61,13 +70,13 @@ func landingIn(dir string, words []string) (string, bool) {
 }
 
 func leaveTheLandingAlone(options, global []string) bool {
-	return lists.Every(options, changesNeitherEnd) &&
+	return lists.Every(options, keepsTheLanding) &&
 		lists.Every(global, onlyChangesDirectory)
 }
 
-func changesNeitherEnd(option string) bool {
+func keepsTheLanding(option string) bool {
 	spoken := []string{"-u", "--set-upstream", "-q", "--quiet", "-v", "--verbose", "--progress"}
-	return slices.Contains(spoken, option)
+	return slices.Contains(spoken, option) || forces(option)
 }
 
 func onlyChangesDirectory(option string) bool {
@@ -88,7 +97,7 @@ func partitioned(arguments []string) (options, words []string) {
 func branchOf(refspec string) string {
 	source, destination, paired := strings.Cut(refspec, ":")
 	switch {
-	case source == "" || strings.HasPrefix(source, "+"):
+	case source == "":
 		return ""
 	case !paired:
 		return named(source)

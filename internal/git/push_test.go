@@ -34,6 +34,17 @@ func TestTheBranchAPushLandsOn(t *testing.T) {
 		lands(t, "git push -u origin topic", "topic")
 		lands(t, "git push --set-upstream --quiet origin topic", "topic")
 	})
+
+	t.Run("a forced push lands where it would without force", func(t *testing.T) {
+		lands(t, "git push --force origin topic", "topic")
+		lands(t, "git push -f origin topic", "topic")
+		lands(t, "git push --force-with-lease origin topic", "topic")
+		lands(t, "git push --force-with-lease=topic:abc123 --force-if-includes origin topic", "topic")
+		lands(t, "git push origin +topic:main", "main")
+		lands(t, "git push origin +topic", "topic")
+		landsFrom(t, []string{repository(t, "topic")}, "git push --force", "topic")
+		landsFrom(t, []string{repository(t, "topic")}, "git push origin +HEAD", "topic")
+	})
 }
 
 func TestWhereAPushIsUnread(t *testing.T) {
@@ -44,9 +55,6 @@ func TestWhereAPushIsUnread(t *testing.T) {
 	})
 
 	t.Run("an option that moves what lands", func(t *testing.T) {
-		unread(t, "git push --force origin topic")
-		unread(t, "git push -f origin topic")
-		unread(t, "git push --force-with-lease origin topic")
 		unread(t, "git push --delete origin topic")
 		unread(t, "git push --mirror origin topic")
 		unread(t, "git push --all origin topic")
@@ -55,9 +63,7 @@ func TestWhereAPushIsUnread(t *testing.T) {
 		unread(t, "git push --no-verify origin topic")
 	})
 
-	t.Run("a refspec that does anything but fast-forward a branch", func(t *testing.T) {
-		unread(t, "git push origin +topic:main")
-		unread(t, "git push origin +topic")
+	t.Run("a refspec that does anything but update a branch", func(t *testing.T) {
 		unread(t, "git push origin :topic")
 		unread(t, "git push origin topic:refs/tags/v1")
 		unread(t, "git push origin 'refs/heads/*:refs/heads/*'")

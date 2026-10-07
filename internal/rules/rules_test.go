@@ -282,7 +282,7 @@ func TestScoped(t *testing.T) {
 
 	t.Run("does not match a spelling that hides where it lands", func(t *testing.T) {
 		matches(t, false, onto("main"), "git -C "+root+" push")
-		matches(t, false, onto("main"), "git -C "+root+" push --force origin topic")
+		matches(t, false, onto("main"), "git -C "+root+" push --mirror origin topic")
 	})
 
 	t.Run("does not match outside the dirs it is given", func(t *testing.T) {
