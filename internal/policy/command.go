@@ -14,7 +14,7 @@ import (
 
 func (p Policy) CheckCommand(line string) Verdict {
 	found := command.All(line)
-	refused := refusals(p, found)
+	refused := p.refusals(found)
 	permitted := permissions(p.Allowed.CommandRules, found)
 
 	switch {
@@ -29,7 +29,7 @@ func (p Policy) CheckCommand(line string) Verdict {
 
 var undecided = Verdict{Ask, "Command is not in the shared allow list"}
 
-func refusals(p Policy, found []command.Command) []string {
+func (p Policy) refusals(found []command.Command) []string {
 	var reasons []string
 	for _, one := range found {
 		for _, rule := range standing(p.Denied.CommandRules.Matching(one), p.Allowed.CommandRules, one) {
@@ -68,17 +68,19 @@ func anyOf(matched []rules.Rule) bool {
 
 func refusal(subject string, rule fmt.Stringer, reason string) string {
 	refused := fmt.Sprintf("%s matches a denied rule: %s", subject, rule)
-	if reason == "" {
+	switch reason {
+	case "":
 		return refused
+	default:
+		return fmt.Sprintf("%s. %s", refused, reason)
 	}
-	return fmt.Sprintf("%s. %s", refused, reason)
 }
 
 func permission(permitted [][]rules.Rule) string {
-	return fmt.Sprintf("Every command is allowed: %s", strings.Join(named(permitted), ", "))
+	return fmt.Sprintf("Every command is allowed: %s", strings.Join(names(permitted), ", "))
 }
 
-func named(permitted [][]rules.Rule) []string {
+func names(permitted [][]rules.Rule) []string {
 	var spoken []string
 	seen := map[string]bool{}
 	for _, matched := range permitted {
