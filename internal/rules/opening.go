@@ -22,15 +22,15 @@ func (o Opening) At(command commands.Command) int {
 }
 
 func (o Opening) Span(command commands.Command) int {
-	spoken := commands.Command{Text: commands.WithoutAssignments(command.Text), Moved: command.Moved}
-	accounted := o.Rule.Span(spoken)
-	if o.Rule.At(spoken) == 0 && isWordBoundary(spoken.Text, accounted) {
-		return accounted
+	bareCommand := commands.Command{Text: commands.WithoutAssignments(command.Text), Moved: command.Moved}
+	span := o.Rule.Span(bareCommand)
+	if o.Rule.At(bareCommand) == 0 && isWordBoundary(bareCommand.Text, span) {
+		return span
 	} else {
 		return 0
 	}
 }
 
-func isWordBoundary(spoken string, at int) bool {
-	return at > 0 && (at == len(spoken) || spoken[at] == ' ')
+func isWordBoundary(text string, at int) bool {
+	return at > 0 && (at == len(text) || text[at] == ' ')
 }

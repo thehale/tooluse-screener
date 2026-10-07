@@ -21,14 +21,14 @@ func NewWords(text, reason, name string) Rule {
 func (w Words) At(command commands.Command) int {
 	text := command.Text
 	for from := 0; w.text != "" && from+len(w.text) <= len(text); {
-		found := strings.Index(text[from:], w.text)
+		index := strings.Index(text[from:], w.text)
 		switch {
-		case found < 0:
+		case index < 0:
 			return -1
-		case w.isStandaloneAt(text, from+found):
-			return from + found
+		case w.isStandaloneAt(text, from+index):
+			return from + index
 		default:
-			from += found + 1
+			from += index + 1
 		}
 	}
 	return -1

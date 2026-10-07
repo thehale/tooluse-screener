@@ -16,11 +16,11 @@ func WithoutAssignments(text string) string {
 
 func Assignments(text string) []string {
 	words := strings.Fields(text)
-	leading := 0
-	for leading < len(words) && isAnAssignment(words[leading]) {
-		leading++
+	assignmentCount := 0
+	for assignmentCount < len(words) && isAnAssignment(words[assignmentCount]) {
+		assignmentCount++
 	}
-	return words[:leading]
+	return words[:assignmentCount]
 }
 
 func IsRetargeting(name string) bool {
@@ -34,8 +34,8 @@ var retargeting = []string{
 }
 
 func isAnAssignment(word string) bool {
-	name, _, assigned := strings.Cut(word, "=")
-	return assigned && isIdentifier(name)
+	name, _, isAssignment := strings.Cut(word, "=")
+	return isAssignment && isIdentifier(name)
 }
 
 func isIdentifier(name string) bool {

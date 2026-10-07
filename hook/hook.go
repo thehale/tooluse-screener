@@ -12,7 +12,7 @@ import (
 )
 
 func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
-	if payload, read := payloadOn(in); !read {
+	if payload, isRead := payloadOn(in); !isRead {
 		return 0
 	} else {
 		return answer(payload, checker, out, complaints)
@@ -20,7 +20,7 @@ func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
 }
 
 func answer(payload toolCall, checker Checker, out, complaints io.Writer) int {
-	if verdict, asked := safeVerdictOn(payload, checker, complaints); !asked {
+	if verdict, isAsked := safeVerdictOn(payload, checker, complaints); !isAsked {
 		return 0
 	} else {
 		return reply(payload, verdict, out, complaints)
@@ -36,11 +36,11 @@ func reply(payload toolCall, verdict policy.Verdict, out, complaints io.Writer) 
 	return code
 }
 
-func safeVerdictOn(payload toolCall, checker Checker, complaints io.Writer) (verdict policy.Verdict, asked bool) {
+func safeVerdictOn(payload toolCall, checker Checker, complaints io.Writer) (verdict policy.Verdict, isAsked bool) {
 	defer func() {
 		if failure := recover(); failure != nil {
 			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
-			verdict, asked = failOpen, true
+			verdict, isAsked = failOpen, true
 		}
 	}()
 	return verdictOn(payload, checker)
@@ -50,8 +50,8 @@ var failOpen = policy.Verdict{Decision: policy.Ask, Reason: "The policy could no
 
 func write(envelope map[string]any, out io.Writer) {
 	if envelope != nil {
-		written, _ := json.Marshal(envelope)
-		_, _ = fmt.Fprint(out, string(written))
+		envelopeJSON, _ := json.Marshal(envelope)
+		_, _ = fmt.Fprint(out, string(envelopeJSON))
 	}
 }
 
@@ -59,17 +59,17 @@ type toolCall map[string]any
 
 func payloadOn(in io.Reader) (toolCall, bool) {
 	var payload map[string]any
-	reading := json.NewDecoder(in)
-	if err := reading.Decode(&payload); err != nil {
+	decoder := json.NewDecoder(in)
+	if err := decoder.Decode(&payload); err != nil {
 		return nil, false
 	}
-	if _, err := reading.Token(); err != io.EOF {
+	if _, err := decoder.Token(); err != io.EOF {
 		return nil, false
 	}
 	return payload, payload != nil
 }
 
 func text(payload toolCall, key string) string {
-	written, _ := payload[key].(string)
-	return written
+	value, _ := payload[key].(string)
+	return value
 }

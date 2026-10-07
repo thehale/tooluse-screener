@@ -12,25 +12,25 @@ import (
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
-func Parse(written []byte) (Policy, error) {
+func Parse(contents []byte) (Policy, error) {
 	var configuration file
-	if err := yaml.Unmarshal(written, &configuration); err != nil {
+	if err := yaml.Unmarshal(contents, &configuration); err != nil {
 		return Policy{}, err
 	}
 	return rulesScope(configuration)
 }
 
 func rulesScope(configuration file) (Policy, error) {
-	denied, err := sideFrom(configuration.Denied, denial)
+	deniedSide, err := sideFrom(configuration.Denied, denial)
 	if err != nil {
 		return Policy{}, err
 	}
-	allowed, err := sideFrom(configuration.Allowed, allowanceIn(configuration.Trusted))
-	return Policy{denied: denied, allowed: allowed}, err
+	allowedSide, err := sideFrom(configuration.Allowed, allowanceIn(configuration.Trusted))
+	return Policy{denied: deniedSide, allowed: allowedSide}, err
 }
 
-func sideFrom(entries []entry, read func(rules.Rule) rules.Rule) (side, error) {
-	commandRules, err := group(entries, read)
+func sideFrom(entries []entry, wrap func(rules.Rule) rules.Rule) (side, error) {
+	commandRules, err := group(entries, wrap)
 	if err != nil {
 		return side{}, err
 	}
@@ -39,40 +39,40 @@ func sideFrom(entries []entry, read func(rules.Rule) rules.Rule) (side, error) {
 }
 
 func globs(entries []entry) (rules.Globs, error) {
-	var found rules.Globs
-	for _, written := range entries {
-		list, err := entryGlobs(written)
+	var pathRules rules.Globs
+	for _, one := range entries {
+		list, err := entryGlobs(one)
 		if err != nil {
 			return nil, err
 		}
-		found = append(found, list...)
+		pathRules = append(pathRules, list...)
 	}
-	return found, nil
+	return pathRules, nil
 }
 
-func entryGlobs(written entry) (rules.Globs, error) {
+func entryGlobs(policyEntry entry) (rules.Globs, error) {
 	switch {
-	case len(written.Paths) == 0:
+	case len(policyEntry.Paths) == 0:
 		return nil, nil
-	case len(written.Commands) > 0 || len(written.Patterns) > 0:
-		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", written)
-	case written.Only != nil || len(written.Addendum) > 0:
-		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", written)
+	case len(policyEntry.Commands) > 0 || len(policyEntry.Patterns) > 0:
+		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", policyEntry)
+	case policyEntry.Only != nil || len(policyEntry.Addendum) > 0:
+		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", policyEntry)
 	default:
-		return globsIn(written)
+		return globsIn(policyEntry)
 	}
 }
 
-func globsIn(written entry) (rules.Globs, error) {
-	var found rules.Globs
-	for _, text := range written.Paths {
-		made, err := rules.NewGlob(text, written.Reason, written.Name)
+func globsIn(policyEntry entry) (rules.Globs, error) {
+	var pathRules rules.Globs
+	for _, text := range policyEntry.Paths {
+		glob, err := rules.NewGlob(text, policyEntry.Reason, policyEntry.Name)
 		if err != nil {
 			return nil, err
 		}
-		found = append(found, made)
+		pathRules = append(pathRules, glob)
 	}
-	return found, nil
+	return pathRules, nil
 }
 
 func denial(rule rules.Rule) rules.Rule {
@@ -85,59 +85,59 @@ func allowanceIn(trusted []string) func(rules.Rule) rules.Rule {
 	}
 }
 
-func group(entries []entry, read func(rules.Rule) rules.Rule) (rules.Group, error) {
-	var found []rules.Rule
-	for _, written := range entries {
-		list, err := entryRules(written, read)
+func group(entries []entry, wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
+	var commandRules []rules.Rule
+	for _, one := range entries {
+		list, err := entryRules(one, wrap)
 		if err != nil {
 			return rules.Group{}, err
 		}
-		found = append(found, list...)
+		commandRules = append(commandRules, list...)
 	}
-	return rules.Group(found), nil
+	return rules.Group(commandRules), nil
 }
 
-func entryRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	found, err := allRules(written, read)
+func entryRules(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+	commandRules, err := allRules(policyEntry, wrap)
 	if err != nil {
 		return nil, err
 	}
-	found, err = scopedRules(found, written.Only)
+	commandRules, err = scopedRules(commandRules, policyEntry.Only)
 	if err != nil {
 		return nil, err
 	}
-	return addendedRules(found, written.Addendum)
+	return addendedRules(commandRules, policyEntry.Addendum)
 }
 
-func scopedRules(found []rules.Rule, only *scope) ([]rules.Rule, error) {
+func scopedRules(commandRules []rules.Rule, only *scope) ([]rules.Rule, error) {
 	if only == nil {
-		return found, nil
+		return commandRules, nil
 	} else {
-		built, err := only.rulesScope()
-		return rulesScopedTo(found, built), err
+		ruleScope, err := only.rulesScope()
+		return rulesScopedTo(commandRules, ruleScope), err
 	}
 }
 
-func rulesScopedTo(found []rules.Rule, scope rules.Scope) []rules.Rule {
-	narrower := make([]rules.Rule, 0, len(found))
-	for _, rule := range found {
-		narrower = append(narrower, rules.NewScoped(rule, scope))
+func rulesScopedTo(commandRules []rules.Rule, scope rules.Scope) []rules.Rule {
+	rulesInScope := make([]rules.Rule, 0, len(commandRules))
+	for _, rule := range commandRules {
+		rulesInScope = append(rulesInScope, rules.NewScoped(rule, scope))
 	}
-	return narrower
+	return rulesInScope
 }
 
-func addendedRules(found []rules.Rule, written []addition) ([]rules.Rule, error) {
-	addenda, err := addendaOf(written)
-	reasoned := make([]rules.Rule, 0, len(found))
-	for _, rule := range found {
-		reasoned = append(reasoned, rules.NewAddended(rule, addenda))
+func addendedRules(commandRules []rules.Rule, additions []addition) ([]rules.Rule, error) {
+	addenda, err := addendaOf(additions)
+	rulesWithAddenda := make([]rules.Rule, 0, len(commandRules))
+	for _, rule := range commandRules {
+		rulesWithAddenda = append(rulesWithAddenda, rules.NewAddended(rule, addenda))
 	}
-	return reasoned, err
+	return rulesWithAddenda, err
 }
 
-func addendaOf(written []addition) ([]rules.Addendum, error) {
+func addendaOf(additions []addition) ([]rules.Addendum, error) {
 	var addenda []rules.Addendum
-	for _, one := range written {
+	for _, one := range additions {
 		if one.Only == nil || strings.TrimSpace(one.Reason) == "" {
 			return nil, fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", one)
 		}
@@ -150,38 +150,38 @@ func addendaOf(written []addition) ([]rules.Addendum, error) {
 	return addenda, nil
 }
 
-func allRules(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	if len(written.Commands) == 0 && len(written.Patterns) == 0 && len(written.Paths) == 0 {
-		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", written)
+func allRules(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+	if len(policyEntry.Commands) == 0 && len(policyEntry.Patterns) == 0 && len(policyEntry.Paths) == 0 {
+		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", policyEntry)
 	} else {
-		return rulesIn(written, read)
+		return rulesIn(policyEntry, wrap)
 	}
 }
 
-func rulesIn(written entry, read func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
-	var found []rules.Rule
-	for _, text := range written.Commands {
-		found = append(found, read(commandRule(text, written.Reason, written.Name)))
+func rulesIn(policyEntry entry, wrap func(rules.Rule) rules.Rule) ([]rules.Rule, error) {
+	var commandRules []rules.Rule
+	for _, text := range policyEntry.Commands {
+		commandRules = append(commandRules, wrap(commandRule(text, policyEntry.Reason, policyEntry.Name)))
 	}
-	for _, expression := range written.Patterns {
-		made, err := rules.NewPattern(expression, written.Reason, written.Name)
+	for _, expression := range policyEntry.Patterns {
+		pattern, err := rules.NewPattern(expression, policyEntry.Reason, policyEntry.Name)
 		if err != nil {
 			return nil, err
 		}
-		found = append(found, read(made))
+		commandRules = append(commandRules, wrap(pattern))
 	}
-	return found, nil
+	return commandRules, nil
 }
 
 func commandRule(text, reason, name string) rules.Rule {
-	if invocation, named := gitInvocation(text); named {
+	if invocation, isGit := gitInvocation(text); isGit {
 		return rules.NewGitSubcommand(invocation[0], invocation[1:], reason, name)
 	} else {
 		return rules.NewWords(text, reason, name)
 	}
 }
 
-func gitInvocation(text string) (spoken []string, named bool) {
+func gitInvocation(text string) (arguments []string, isGit bool) {
 	if words := strings.Fields(text); len(words) < 2 || words[0] != "git" {
 		return nil, false
 	} else {

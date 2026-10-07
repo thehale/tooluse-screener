@@ -6,11 +6,11 @@ package rules
 type Globs []Glob
 
 func (g Globs) GlobsMatching(path string) Globs {
-	var matched Globs
+	var matches Globs
 	for _, glob := range g {
 		if glob.IsMatchFor(path) {
-			matched = append(matched, glob)
+			matches = append(matches, glob)
 		}
 	}
-	return matched
+	return matches
 }

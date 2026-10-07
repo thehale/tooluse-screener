@@ -11,21 +11,21 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func movesAfter(command string, moved []string) []string {
+func movesAfter(command string, destinations []string) []string {
 	words := strings.Fields(WithoutAssignments(command))
 	switch {
 	case len(words) == 0:
-		return retargetsAfter(Assignments(command), moved)
+		return retargetsAfter(Assignments(command), destinations)
 	case slices.Contains(exporting, words[0]):
-		return retargetsAfter(words[1:], moved)
+		return retargetsAfter(words[1:], destinations)
 	case words[0] == "cd":
-		return arrivals(moved, destination(words[1:], "~"))
+		return arrivals(destinations, destination(words[1:], "~"))
 	case words[0] == "pushd":
-		return arrivals(moved, destination(words[1:], ""))
+		return arrivals(destinations, destination(words[1:], ""))
 	case slices.Contains(unseenMoves, words[0]):
-		return arrivals(moved, "")
+		return arrivals(destinations, "")
 	default:
-		return moved
+		return destinations
 	}
 }
 
@@ -33,11 +33,11 @@ var unseenMoves = []string{"popd", "source", ".", "eval"}
 
 var exporting = []string{"export", "declare", "typeset", "readonly", "local"}
 
-func retargetsAfter(words []string, moved []string) []string {
+func retargetsAfter(words []string, destinations []string) []string {
 	if lists.Some(words, isRetargetAssignment) {
-		return arrivals(moved, "")
+		return arrivals(destinations, "")
 	} else {
-		return moved
+		return destinations
 	}
 }
 
@@ -46,10 +46,10 @@ func isRetargetAssignment(word string) bool {
 	return IsRetargeting(name)
 }
 
-func destination(arguments []string, bare string) string {
+func destination(arguments []string, bareDestination string) string {
 	switch {
 	case len(arguments) == 0:
-		return bare
+		return bareDestination
 	case len(arguments) == 2 && arguments[0] == "--":
 		return Literal(arguments[1])
 	case len(arguments) == 1 && !strings.ContainsRune("-+", rune(arguments[0][0])):
@@ -59,13 +59,13 @@ func destination(arguments []string, bare string) string {
 	}
 }
 
-func arrivals(moved []string, destination string) []string {
-	arrived := slices.Clone(moved)
-	for _, from := range append([]string{"."}, moved...) {
-		arrived = append(arrived, directories.Destination(from, destination))
+func arrivals(earlier []string, destination string) []string {
+	destinations := slices.Clone(earlier)
+	for _, from := range append([]string{"."}, earlier...) {
+		destinations = append(destinations, directories.Destination(from, destination))
 	}
-	slices.Sort(arrived)
-	return slices.DeleteFunc(slices.Compact(arrived), isHere)
+	slices.Sort(destinations)
+	return slices.DeleteFunc(slices.Compact(destinations), isHere)
 }
 
 func isHere(directory string) bool {

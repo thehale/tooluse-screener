@@ -6,20 +6,20 @@ package command
 import "strings"
 
 func Literal(word string) string {
-	unquoted, quoted := withoutQuotes(word)
+	inner, isQuoted := withoutQuotes(word)
 	switch {
-	case strings.ContainsAny(unquoted, expanding):
+	case strings.ContainsAny(inner, expanding):
 		return ""
-	case quoted && strings.HasPrefix(unquoted, "~"):
+	case isQuoted && strings.HasPrefix(inner, "~"):
 		return ""
 	default:
-		return unquoted
+		return inner
 	}
 }
 
 const expanding = "$`\\\"'*?[]{}" + Unquotable
 
-func withoutQuotes(word string) (unquoted string, quoted bool) {
+func withoutQuotes(word string) (inner string, isQuoted bool) {
 	if len(word) >= 2 && strings.ContainsRune(`'"`, rune(word[0])) && word[0] == word[len(word)-1] {
 		return word[1 : len(word)-1], true
 	} else {

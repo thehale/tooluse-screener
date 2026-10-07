@@ -15,19 +15,19 @@ func (g Group) HasMatchFor(command commands.Command) bool {
 }
 
 func (g Group) RulesMatching(command commands.Command) Group {
-	var matched Group
+	var matches Group
 	for _, rule := range g {
 		if rule.At(command) >= 0 {
-			matched = append(matched, rule)
+			matches = append(matches, rule)
 		}
 	}
-	return matched
+	return matches
 }
 
 func (g Group) Span(command commands.Command) int {
-	widest := 0
+	maxSpan := 0
 	for _, rule := range g {
-		widest = max(widest, rule.Span(command))
+		maxSpan = max(maxSpan, rule.Span(command))
 	}
-	return widest
+	return maxSpan
 }

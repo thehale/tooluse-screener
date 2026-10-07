@@ -62,18 +62,18 @@ func (s scope) rulesScope() (rules.Scope, error) {
 }
 
 func branchesOf(conditions []condition) (rules.Branches, error) {
-	var named rules.Branches
-	for _, written := range conditions {
+	var branches rules.Branches
+	for _, one := range conditions {
 		switch {
-		case written.Onto != "":
-			named.Onto = append(named.Onto, written.Onto)
-		case len(written.Not) > 0:
-			named.NotOnto = append(named.NotOnto, written.Not...)
+		case one.Onto != "":
+			branches.Onto = append(branches.Onto, one.Onto)
+		case len(one.Not) > 0:
+			branches.NotOnto = append(branches.NotOnto, one.Not...)
 		default:
-			return rules.Branches{}, fmt.Errorf("a branch is a name, or a mapping with `not`: %+v", written)
+			return rules.Branches{}, fmt.Errorf("a branch is a name, or a mapping with `not`: %+v", one)
 		}
 	}
-	return named, nil
+	return branches, nil
 }
 
 func (e *entry) UnmarshalYAML(node *yaml.Node) error {
@@ -94,14 +94,14 @@ func renameError(description string) error {
 }
 
 func (t *texts) UnmarshalYAML(node *yaml.Node) error {
-	var read []string
-	for _, written := range nodesIn(node) {
-		if !isText(written) {
-			return fmt.Errorf("a command or expression is written as text, and this is not: %v", written.Value)
+	var values []string
+	for _, item := range nodesIn(node) {
+		if !isText(item) {
+			return fmt.Errorf("a command or expression is written as text, and this is not: %v", item.Value)
 		}
-		read = append(read, written.Value)
+		values = append(values, item.Value)
 	}
-	*t = read
+	*t = values
 	return nil
 }
 
@@ -113,6 +113,6 @@ func nodesIn(node *yaml.Node) []*yaml.Node {
 	}
 }
 
-func isText(written *yaml.Node) bool {
-	return written.Tag == "!!str" && strings.TrimSpace(written.Value) != ""
+func isText(node *yaml.Node) bool {
+	return node.Tag == "!!str" && strings.TrimSpace(node.Value) != ""
 }

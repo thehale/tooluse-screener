@@ -21,12 +21,12 @@ func main() {
 }
 
 func run(arguments []string, in io.Reader, out, complaints io.Writer) int {
-	asked := optionsFor(complaints)
-	spelled := asFlags(arguments)
-	if wrong := misspelling(spelled); wrong != "" {
-		return complainOfMisspelling(asked.flags, complaints, wrong)
+	cliOptions := optionsFor(complaints)
+	flagWords := asFlags(arguments)
+	if badFlag := misspelling(flagWords); badFlag != "" {
+		return complainOfMisspelling(cliOptions.flags, complaints, badFlag)
 	} else {
-		return asked.answer(spelled, in, out, complaints)
+		return cliOptions.answer(flagWords, in, out, complaints)
 	}
 }
 
@@ -50,8 +50,8 @@ func optionsFor(complaints io.Writer) options {
 	}
 }
 
-func (o options) answer(spelled []string, in io.Reader, out, complaints io.Writer) int {
-	switch err := o.flags.Parse(spelled); {
+func (o options) answer(flagWords []string, in io.Reader, out, complaints io.Writer) int {
+	switch err := o.flags.Parse(flagWords); {
 	case errors.Is(err, flag.ErrHelp):
 		printUsage(o.flags, out)
 		return 0
@@ -86,9 +86,9 @@ func misspelling(arguments []string) string {
 	return ""
 }
 
-func complainOfMisspelling(asked *flag.FlagSet, complaints io.Writer, wrong string) int {
-	_, _ = fmt.Fprintf(complaints, "%s: %s is not a flag. Write -%s.\n", name, wrong, wrong)
-	printUsage(asked, complaints)
+func complainOfMisspelling(flagSet *flag.FlagSet, complaints io.Writer, badFlag string) int {
+	_, _ = fmt.Fprintf(complaints, "%s: %s is not a flag. Write -%s.\n", name, badFlag, badFlag)
+	printUsage(flagSet, complaints)
 	return usageError
 }
 
@@ -101,8 +101,8 @@ func asFlags(arguments []string) []string {
 }
 
 func version() string {
-	build, known := debug.ReadBuildInfo()
-	if known && build.Main.Version != "" {
+	build, hasBuild := debug.ReadBuildInfo()
+	if hasBuild && build.Main.Version != "" {
 		return build.Main.Version
 	} else {
 		return "(unknown)"
@@ -111,22 +111,22 @@ func version() string {
 
 var exitCodes = map[policy.Decision]int{policy.Allow: 0, policy.Deny: 1, policy.Ask: 2}
 
-func checkOne(asked *flag.FlagSet, out, complaints io.Writer, path string) int {
-	if asked.NArg() != 1 {
-		asked.Usage()
+func checkOne(flagSet *flag.FlagSet, out, complaints io.Writer, path string) int {
+	if flagSet.NArg() != 1 {
+		flagSet.Usage()
 		return usageError
 	} else {
-		return checkLine(asked.Arg(0), out, complaints, path)
+		return checkLine(flagSet.Arg(0), out, complaints, path)
 	}
 }
 
 func checkLine(line string, out, complaints io.Writer, path string) int {
-	chosen, err := policyAt(path)
+	activePolicy, err := policyAt(path)
 	if err != nil {
 		_, _ = fmt.Fprintf(complaints, "tooluse-screener: %v\n", err)
 		return usageError
 	}
-	verdict := chosen.CheckCommand(line)
+	verdict := activePolicy.CheckCommand(line)
 	_, _ = fmt.Fprintln(out, verdict)
 	return exitCodes[verdict.Decision]
 }
@@ -142,11 +142,11 @@ func (c lazyPolicy) CheckPath(path string) policy.Verdict {
 }
 
 func (c lazyPolicy) policy() policy.Policy {
-	found, err := policyAt(string(c))
+	activePolicy, err := policyAt(string(c))
 	if err != nil {
 		panic(fmt.Sprintf("the policy will not read: %v", err))
 	}
-	return found
+	return activePolicy
 }
 
 func policyAt(path string) (policy.Policy, error) {
@@ -157,16 +157,16 @@ func policyAt(path string) (policy.Policy, error) {
 	}
 }
 
-func printUsage(asked *flag.FlagSet, writing io.Writer) {
-	_, _ = fmt.Fprintln(writing, "Check a Bash command against the shared agent permission policy.")
-	_, _ = fmt.Fprintln(writing, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n       tooluse-screener help\n\nFlags:")
-	printFlags(asked, writing)
+func printUsage(flagSet *flag.FlagSet, writer io.Writer) {
+	_, _ = fmt.Fprintln(writer, "Check a Bash command against the shared agent permission policy.")
+	_, _ = fmt.Fprintln(writer, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n       tooluse-screener help\n\nFlags:")
+	printFlags(flagSet, writer)
 }
 
-func printFlags(asked *flag.FlagSet, writing io.Writer) {
-	asked.VisitAll(func(one *flag.Flag) {
+func printFlags(flagSet *flag.FlagSet, writer io.Writer) {
+	flagSet.VisitAll(func(one *flag.Flag) {
 		placeholder, purpose := flag.UnquoteUsage(one)
-		_, _ = fmt.Fprintf(writing, "  %s\n        %s\n", flagName(one, placeholder), purpose)
+		_, _ = fmt.Fprintf(writer, "  %s\n        %s\n", flagName(one, placeholder), purpose)
 	})
 }
 

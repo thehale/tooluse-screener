@@ -13,15 +13,15 @@ type Command struct {
 }
 
 func All(text string) []Command {
-	var found []Command
-	var moved []string
-	for _, written := range split(withLinesJoined(text)) {
-		if command := withSpacesCollapsed(written); command != "" {
-			found = append(found, Command{command, moved})
-			moved = movesAfter(command, moved)
+	var commands []Command
+	var destinations []string
+	for _, part := range split(withLinesJoined(text)) {
+		if command := withSpacesCollapsed(part); command != "" {
+			commands = append(commands, Command{command, destinations})
+			destinations = movesAfter(command, destinations)
 		}
 	}
-	return found
+	return commands
 }
 
 func withLinesJoined(text string) string {
@@ -29,32 +29,32 @@ func withLinesJoined(text string) string {
 }
 
 func split(text string) []string {
-	literal, substituted := withoutSubstitutions(text)
-	found := splitAtSeparators(literal)
-	for _, substitution := range substituted {
-		found = append(found, split(substitution)...)
+	outerText, substitutions := withoutSubstitutions(text)
+	parts := splitAtSeparators(outerText)
+	for _, substitution := range substitutions {
+		parts = append(parts, split(substitution)...)
 	}
-	return found
+	return parts
 }
 
-func withoutSubstitutions(text string) (literal string, substituted []string) {
+func withoutSubstitutions(text string) (outerText string, substitutions []string) {
 	var runs strings.Builder
 	for index := 0; index < len(text); {
-		opener, opened := substitutionOpeningAt(text, index)
-		if !opened {
+		opener, isOpening := substitutionOpeningAt(text, index)
+		if !isOpening {
 			runs.WriteByte(text[index])
 			index++
 		} else {
 			contents, resumed := readSubstitution(text, index, opener)
-			substituted = append(substituted, contents)
+			substitutions = append(substitutions, contents)
 			runs.WriteString(Unquotable)
 			index = resumed
 		}
 	}
-	return runs.String(), substituted
+	return runs.String(), substitutions
 }
 
-func substitutionOpeningAt(text string, index int) (opener string, opened bool) {
+func substitutionOpeningAt(text string, index int) (opener string, isOpening bool) {
 	rest := text[index:]
 	if strings.HasPrefix(rest, arithmeticOpener) {
 		return "", false
@@ -116,18 +116,18 @@ func restFrom(text string, begins int) (contents string, resumed int) {
 }
 
 func splitAtSeparators(text string) []string {
-	var found []string
+	var parts []string
 	start := 0
 	for index := 0; index < len(text); {
 		if width := separatorAt(text, index); width == 0 {
 			index++
 		} else {
-			found = append(found, text[start:index])
+			parts = append(parts, text[start:index])
 			index += width
 			start = index
 		}
 	}
-	return append(found, text[start:])
+	return append(parts, text[start:])
 }
 
 func separatorAt(text string, index int) int {

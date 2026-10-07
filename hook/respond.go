@@ -19,10 +19,10 @@ func response(payload toolCall, verdict policy.Verdict) (envelope map[string]any
 const blocked = 2
 
 func event(payload toolCall) string {
-	if named := text(payload, "hook_event_name"); named == "" {
+	if eventName := text(payload, "hook_event_name"); eventName == "" {
 		return "PreToolUse"
 	} else {
-		return named
+		return eventName
 	}
 }
 

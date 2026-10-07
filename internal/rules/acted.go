@@ -9,20 +9,20 @@ import (
 	"github.com/thehale/tooluse-screener/internal/directories"
 )
 
-func directoriesActedIn(moved, pointed []string) []string {
-	acted := slices.Clone(pointed)
-	for _, here := range moved {
-		for _, there := range orHere(pointed) {
-			acted = append(acted, directories.Within(here, there))
+func directoriesActedIn(destinations, targets []string) []string {
+	dirs := slices.Clone(targets)
+	for _, here := range destinations {
+		for _, there := range orHere(targets) {
+			dirs = append(dirs, directories.Within(here, there))
 		}
 	}
-	return acted
+	return dirs
 }
 
-func orHere(pointed []string) []string {
-	if len(pointed) == 0 {
+func orHere(targets []string) []string {
+	if len(targets) == 0 {
 		return []string{"."}
 	} else {
-		return pointed
+		return targets
 	}
 }

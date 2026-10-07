@@ -21,21 +21,21 @@ func Load() (Policy, error) {
 }
 
 func LoadFile(path string) (Policy, error) {
-	written, err := os.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	if err != nil {
 		return Policy{}, err
 	}
-	return Parse(written)
+	return Parse(contents)
 }
 
 const Variable = "TOOLUSE_SCREENER_POLICY_FILE"
 const fileName = "tooluse-screener/policy.yaml"
 
 func configuredPath() (string, error) {
-	if set := os.Getenv(Variable); set == "" {
+	if envPath := os.Getenv(Variable); envPath == "" {
 		return pathInConfigDirectory()
 	} else {
-		return set, nil
+		return envPath, nil
 	}
 }
 

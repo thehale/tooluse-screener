@@ -13,17 +13,17 @@ import (
 
 type GitSubcommand struct {
 	wording
-	subcommand string
-	having     []string
+	subcommand    string
+	requiredWords []string
 }
 
-func NewGitSubcommand(subcommand string, having []string, reason, name string) Rule {
-	return GitSubcommand{wording{reason, name}, subcommand, having}
+func NewGitSubcommand(subcommand string, requiredWords []string, reason, name string) Rule {
+	return GitSubcommand{wording{reason, name}, subcommand, requiredWords}
 }
 
 func (g GitSubcommand) isMatch(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	return invocation.IsA(g.subcommand) && invocation.HasAll(g.having)
+	return invocation.IsA(g.subcommand) && invocation.HasAll(g.requiredWords)
 }
 
 func (g GitSubcommand) At(command commands.Command) int {
@@ -36,17 +36,17 @@ func (g GitSubcommand) At(command commands.Command) int {
 
 func (g GitSubcommand) Span(command commands.Command) int {
 	if g.isMatch(command) {
-		return endOf(command.Text, append([]string{g.subcommand}, g.having...))
+		return endOf(command.Text, append([]string{g.subcommand}, g.requiredWords...))
 	} else {
 		return 0
 	}
 }
 
-func endOf(command string, wanted []string) int {
+func endOf(command string, words []string) int {
 	end, at := 0, 0
 	for _, word := range strings.Fields(command) {
 		at = strings.Index(command[at:], word) + at
-		if slices.Contains(wanted, word) {
+		if slices.Contains(words, word) {
 			end = max(end, at+len(word))
 		}
 		at += len(word)
@@ -55,5 +55,5 @@ func endOf(command string, wanted []string) int {
 }
 
 func (g GitSubcommand) String() string {
-	return g.nameOr(strings.Join(append([]string{"git", g.subcommand}, g.having...), " "))
+	return g.nameOr(strings.Join(append([]string{"git", g.subcommand}, g.requiredWords...), " "))
 }

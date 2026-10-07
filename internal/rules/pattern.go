@@ -16,11 +16,11 @@ type Pattern struct {
 }
 
 func NewPattern(expression, reason, name string) (Rule, error) {
-	built, err := regexp.Compile(expression)
+	regex, err := regexp.Compile(expression)
 	if err != nil {
 		return nil, err
 	}
-	return Pattern{wording{reason, name}, built, expression}, nil
+	return Pattern{wording{reason, name}, regex, expression}, nil
 }
 
 func (p Pattern) At(command commands.Command) int {

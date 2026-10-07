@@ -12,10 +12,10 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func (i Invocation) Landing(dirs []string) (branch string, known bool) {
-	words, readable := i.pushWords()
+func (i Invocation) Landing(dirs []string) (branch string, isKnown bool) {
+	words, isReadable := i.pushWords()
 	switch {
-	case !readable:
+	case !isReadable:
 		return "", false
 	case len(words) == 2 && withoutForce(words[1]) != "HEAD":
 		return onto(words[0], branchOf(withoutForce(words[1])))
@@ -25,15 +25,15 @@ func (i Invocation) Landing(dirs []string) (branch string, known bool) {
 }
 
 func isForceOption(option string) bool {
-	spoken := []string{"-f", "--force", "--force-with-lease", "--force-if-includes"}
-	return slices.Contains(spoken, option) || strings.HasPrefix(option, "--force-with-lease=")
+	forceOptions := []string{"-f", "--force", "--force-with-lease", "--force-if-includes"}
+	return slices.Contains(forceOptions, option) || strings.HasPrefix(option, "--force-with-lease=")
 }
 
 func withoutForce(refspec string) string {
 	return strings.TrimPrefix(refspec, "+")
 }
 
-func (i Invocation) pushWords() (words []string, readable bool) {
+func (i Invocation) pushWords() (words []string, isReadable bool) {
 	options, words := optionsAndWords(i.Arguments)
 	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && isLandingKept(options, i.Global)
 }
@@ -44,21 +44,21 @@ func onto(remote, branch string) (string, bool) {
 
 func commonBranch(dirs []string, landing func(string) (string, bool)) (string, bool) {
 	branches := make([]string, 0, len(dirs))
-	known := true
+	isKnown := true
 	for _, dir := range dirs {
-		branch, read := landing(dir)
+		branch, isRead := landing(dir)
 		branches = append(branches, branch)
-		known = known && read
+		isKnown = isKnown && isRead
 	}
 	slices.Sort(branches)
-	settled := slices.Compact(branches)
-	return cmp.Or(settled...), known && len(settled) == 1
+	distinct := slices.Compact(branches)
+	return cmp.Or(distinct...), isKnown && len(distinct) == 1
 }
 
 func landingIn(dir string, words []string) (string, bool) {
-	repo, open := repositoryAt(dir)
+	repo, isOpen := repositoryAt(dir)
 	switch {
-	case !open:
+	case !isOpen:
 		return "", false
 	case len(words) == 2:
 		return onto(words[0], branchIn(repo.branch))
@@ -75,8 +75,8 @@ func isLandingKept(options, global []string) bool {
 }
 
 func isLandingKeptBy(option string) bool {
-	spoken := []string{"-u", "--set-upstream", "-q", "--quiet", "-v", "--verbose", "--progress"}
-	return slices.Contains(spoken, option) || isForceOption(option)
+	neutralOptions := []string{"-u", "--set-upstream", "-q", "--quiet", "-v", "--verbose", "--progress"}
+	return slices.Contains(neutralOptions, option) || isForceOption(option)
 }
 
 func isDirectoryOnly(option string) bool {
@@ -95,11 +95,11 @@ func optionsAndWords(arguments []string) (options, words []string) {
 }
 
 func branchOf(refspec string) string {
-	source, destination, paired := strings.Cut(refspec, ":")
+	source, destination, isPaired := strings.Cut(refspec, ":")
 	switch {
 	case source == "":
 		return ""
-	case !paired:
+	case !isPaired:
 		return branchIn(source)
 	default:
 		return branchIn(destination)

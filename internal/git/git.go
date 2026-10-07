@@ -29,8 +29,8 @@ func Read(command string) Invocation {
 }
 
 func invocationOf(command string, words []string) Invocation {
-	directories, global, spoken := afterGlobalOptions(append(twinOptions(command), words...))
-	subcommand, arguments := subcommandAndArguments(spoken)
+	directories, global, rest := afterGlobalOptions(append(twinOptions(command), words...))
+	subcommand, arguments := subcommandAndArguments(rest)
 	return Invocation{
 		Git:         true,
 		Subcommand:  subcommand,
@@ -57,17 +57,17 @@ func (i Invocation) has(word string) bool {
 	}
 }
 
-func afterGlobalOptions(words []string) (directories, global, spoken []string) {
-	var pointed []pointing
+func afterGlobalOptions(words []string) (directories, global, rest []string) {
+	var pointings []pointing
 	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
-		option, value, joined := strings.Cut(words[0], "=")
+		option, value, isJoined := strings.Cut(words[0], "=")
 		if isDirectoryOption(option) {
-			pointed = append(pointed, pointing{option, directoryFrom(value, joined, words)})
+			pointings = append(pointings, pointing{option, directoryFrom(value, isJoined, words)})
 		}
 		global = append(global, option)
-		words = words[stride(option, joined, len(words)):]
+		words = words[stride(option, isJoined, len(words)):]
 	}
-	return directoriesOf(pointed), global, words
+	return directoriesOf(pointings), global, words
 }
 
 func isDirectoryOption(option string) bool {
@@ -75,9 +75,9 @@ func isDirectoryOption(option string) bool {
 	return slices.Contains(pointing, option)
 }
 
-func directoryFrom(value string, joined bool, words []string) string {
+func directoryFrom(value string, isJoined bool, words []string) string {
 	switch {
-	case joined:
+	case isJoined:
 		return commands.Literal(value)
 	case len(words) > 1:
 		return commands.Literal(words[1])
@@ -86,8 +86,8 @@ func directoryFrom(value string, joined bool, words []string) string {
 	}
 }
 
-func stride(option string, joined bool, remaining int) int {
-	if joined || !hasAValue(option) || remaining < 2 {
+func stride(option string, isJoined bool, wordsLeft int) int {
+	if isJoined || !hasAValue(option) || wordsLeft < 2 {
 		return 1
 	} else {
 		return 2
@@ -99,10 +99,10 @@ func hasAValue(option string) bool {
 	return slices.Contains(withValues, option)
 }
 
-func subcommandAndArguments(spoken []string) (subcommand string, arguments []string) {
-	if len(spoken) == 0 {
+func subcommandAndArguments(rest []string) (subcommand string, arguments []string) {
+	if len(rest) == 0 {
 		return "", nil
 	} else {
-		return spoken[0], spoken[1:]
+		return rest[0], rest[1:]
 	}
 }

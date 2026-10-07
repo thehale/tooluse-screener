@@ -14,38 +14,38 @@ type pointing struct {
 	directory string
 }
 
-func directoriesOf(pointed []pointing) []string {
-	entered := enteredDirectories(pointed)
-	return append(entered, namedDirectories(lastOf(entered), pointed)...)
+func directoriesOf(pointings []pointing) []string {
+	entries := enteredDirectories(pointings)
+	return append(entries, namedDirectories(lastOf(entries), pointings)...)
 }
 
-func enteredDirectories(pointed []pointing) []string {
-	var entered []string
+func enteredDirectories(pointings []pointing) []string {
+	var entries []string
 	here := "."
-	for _, one := range pointed {
+	for _, one := range pointings {
 		if one.option == "-C" {
 			here = directories.Within(here, one.directory)
-			entered = append(entered, here)
+			entries = append(entries, here)
 		}
 	}
-	return entered
+	return entries
 }
 
-func namedDirectories(here string, pointed []pointing) []string {
-	var named []string
-	for _, one := range pointed {
+func namedDirectories(here string, pointings []pointing) []string {
+	var dirs []string
+	for _, one := range pointings {
 		if one.option != "-C" {
-			named = append(named, directories.Within(here, one.directory))
+			dirs = append(dirs, directories.Within(here, one.directory))
 		}
 	}
-	return named
+	return dirs
 }
 
-func lastOf(entered []string) string {
-	if len(entered) == 0 {
+func lastOf(dirs []string) string {
+	if len(dirs) == 0 {
 		return "."
 	} else {
-		return entered[len(entered)-1]
+		return dirs[len(dirs)-1]
 	}
 }
 

@@ -24,10 +24,10 @@ func isStandalone(path string) bool {
 }
 
 func Destination(here, path string) string {
-	named := WithHomeExpanded(Within(here, path))
-	if named == "" || strings.HasPrefix(named, "~") {
+	expandedPath := WithHomeExpanded(Within(here, path))
+	if expandedPath == "" || strings.HasPrefix(expandedPath, "~") {
 		return ""
 	} else {
-		return filepath.Clean(named)
+		return filepath.Clean(expandedPath)
 	}
 }

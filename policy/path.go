@@ -6,14 +6,14 @@ package policy
 import "fmt"
 
 func (p Policy) CheckPath(path string) Verdict {
-	refused := p.denied.pathRules.GlobsMatching(path)
-	permitted := p.allowed.pathRules.GlobsMatching(path)
+	denyingGlobs := p.denied.pathRules.GlobsMatching(path)
+	allowingGlobs := p.allowed.pathRules.GlobsMatching(path)
 
 	switch {
-	case len(refused) > 0:
-		return Verdict{Deny, refusal("Path", refused[0], refused[0].Reason())}
-	case len(permitted) > 0:
-		return Verdict{Allow, fmt.Sprintf("Path is allowed: %s", permitted[0])}
+	case len(denyingGlobs) > 0:
+		return Verdict{Deny, refusal("Path", denyingGlobs[0], denyingGlobs[0].Reason())}
+	case len(allowingGlobs) > 0:
+		return Verdict{Allow, fmt.Sprintf("Path is allowed: %s", allowingGlobs[0])}
 	default:
 		return unlistedPath
 	}

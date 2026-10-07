@@ -18,15 +18,15 @@ type Glob struct {
 	written string
 }
 
-func NewGlob(written, reason, name string) (Glob, error) {
-	expanded := directories.WithHomeExpanded(written)
-	switch _, err := path.Match(filepath.ToSlash(expanded), ""); {
-	case !filepath.IsAbs(expanded):
-		return Glob{}, fmt.Errorf("a path is written from / or ~, and this is not: %s", written)
+func NewGlob(text, reason, name string) (Glob, error) {
+	expandedPath := directories.WithHomeExpanded(text)
+	switch _, err := path.Match(filepath.ToSlash(expandedPath), ""); {
+	case !filepath.IsAbs(expandedPath):
+		return Glob{}, fmt.Errorf("a path is written from / or ~, and this is not: %s", text)
 	case err != nil:
-		return Glob{}, fmt.Errorf("%s: %w", written, err)
+		return Glob{}, fmt.Errorf("%s: %w", text, err)
 	default:
-		return Glob{wording{reason, name}, names(expanded), written}, nil
+		return Glob{wording{reason, name}, names(expandedPath), text}, nil
 	}
 }
 
@@ -50,8 +50,8 @@ func isMatch(glob, file []string) bool {
 }
 
 func isNameMatch(glob, name string) bool {
-	fitting, _ := path.Match(glob, name)
-	return fitting
+	isFit, _ := path.Match(glob, name)
+	return isFit
 }
 
 func (g Glob) Reason() string {

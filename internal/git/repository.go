@@ -26,23 +26,23 @@ func repositoryAt(dir string) (repository, bool) {
 }
 
 func repositoryFrom(path string) (repository, bool) {
-	branch, unborn := gitOutput(path, "symbolic-ref", "--quiet", "--short", "HEAD")
-	listed, unlisted := gitOutput(path, "config", "--list", "-z")
-	return repository{branch, settings(listed)}, unborn == nil && unlisted == nil
+	branch, branchErr := gitOutput(path, "symbolic-ref", "--quiet", "--short", "HEAD")
+	listing, listErr := gitOutput(path, "config", "--list", "-z")
+	return repository{branch, settings(listing)}, branchErr == nil && listErr == nil
 }
 
 func gitOutput(path string, arguments ...string) (string, error) {
-	said, err := exec.Command("git", append([]string{"-C", path}, arguments...)...).Output()
-	return strings.TrimSpace(string(said)), err
+	output, err := exec.Command("git", append([]string{"-C", path}, arguments...)...).Output()
+	return strings.TrimSpace(string(output)), err
 }
 
-func settings(listed string) map[string]string {
-	found := map[string]string{}
-	for _, entry := range strings.Split(listed, "\x00") {
+func settings(listing string) map[string]string {
+	byKey := map[string]string{}
+	for _, entry := range strings.Split(listing, "\x00") {
 		key, value, _ := strings.Cut(entry, "\n")
-		found[key] = value
+		byKey[key] = value
 	}
-	return found
+	return byKey
 }
 
 func (r repository) landing(remote string) (string, bool) {
@@ -57,9 +57,9 @@ func (r repository) landing(remote string) (string, bool) {
 }
 
 func (r repository) onto(remote, ref string) (string, bool) {
-	_, rewritten := r.settings["remote."+remote+".push"]
-	branch, known := onto(remote, branchIn(ref))
-	return branch, known && !rewritten
+	_, isRewritten := r.settings["remote."+remote+".push"]
+	branch, isKnown := onto(remote, branchIn(ref))
+	return branch, isKnown && !isRewritten
 }
 
 func (r repository) pushRemote() string {

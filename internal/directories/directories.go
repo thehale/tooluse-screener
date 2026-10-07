@@ -18,10 +18,10 @@ func AreAllUnder(paths, roots []string) bool {
 }
 
 func isInside(root, path string) bool {
-	outer, outerKnown := absolutePath(root)
-	inner, innerKnown := absolutePath(path)
+	outer, isOuterKnown := absolutePath(root)
+	inner, isInnerKnown := absolutePath(path)
 	switch {
-	case !outerKnown || !innerKnown:
+	case !isOuterKnown || !isInnerKnown:
 		return false
 	case inner == outer:
 		return true
@@ -36,16 +36,16 @@ func withTrailingSeparator(root string) string {
 }
 
 func RealPath(path string) string {
-	resolved, _ := absolutePath(path)
-	return resolved
+	realPath, _ := absolutePath(path)
+	return realPath
 }
 
 func absolutePath(path string) (string, bool) {
-	if named := WithHomeExpanded(path); named == "" || strings.HasPrefix(named, "~") {
+	if expandedPath := WithHomeExpanded(path); expandedPath == "" || strings.HasPrefix(expandedPath, "~") {
 		return "", false
 	} else {
-		from, known := workingDirectory(named)
-		return endpoint(from, strings.TrimPrefix(named, filepath.VolumeName(named))), known
+		from, isKnown := workingDirectory(expandedPath)
+		return endpoint(from, strings.TrimPrefix(expandedPath, filepath.VolumeName(expandedPath))), isKnown
 	}
 }
 

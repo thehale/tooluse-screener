@@ -14,10 +14,10 @@ var defaultYAML []byte
 
 var builtIn = mustParse(defaultYAML)
 
-func mustParse(written []byte) Policy {
-	built, err := Parse(written)
+func mustParse(contents []byte) Policy {
+	policy, err := Parse(contents)
 	if err != nil {
 		panic(err)
 	}
-	return built
+	return policy
 }
