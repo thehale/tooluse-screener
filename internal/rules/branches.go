@@ -14,14 +14,14 @@ type Branches struct {
 	NotOnto []string
 }
 
-func (b Branches) unsaid() bool {
+func (b Branches) isUnsaid() bool {
 	return len(b.Onto) == 0 && len(b.NotOnto) == 0
 }
 
-func (b Branches) includes(branch string) bool {
-	return (len(b.Onto) == 0 || among(b.Onto, branch)) && !among(b.NotOnto, branch)
+func (b Branches) isListed(branch string) bool {
+	return (len(b.Onto) == 0 || isAmong(b.Onto, branch)) && !isAmong(b.NotOnto, branch)
 }
 
-func among(names []string, branch string) bool {
+func isAmong(names []string, branch string) bool {
 	return lists.Some(names, func(one string) bool { return strings.EqualFold(one, branch) })
 }

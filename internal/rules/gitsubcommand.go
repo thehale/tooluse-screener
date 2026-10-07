@@ -21,13 +21,13 @@ func NewGitSubcommand(subcommand string, having []string, reason, name string) R
 	return GitSubcommand{wording{reason, name}, subcommand, having}
 }
 
-func (g GitSubcommand) matches(command commands.Command) bool {
+func (g GitSubcommand) isMatch(command commands.Command) bool {
 	invocation := git.Read(command.Text)
 	return invocation.IsA(g.subcommand) && invocation.Carries(g.having)
 }
 
 func (g GitSubcommand) At(command commands.Command) int {
-	if g.matches(command) {
+	if g.isMatch(command) {
 		return 0
 	} else {
 		return -1
@@ -35,14 +35,14 @@ func (g GitSubcommand) At(command commands.Command) int {
 }
 
 func (g GitSubcommand) Span(command commands.Command) int {
-	if g.matches(command) {
-		return past(command.Text, append([]string{g.subcommand}, g.having...))
+	if g.isMatch(command) {
+		return endOf(command.Text, append([]string{g.subcommand}, g.having...))
 	} else {
 		return 0
 	}
 }
 
-func past(command string, wanted []string) int {
+func endOf(command string, wanted []string) int {
 	end, at := 0, 0
 	for _, word := range strings.Fields(command) {
 		at = strings.Index(command[at:], word) + at
@@ -55,5 +55,5 @@ func past(command string, wanted []string) int {
 }
 
 func (g GitSubcommand) String() string {
-	return g.calls(strings.Join(append([]string{"git", g.subcommand}, g.having...), " "))
+	return g.nameOr(strings.Join(append([]string{"git", g.subcommand}, g.having...), " "))
 }

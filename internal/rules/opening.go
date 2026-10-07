@@ -24,13 +24,13 @@ func (o Opening) At(command commands.Command) int {
 func (o Opening) Span(command commands.Command) int {
 	spoken := commands.Command{Text: commands.Spoken(command.Text), Moved: command.Moved}
 	accounted := o.Rule.Span(spoken)
-	if o.Rule.At(spoken) == 0 && endsAWord(spoken.Text, accounted) {
+	if o.Rule.At(spoken) == 0 && isWordBoundary(spoken.Text, accounted) {
 		return accounted
 	} else {
 		return 0
 	}
 }
 
-func endsAWord(spoken string, at int) bool {
+func isWordBoundary(spoken string, at int) bool {
 	return at > 0 && (at == len(spoken) || spoken[at] == ' ')
 }

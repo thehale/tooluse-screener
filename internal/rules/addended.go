@@ -30,7 +30,7 @@ func NewAddended(rule Rule, addenda []Addendum) Rule {
 func (a Addended) Reason(command commands.Command) string {
 	reasons := []string{a.Rule.Reason(command)}
 	for _, addendum := range a.addenda {
-		if addendum.scope.includes(command) {
+		if addendum.scope.isInScope(command) {
 			reasons = append(reasons, addendum.reason)
 		}
 	}

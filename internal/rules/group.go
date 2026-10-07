@@ -10,11 +10,11 @@ import (
 
 type Group []Rule
 
-func (g Group) Matches(command commands.Command) bool {
+func (g Group) HasMatchFor(command commands.Command) bool {
 	return lists.Some(g, func(rule Rule) bool { return rule.At(command) >= 0 })
 }
 
-func (g Group) Matching(command commands.Command) Group {
+func (g Group) RulesMatching(command commands.Command) Group {
 	var matched Group
 	for _, rule := range g {
 		if rule.At(command) >= 0 {

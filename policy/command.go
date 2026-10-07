@@ -32,7 +32,7 @@ var unlistedCommand = Verdict{Ask, "Command is not in the shared allow list"}
 func (p Policy) refusals(found []command.Command) []string {
 	var reasons []string
 	for _, one := range found {
-		for _, rule := range standingDenials(p.denied.commandRules.Matching(one), p.allowed.commandRules, one) {
+		for _, rule := range standingDenials(p.denied.commandRules.RulesMatching(one), p.allowed.commandRules, one) {
 			reasons = append(reasons, refusal("Command", rule, rule.Reason(one)))
 		}
 	}
@@ -61,7 +61,7 @@ func isAccountedForBy(line command.Command, rule spanning) bool {
 func permissions(allowed rules.Group, found []command.Command) [][]rules.Rule {
 	vouching := make([][]rules.Rule, 0, len(found))
 	for _, one := range found {
-		vouching = append(vouching, allowed.Matching(one))
+		vouching = append(vouching, allowed.RulesMatching(one))
 	}
 	return vouching
 }

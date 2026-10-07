@@ -9,7 +9,7 @@ import (
 	"github.com/thehale/tooluse-screener/internal/directories"
 )
 
-func actedIn(moved, pointed []string) []string {
+func directoriesActedIn(moved, pointed []string) []string {
 	acted := slices.Clone(pointed)
 	for _, here := range moved {
 		for _, there := range orHere(pointed) {

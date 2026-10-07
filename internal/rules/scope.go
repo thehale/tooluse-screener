@@ -18,21 +18,21 @@ func NewScope(dirs []string, branches Branches) Scope {
 	return Scope{dirs, branches}
 }
 
-func (s Scope) includes(command commands.Command) bool {
+func (s Scope) isInScope(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	acted := actedIn(command.Moved, orHere(invocation.PointedAt()))
-	return s.runsInADir(acted) && s.landsOnABranch(invocation, acted)
+	acted := directoriesActedIn(command.Moved, orHere(invocation.PointedAt()))
+	return s.isInADir(acted) && s.isOnABranch(invocation, acted)
 }
 
-func (s Scope) runsInADir(acted []string) bool {
+func (s Scope) isInADir(acted []string) bool {
 	return len(s.dirs) == 0 || directories.AllUnder(acted, s.dirs)
 }
 
-func (s Scope) landsOnABranch(invocation git.Invocation, acted []string) bool {
-	if s.branches.unsaid() {
+func (s Scope) isOnABranch(invocation git.Invocation, acted []string) bool {
+	if s.branches.isUnsaid() {
 		return true
 	} else {
 		branch, known := invocation.Landing(acted)
-		return known && s.branches.includes(branch)
+		return known && s.branches.isListed(branch)
 	}
 }

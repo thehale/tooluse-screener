@@ -15,7 +15,7 @@ func NewScoped(rule Rule, scope Scope) Rule {
 }
 
 func (r Scoped) At(command commands.Command) int {
-	if r.scope.includes(command) {
+	if r.scope.isInScope(command) {
 		return r.Rule.At(command)
 	} else {
 		return -1
@@ -23,7 +23,7 @@ func (r Scoped) At(command commands.Command) int {
 }
 
 func (r Scoped) Span(command commands.Command) int {
-	if r.scope.includes(command) {
+	if r.scope.isInScope(command) {
 		return r.Rule.Span(command)
 	} else {
 		return 0

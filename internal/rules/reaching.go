@@ -19,7 +19,7 @@ func NewReaching(rule Rule, trusted []string) Rule {
 }
 
 func (r Reaching) At(command commands.Command) int {
-	if r.reaches(command) {
+	if r.isReachable(command) {
 		return r.Rule.At(command)
 	} else {
 		return -1
@@ -27,14 +27,14 @@ func (r Reaching) At(command commands.Command) int {
 }
 
 func (r Reaching) Span(command commands.Command) int {
-	if r.reaches(command) {
+	if r.isReachable(command) {
 		return r.Rule.Span(command)
 	} else {
 		return 0
 	}
 }
 
-func (r Reaching) reaches(command commands.Command) bool {
+func (r Reaching) isReachable(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	return !invocation.Git || directories.AllUnder(actedIn(command.Moved, invocation.PointedAt()), r.trusted)
+	return !invocation.Git || directories.AllUnder(directoriesActedIn(command.Moved, invocation.PointedAt()), r.trusted)
 }

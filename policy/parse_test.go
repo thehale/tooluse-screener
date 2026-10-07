@@ -97,7 +97,7 @@ func TestAnEntryWithAReason(t *testing.T) {
 	t.Run("a bare command is the same entry without one", func(t *testing.T) {
 		bare := parsed(t, "denied:\n  - shutdown\n").denied.commandRules
 		grouped := parsed(t, "denied:\n  - commands: shutdown\n").denied.commandRules
-		if bare.Matches(said("shutdown now")) != grouped.Matches(said("shutdown now")) {
+		if bare.HasMatchFor(said("shutdown now")) != grouped.HasMatchFor(said("shutdown now")) {
 			t.Error("a bare command is not the same as one written out")
 		}
 		reasons(t, bare, "shutdown now", "")
@@ -475,7 +475,7 @@ func refuses(t *testing.T, configuration, complaint string) {
 
 func matches(t *testing.T, wanted bool, group rules.Group, command string) {
 	t.Helper()
-	if got := group.Matches(said(command)); got != wanted {
+	if got := group.HasMatchFor(said(command)); got != wanted {
 		t.Errorf("%s matching %q = %v, wanted %v", group, command, got, wanted)
 	}
 }
@@ -496,7 +496,7 @@ func named(t *testing.T, group rules.Group, command, wanted string) {
 
 func matching(t *testing.T, group rules.Group, command string) rules.Rule {
 	t.Helper()
-	matched := group.Matching(said(command))
+	matched := group.RulesMatching(said(command))
 	if len(matched) == 0 {
 		t.Fatalf("%q matched nothing", command)
 	}

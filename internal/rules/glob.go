@@ -30,26 +30,26 @@ func NewGlob(written, reason, name string) (Glob, error) {
 	}
 }
 
-func (g Glob) Matches(file string) bool {
-	return fits(g.names, names(file)) || fits(g.names, names(directories.Followed(file)))
+func (g Glob) IsMatchFor(file string) bool {
+	return isMatch(g.names, names(file)) || isMatch(g.names, names(directories.Followed(file)))
 }
 
 func names(file string) []string {
 	return strings.Split(filepath.ToSlash(filepath.Clean(file)), "/")
 }
 
-func fits(glob, file []string) bool {
+func isMatch(glob, file []string) bool {
 	switch {
 	case len(glob) == 0:
 		return len(file) == 0
 	case glob[0] == "**":
-		return fits(glob[1:], file) || len(file) > 0 && fits(glob, file[1:])
+		return isMatch(glob[1:], file) || len(file) > 0 && isMatch(glob, file[1:])
 	default:
-		return len(file) > 0 && fitsName(glob[0], file[0]) && fits(glob[1:], file[1:])
+		return len(file) > 0 && isNameMatch(glob[0], file[0]) && isMatch(glob[1:], file[1:])
 	}
 }
 
-func fitsName(glob, name string) bool {
+func isNameMatch(glob, name string) bool {
 	fitting, _ := path.Match(glob, name)
 	return fitting
 }
@@ -59,5 +59,5 @@ func (g Glob) Reason() string {
 }
 
 func (g Glob) String() string {
-	return g.calls(g.written)
+	return g.nameOr(g.written)
 }

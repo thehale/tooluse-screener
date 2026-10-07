@@ -5,10 +5,10 @@ package rules
 
 type Globs []Glob
 
-func (g Globs) Matching(path string) Globs {
+func (g Globs) GlobsMatching(path string) Globs {
 	var matched Globs
 	for _, glob := range g {
-		if glob.Matches(path) {
+		if glob.IsMatchFor(path) {
 			matched = append(matched, glob)
 		}
 	}

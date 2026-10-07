@@ -21,7 +21,7 @@ func (w wording) Reason(commands.Command) string {
 	return w.reason
 }
 
-func (w wording) calls(written string) string {
+func (w wording) nameOr(written string) string {
 	if w.name == "" {
 		return written
 	} else {

@@ -24,10 +24,10 @@ func NewPattern(expression, reason, name string) (Rule, error) {
 }
 
 func (p Pattern) At(command commands.Command) int {
-	return opened(p.expression.FindStringIndex(command.Text))
+	return start(p.expression.FindStringIndex(command.Text))
 }
 
-func opened(at []int) int {
+func start(at []int) int {
 	if at == nil {
 		return -1
 	} else {
@@ -36,10 +36,10 @@ func opened(at []int) int {
 }
 
 func (p Pattern) Span(command commands.Command) int {
-	return spanned(p.expression.FindStringIndex(command.Text))
+	return width(p.expression.FindStringIndex(command.Text))
 }
 
-func spanned(at []int) int {
+func width(at []int) int {
 	if at == nil {
 		return 0
 	} else {
@@ -48,5 +48,5 @@ func spanned(at []int) int {
 }
 
 func (p Pattern) String() string {
-	return p.calls(p.written)
+	return p.nameOr(p.written)
 }

@@ -25,7 +25,7 @@ func (w Words) At(command commands.Command) int {
 		switch {
 		case found < 0:
 			return -1
-		case w.standsAlone(text, from+found):
+		case w.isStandaloneAt(text, from+found):
 			return from + found
 		default:
 			from += found + 1
@@ -34,22 +34,22 @@ func (w Words) At(command commands.Command) int {
 	return -1
 }
 
-func (w Words) standsAlone(command string, at int) bool {
-	return w.opensAWord(command, at) && w.closesAWord(command, at)
+func (w Words) isStandaloneAt(command string, at int) bool {
+	return w.isWordStartAt(command, at) && w.isWordEndAt(command, at)
 }
 
-func (w Words) opensAWord(command string, at int) bool {
-	return at == 0 || !joinsAWord(command[at-1]) || !joinsAWord(w.text[0])
+func (w Words) isWordStartAt(command string, at int) bool {
+	return at == 0 || !isWordLetter(command[at-1]) || !isWordLetter(w.text[0])
 }
 
-func (w Words) closesAWord(command string, at int) bool {
+func (w Words) isWordEndAt(command string, at int) bool {
 	after := at + len(w.text)
 	return after == len(command) ||
-		!joinsAWord(command[after]) ||
-		!joinsAWord(w.text[len(w.text)-1])
+		!isWordLetter(command[after]) ||
+		!isWordLetter(w.text[len(w.text)-1])
 }
 
-func joinsAWord(letter byte) bool {
+func isWordLetter(letter byte) bool {
 	return letter == '_' || letter == '-' ||
 		('a' <= letter && letter <= 'z') ||
 		('A' <= letter && letter <= 'Z') ||
@@ -65,5 +65,5 @@ func (w Words) Span(command commands.Command) int {
 }
 
 func (w Words) String() string {
-	return w.calls(w.text)
+	return w.nameOr(w.text)
 }
