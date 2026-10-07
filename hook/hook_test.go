@@ -153,7 +153,7 @@ func TestWhatIsAsked(t *testing.T) {
 
 func asks(t *testing.T, payload toolCall, wanted string) {
 	t.Helper()
-	if verdict, _ := verdictOn(payload, echoing{}); verdict.Reason != wanted {
+	if verdict, _ := payload.verdict(echoing{}); verdict.Reason != wanted {
 		t.Errorf("%v asked about %q, wanted %q", payload, verdict.Reason, wanted)
 	}
 }
@@ -279,7 +279,7 @@ func TestCodexPermissionRequest(t *testing.T) {
 
 	t.Run("never blocks by exit code, because the envelope says everything", func(t *testing.T) {
 		for _, verdict := range []policy.Verdict{allow, deny, ask} {
-			if _, code := response(codex("ls", "PermissionRequest"), verdict); code != 0 {
+			if _, code := codex("ls", "PermissionRequest").response(verdict); code != 0 {
 				t.Errorf("%s -> exit %d, wanted 0", verdict, code)
 			}
 		}
@@ -346,14 +346,14 @@ func TestStdinToStdout(t *testing.T) {
 
 func leavesUndecided(t *testing.T, payload toolCall) {
 	t.Helper()
-	if verdict, isAsked := verdictOn(payload, always(deny)); isAsked {
+	if verdict, isAsked := payload.verdict(always(deny)); isAsked {
 		t.Errorf("%v -> %s, wanted no opinion", payload, verdict)
 	}
 }
 
 func responseTo(t *testing.T, payload toolCall, verdict policy.Verdict) (map[string]any, int) {
 	t.Helper()
-	envelope, code := response(payload, verdict)
+	envelope, code := payload.response(verdict)
 	if envelope == nil {
 		t.Fatalf("%v -> nothing, wanted an envelope", payload)
 	}
@@ -362,7 +362,7 @@ func responseTo(t *testing.T, payload toolCall, verdict policy.Verdict) (map[str
 
 func staysQuiet(t *testing.T, payload toolCall, verdict policy.Verdict, wanted int) {
 	t.Helper()
-	envelope, code := response(payload, verdict)
+	envelope, code := payload.response(verdict)
 	if envelope != nil || code != wanted {
 		t.Errorf("%v -> %v, exit %d, wanted nothing and %d", payload, envelope, code, wanted)
 	}

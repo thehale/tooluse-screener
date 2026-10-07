@@ -5,8 +5,8 @@ package hook
 
 import "github.com/thehale/tooluse-screener/policy"
 
-func response(payload toolCall, verdict policy.Verdict) (envelope map[string]any, code int) {
-	switch event(payload) {
+func (call toolCall) response(verdict policy.Verdict) (envelope map[string]any, code int) {
+	switch call.event() {
 	case "PermissionRequest":
 		return permissionRequestEnvelope(verdict), 0
 	case "PreToolUse":
@@ -18,8 +18,8 @@ func response(payload toolCall, verdict policy.Verdict) (envelope map[string]any
 
 const blocked = 2
 
-func event(payload toolCall) string {
-	if eventName := text(payload, "hook_event_name"); eventName == "" {
+func (call toolCall) event() string {
+	if eventName := call.text("hook_event_name"); eventName == "" {
 		return "PreToolUse"
 	} else {
 		return eventName
