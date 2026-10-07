@@ -30,7 +30,7 @@ func (call toolCall) answer(checker Checker, out, complaints io.Writer) int {
 func (call toolCall) reply(verdict policy.Verdict, out, complaints io.Writer) int {
 	envelope, code := call.response(verdict)
 	write(envelope, out)
-	if code == blocked {
+	if code == blockingExitCode {
 		_, _ = fmt.Fprintln(complaints, verdict.Reason)
 	}
 	return code
@@ -40,13 +40,13 @@ func (call toolCall) safeVerdict(checker Checker, complaints io.Writer) (verdict
 	defer func() {
 		if failure := recover(); failure != nil {
 			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
-			verdict, isAsked = failOpen, true
+			verdict, isAsked = failOpenVerdict, true
 		}
 	}()
 	return call.verdict(checker)
 }
 
-var failOpen = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
+var failOpenVerdict = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
 
 func write(envelope map[string]any, out io.Writer) {
 	if envelope != nil {

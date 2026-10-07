@@ -22,7 +22,7 @@ func (v Verdict) String() string {
 	return fmt.Sprintf("%s: %s", v.Decision, v.Reason)
 }
 
-func unlisted(subject string) Verdict {
+func unlistedVerdict(subject string) Verdict {
 	return Verdict{Ask, fmt.Sprintf("%s is not in the shared allow list", subject)}
 }
 

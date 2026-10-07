@@ -33,9 +33,9 @@ func asWritten(rule rules.Rule) rules.Rule {
 	return rule
 }
 
-func allowRuleIn(trusted []string) func(rules.Rule) rules.Rule {
+func allowRuleIn(trustedDirs []string) func(rules.Rule) rules.Rule {
 	return func(rule rules.Rule) rules.Rule {
-		return rules.NewReaching(rules.NewOpening(rule), trusted)
+		return rules.NewReaching(rules.NewOpening(rule), trustedDirs)
 	}
 }
 
@@ -98,9 +98,9 @@ func (e entries) commandRules(wrap func(rules.Rule) rules.Rule) (rules.Group, er
 }
 
 func (e entry) commandRules(wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
-	written, err := e.unscopedRules()
-	commandRules := make(rules.Group, 0, len(written))
-	for _, rule := range written {
+	rulesAsWritten, err := e.unscopedRules()
+	commandRules := make(rules.Group, 0, len(rulesAsWritten))
+	for _, rule := range rulesAsWritten {
 		commandRules = append(commandRules, e.addendedRule(e.scopedRule(wrap(rule))))
 	}
 	return commandRules, err

@@ -71,8 +71,8 @@ func afterGlobalOptions(words []string) (directories, global, rest []string) {
 }
 
 func isDirectoryOption(option string) bool {
-	pointing := []string{"-C", "--git-dir", "--work-tree"}
-	return slices.Contains(pointing, option)
+	directoryOptions := []string{"-C", "--git-dir", "--work-tree"}
+	return slices.Contains(directoryOptions, option)
 }
 
 func subcommandAndArguments(rest []string) (subcommand string, arguments []string) {

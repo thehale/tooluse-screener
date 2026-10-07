@@ -23,7 +23,7 @@ func (p Policy) CheckCommand(line string) Verdict {
 	case len(commands) > 0 && lists.Every(matchingByCommand, isAllowed):
 		return Verdict{Allow, allowReason(matchingByCommand)}
 	default:
-		return unlisted("Command")
+		return unlistedVerdict("Command")
 	}
 }
 
@@ -38,13 +38,13 @@ func (p Policy) denyReasons(commands []command.Command) []string {
 }
 
 func standingDenyRules(denyRules rules.Group, allowRules rules.Group, line command.Command) rules.Group {
-	var standing rules.Group
+	var standingRules rules.Group
 	for _, rule := range denyRules {
 		if !line.IsAccountedForBy(allowRules) || line.IsAccountedForBy(rule) {
-			standing = append(standing, rule)
+			standingRules = append(standingRules, rule)
 		}
 	}
-	return standing
+	return standingRules
 }
 
 func allowRulesByCommand(allowRules rules.Group, commands []command.Command) []rules.Group {
@@ -55,8 +55,8 @@ func allowRulesByCommand(allowRules rules.Group, commands []command.Command) []r
 	return matchingByCommand
 }
 
-func isAllowed(matching rules.Group) bool {
-	return len(matching) > 0
+func isAllowed(matchingRules rules.Group) bool {
+	return len(matchingRules) > 0
 }
 
 func allowReason(matchingByCommand []rules.Group) string {
@@ -66,8 +66,8 @@ func allowReason(matchingByCommand []rules.Group) string {
 func names(matchingByCommand []rules.Group) []string {
 	var ruleNames []string
 	nameSet := map[string]bool{}
-	for _, matching := range matchingByCommand {
-		for _, rule := range matching {
+	for _, matchingRules := range matchingByCommand {
+		for _, rule := range matchingRules {
 			if name := rule.String(); !nameSet[name] {
 				nameSet[name] = true
 				ruleNames = append(ruleNames, name)

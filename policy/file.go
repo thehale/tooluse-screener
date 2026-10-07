@@ -34,8 +34,8 @@ func (e *entry) UnmarshalYAML(node *yaml.Node) error {
 	type mapping entry
 	if node.Kind == yaml.ScalarNode {
 		return node.Decode(&e.Commands)
-	} else if retired, isWritten := description(node); isWritten {
-		return fmt.Errorf("`description` is now `name`: %s", retired)
+	} else if oldName, hasDescription := description(node); hasDescription {
+		return fmt.Errorf("`description` is now `name`: %s", oldName)
 	} else {
 		return node.Decode((*mapping)(e))
 	}
@@ -55,12 +55,12 @@ type onlyBlock struct {
 }
 
 func (o *onlyBlock) UnmarshalYAML(node *yaml.Node) error {
-	var written struct {
+	var fields struct {
 		Dirs     texts      `yaml:"dirs"`
 		Branches branchList `yaml:"branches"`
 	}
-	err := node.Decode(&written)
-	o.Scope = rules.NewScope(written.Dirs, rules.Branches(written.Branches))
+	err := node.Decode(&fields)
+	o.Scope = rules.NewScope(fields.Dirs, rules.Branches(fields.Branches))
 	return err
 }
 
@@ -80,16 +80,16 @@ func (b *branchList) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func (b *branchList) add(item yaml.Node) error {
-	var excluded struct {
+	var exclusion struct {
 		Not texts `yaml:"not"`
 	}
 	if item.Kind == yaml.ScalarNode {
 		b.Onto = append(b.Onto, item.Value)
 		return nil
-	} else if err := item.Decode(&excluded); err != nil || len(excluded.Not) == 0 {
+	} else if err := item.Decode(&exclusion); err != nil || len(exclusion.Not) == 0 {
 		return cmp.Or(err, fmt.Errorf("a branch is a name, or a mapping with `not`: %v", item.Value))
 	} else {
-		b.NotOnto = append(b.NotOnto, excluded.Not...)
+		b.NotOnto = append(b.NotOnto, exclusion.Not...)
 		return nil
 	}
 }
@@ -99,16 +99,16 @@ type addendumBlock struct {
 }
 
 func (a *addendumBlock) UnmarshalYAML(node *yaml.Node) error {
-	var written struct {
+	var fields struct {
 		Only   *onlyBlock `yaml:"only"`
 		Reason string     `yaml:"reason"`
 	}
-	if err := node.Decode(&written); err != nil {
+	if err := node.Decode(&fields); err != nil {
 		return err
-	} else if written.Only == nil || strings.TrimSpace(written.Reason) == "" {
-		return fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", written)
+	} else if fields.Only == nil || strings.TrimSpace(fields.Reason) == "" {
+		return fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", fields)
 	} else {
-		a.Addendum = rules.NewAddendum(written.Only.Scope, written.Reason)
+		a.Addendum = rules.NewAddendum(fields.Only.Scope, fields.Reason)
 		return nil
 	}
 }

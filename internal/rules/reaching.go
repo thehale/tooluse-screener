@@ -14,8 +14,8 @@ type Reaching struct {
 	trusted []string
 }
 
-func NewReaching(rule Rule, trusted []string) Rule {
-	return Reaching{rule, trusted}
+func NewReaching(rule Rule, trustedDirs []string) Rule {
+	return Reaching{rule, trustedDirs}
 }
 
 func (r Reaching) At(command commands.Command) int {

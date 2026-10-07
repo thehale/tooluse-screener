@@ -45,10 +45,10 @@ func withoutSubstitutions(text string) (outerText string, substitutions []string
 			runs.WriteByte(text[index])
 			index++
 		} else {
-			contents, resumed := readSubstitution(text, index, opener)
+			contents, next := readSubstitution(text, index, opener)
 			substitutions = append(substitutions, contents)
 			runs.WriteString(Unquotable)
-			index = resumed
+			index = next
 		}
 	}
 	return runs.String(), substitutions
@@ -71,7 +71,7 @@ const arithmeticOpener = "$(("
 
 var substitutionOpeners = []string{"$(", "`", "<(", ">("}
 
-func readSubstitution(text string, start int, opener string) (contents string, resumed int) {
+func readSubstitution(text string, start int, opener string) (contents string, next int) {
 	if opener == "`" {
 		return readToClosingBacktick(text, start)
 	} else {
@@ -79,7 +79,7 @@ func readSubstitution(text string, start int, opener string) (contents string, r
 	}
 }
 
-func readToClosingBacktick(text string, start int) (contents string, resumed int) {
+func readToClosingBacktick(text string, start int) (contents string, next int) {
 	begins := start + 1
 	end := strings.Index(text[begins:], "`")
 	if end < 0 {
@@ -89,7 +89,7 @@ func readToClosingBacktick(text string, start int) (contents string, resumed int
 	}
 }
 
-func readToClosingParen(text string, openingParen int) (contents string, resumed int) {
+func readToClosingParen(text string, openingParen int) (contents string, next int) {
 	begins, depth := openingParen+1, 0
 	for index := openingParen; index < len(text); index++ {
 		depth += nesting(text[index])
@@ -111,7 +111,7 @@ func nesting(letter byte) int {
 	}
 }
 
-func restFrom(text string, begins int) (contents string, resumed int) {
+func restFrom(text string, begins int) (contents string, next int) {
 	return text[begins:], len(text)
 }
 

@@ -8,7 +8,7 @@ import "strings"
 func Literal(word string) string {
 	inner, isQuoted := withoutQuotes(word)
 	switch {
-	case strings.ContainsAny(inner, expanding):
+	case strings.ContainsAny(inner, expansionCharacters):
 		return ""
 	case isQuoted && strings.HasPrefix(inner, "~"):
 		return ""
@@ -17,7 +17,7 @@ func Literal(word string) string {
 	}
 }
 
-const expanding = "$`\\\"'*?[]{}" + Unquotable
+const expansionCharacters = "$`\\\"'*?[]{}" + Unquotable
 
 func withoutQuotes(word string) (inner string, isQuoted bool) {
 	if len(word) >= 2 && strings.ContainsRune(`'"`, rune(word[0])) && word[0] == word[len(word)-1] {

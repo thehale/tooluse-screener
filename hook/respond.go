@@ -16,7 +16,7 @@ func (call toolCall) response(verdict policy.Verdict) (envelope map[string]any, 
 	}
 }
 
-const blocked = 2
+const blockingExitCode = 2
 
 func (call toolCall) event() string {
 	if eventName := call.text("hook_event_name"); eventName == "" {
@@ -37,7 +37,7 @@ func preToolUseEnvelope(verdict policy.Verdict) (map[string]any, int) {
 				"permissionDecision":       "deny",
 				"permissionDecisionReason": verdict.Reason,
 			},
-		}, blocked
+		}, blockingExitCode
 	case policy.Allow:
 		return map[string]any{
 			"hookSpecificOutput": map[string]any{

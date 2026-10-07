@@ -16,7 +16,7 @@ func movesAfter(command string, destinations []string) []string {
 	switch {
 	case len(words) == 0:
 		return retargetsAfter(Assignments(command), destinations)
-	case slices.Contains(exporting, words[0]):
+	case slices.Contains(exportCommands, words[0]):
 		return retargetsAfter(words[1:], destinations)
 	case words[0] == "cd":
 		return arrivals(destinations, destination(words[1:], "~"))
@@ -31,7 +31,7 @@ func movesAfter(command string, destinations []string) []string {
 
 var unseenMoves = []string{"popd", "source", ".", "eval"}
 
-var exporting = []string{"export", "declare", "typeset", "readonly", "local"}
+var exportCommands = []string{"export", "declare", "typeset", "readonly", "local"}
 
 func retargetsAfter(words []string, destinations []string) []string {
 	if lists.Some(words, isRetargetAssignment) {
