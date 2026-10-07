@@ -36,5 +36,5 @@ func (r Reaching) Span(command commands.Command) int {
 
 func (r Reaching) isReachable(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	return !invocation.Git || directories.AllUnder(directoriesActedIn(command.Moved, invocation.PointedAt()), r.trusted)
+	return !invocation.Git || directories.AllUnder(directoriesActedIn(command.Moved, invocation.TargetDirectories()), r.trusted)
 }

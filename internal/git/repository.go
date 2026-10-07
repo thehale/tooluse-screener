@@ -16,22 +16,22 @@ type repository struct {
 	settings map[string]string
 }
 
-func opened(dir string) (repository, bool) {
+func repositoryAt(dir string) (repository, bool) {
 	path := directories.Followed(dir)
 	if path == "" {
 		return repository{}, false
 	} else {
-		return read(path)
+		return repositoryFrom(path)
 	}
 }
 
-func read(path string) (repository, bool) {
-	branch, unborn := run(path, "symbolic-ref", "--quiet", "--short", "HEAD")
-	listed, unlisted := run(path, "config", "--list", "-z")
+func repositoryFrom(path string) (repository, bool) {
+	branch, unborn := gitOutput(path, "symbolic-ref", "--quiet", "--short", "HEAD")
+	listed, unlisted := gitOutput(path, "config", "--list", "-z")
 	return repository{branch, settings(listed)}, unborn == nil && unlisted == nil
 }
 
-func run(path string, arguments ...string) (string, error) {
+func gitOutput(path string, arguments ...string) (string, error) {
 	said, err := exec.Command("git", append([]string{"-C", path}, arguments...)...).Output()
 	return strings.TrimSpace(string(said)), err
 }

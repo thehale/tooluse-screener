@@ -20,7 +20,7 @@ func NewScope(dirs []string, branches Branches) Scope {
 
 func (s Scope) isInScope(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	acted := directoriesActedIn(command.Moved, orHere(invocation.PointedAt()))
+	acted := directoriesActedIn(command.Moved, orHere(invocation.TargetDirectories()))
 	return s.isInADir(acted) && s.isOnABranch(invocation, acted)
 }
 

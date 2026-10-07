@@ -13,36 +13,36 @@ import (
 )
 
 func (i Invocation) Landing(dirs []string) (branch string, known bool) {
-	words, readable := i.pushed()
+	words, readable := i.pushWords()
 	switch {
 	case !readable:
 		return "", false
-	case len(words) == 2 && unforced(words[1]) != "HEAD":
-		return onto(words[0], branchOf(unforced(words[1])))
+	case len(words) == 2 && withoutForce(words[1]) != "HEAD":
+		return onto(words[0], branchOf(withoutForce(words[1])))
 	default:
-		return agreed(dirs, func(dir string) (string, bool) { return landingIn(dir, words) })
+		return commonBranch(dirs, func(dir string) (string, bool) { return landingIn(dir, words) })
 	}
 }
 
-func forces(option string) bool {
+func isForceOption(option string) bool {
 	spoken := []string{"-f", "--force", "--force-with-lease", "--force-if-includes"}
 	return slices.Contains(spoken, option) || strings.HasPrefix(option, "--force-with-lease=")
 }
 
-func unforced(refspec string) string {
+func withoutForce(refspec string) string {
 	return strings.TrimPrefix(refspec, "+")
 }
 
-func (i Invocation) pushed() (words []string, readable bool) {
-	options, words := partitioned(i.Arguments)
-	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && leaveTheLandingAlone(options, i.Global)
+func (i Invocation) pushWords() (words []string, readable bool) {
+	options, words := optionsAndWords(i.Arguments)
+	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && isLandingKept(options, i.Global)
 }
 
 func onto(remote, branch string) (string, bool) {
 	return branch, remoteName.MatchString(remote) && branch != ""
 }
 
-func agreed(dirs []string, landing func(string) (string, bool)) (string, bool) {
+func commonBranch(dirs []string, landing func(string) (string, bool)) (string, bool) {
 	branches := make([]string, 0, len(dirs))
 	known := true
 	for _, dir := range dirs {
@@ -56,7 +56,7 @@ func agreed(dirs []string, landing func(string) (string, bool)) (string, bool) {
 }
 
 func landingIn(dir string, words []string) (string, bool) {
-	repo, open := opened(dir)
+	repo, open := repositoryAt(dir)
 	switch {
 	case !open:
 		return "", false
@@ -69,21 +69,21 @@ func landingIn(dir string, words []string) (string, bool) {
 	}
 }
 
-func leaveTheLandingAlone(options, global []string) bool {
-	return lists.Every(options, keepsTheLanding) &&
-		lists.Every(global, onlyChangesDirectory)
+func isLandingKept(options, global []string) bool {
+	return lists.Every(options, isLandingKeptBy) &&
+		lists.Every(global, isDirectoryOnly)
 }
 
-func keepsTheLanding(option string) bool {
+func isLandingKeptBy(option string) bool {
 	spoken := []string{"-u", "--set-upstream", "-q", "--quiet", "-v", "--verbose", "--progress"}
-	return slices.Contains(spoken, option) || forces(option)
+	return slices.Contains(spoken, option) || isForceOption(option)
 }
 
-func onlyChangesDirectory(option string) bool {
+func isDirectoryOnly(option string) bool {
 	return option == "-C"
 }
 
-func partitioned(arguments []string) (options, words []string) {
+func optionsAndWords(arguments []string) (options, words []string) {
 	for _, argument := range arguments {
 		if strings.HasPrefix(argument, "-") {
 			options = append(options, argument)

@@ -138,7 +138,7 @@ func TestIsA(t *testing.T) {
 	})
 }
 
-func TestCarries(t *testing.T) {
+func TestHasAll(t *testing.T) {
 	t.Run("an option counts anywhere", func(t *testing.T) {
 		carries(t, true, "git config --global --unset x", "--unset")
 	})
@@ -184,7 +184,7 @@ func pointed(t *testing.T, command string, wanted ...string) {
 
 func carries(t *testing.T, wanted bool, command string, words ...string) {
 	t.Helper()
-	if read := git.Read(command).Carries(words); read != wanted {
-		t.Errorf("Read(%q).Carries(%q) = %v, wanted %v", command, words, read, wanted)
+	if read := git.Read(command).HasAll(words); read != wanted {
+		t.Errorf("Read(%q).HasAll(%q) = %v, wanted %v", command, words, read, wanted)
 	}
 }

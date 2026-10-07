@@ -9,7 +9,7 @@ import (
 	commands "github.com/thehale/tooluse-screener/internal/command"
 )
 
-func twinned(command string) []string {
+func twinOptions(command string) []string {
 	var options []string
 	for _, assignment := range commands.Assignments(command) {
 		name, value, _ := strings.Cut(assignment, "=")
@@ -20,7 +20,7 @@ func twinned(command string) []string {
 	return options
 }
 
-func unread(command string, read map[string]string) []string {
+func unreadNames(command string, read map[string]string) []string {
 	var names []string
 	for _, assignment := range commands.Assignments(command) {
 		name, _, _ := strings.Cut(assignment, "=")

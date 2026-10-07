@@ -14,12 +14,12 @@ type pointing struct {
 	directory string
 }
 
-func resolved(pointed []pointing) []string {
-	entered := enteredIn(pointed)
-	return append(entered, namedFrom(lastOf(entered), pointed)...)
+func directoriesOf(pointed []pointing) []string {
+	entered := enteredDirectories(pointed)
+	return append(entered, namedDirectories(lastOf(entered), pointed)...)
 }
 
-func enteredIn(pointed []pointing) []string {
+func enteredDirectories(pointed []pointing) []string {
 	var entered []string
 	here := "."
 	for _, one := range pointed {
@@ -31,7 +31,7 @@ func enteredIn(pointed []pointing) []string {
 	return entered
 }
 
-func namedFrom(here string, pointed []pointing) []string {
+func namedDirectories(here string, pointed []pointing) []string {
 	var named []string
 	for _, one := range pointed {
 		if one.option != "-C" {
@@ -49,7 +49,7 @@ func lastOf(entered []string) string {
 	}
 }
 
-func (i Invocation) PointedAt() []string {
+func (i Invocation) TargetDirectories() []string {
 	if len(i.Unread) > 0 {
 		return append(slices.Clone(i.Directories), "")
 	} else {
