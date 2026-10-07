@@ -60,12 +60,12 @@ func (i Invocation) has(word string) bool {
 func afterGlobalOptions(words []string) (directories, global, rest []string) {
 	var pointings []pointing
 	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
-		option, value, isJoined := strings.Cut(words[0], "=")
-		if isDirectoryOption(option) {
-			pointings = append(pointings, pointing{option, directoryFrom(value, isJoined, words)})
+		option := globalOptionAt(words)
+		if isDirectoryOption(option.name) {
+			pointings = append(pointings, pointing{option.name, commands.Literal(option.value)})
 		}
-		global = append(global, option)
-		words = words[stride(option, isJoined, len(words)):]
+		global = append(global, option.name)
+		words = words[option.width:]
 	}
 	return directoriesOf(pointings), global, words
 }
@@ -73,30 +73,6 @@ func afterGlobalOptions(words []string) (directories, global, rest []string) {
 func isDirectoryOption(option string) bool {
 	pointing := []string{"-C", "--git-dir", "--work-tree"}
 	return slices.Contains(pointing, option)
-}
-
-func directoryFrom(value string, isJoined bool, words []string) string {
-	switch {
-	case isJoined:
-		return commands.Literal(value)
-	case len(words) > 1:
-		return commands.Literal(words[1])
-	default:
-		return ""
-	}
-}
-
-func stride(option string, isJoined bool, wordsLeft int) int {
-	if isJoined || !hasAValue(option) || wordsLeft < 2 {
-		return 1
-	} else {
-		return 2
-	}
-}
-
-func hasAValue(option string) bool {
-	withValues := []string{"-C", "-c", "--git-dir", "--namespace", "--work-tree"}
-	return slices.Contains(withValues, option)
 }
 
 func subcommandAndArguments(rest []string) (subcommand string, arguments []string) {
