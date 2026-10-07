@@ -11,7 +11,7 @@ import (
 	"github.com/thehale/tooluse-screener/internal/directories"
 )
 
-func TestAllUnder(t *testing.T) {
+func TestAreAllUnder(t *testing.T) {
 	root := t.TempDir()
 
 	t.Run("a root contains itself", func(t *testing.T) {
@@ -95,8 +95,8 @@ func TestAllUnder(t *testing.T) {
 
 func under(t *testing.T, wanted bool, paths, roots []string) {
 	t.Helper()
-	if all := directories.AllUnder(paths, roots); all != wanted {
-		t.Errorf("AllUnder(%q, %q) = %v, wanted %v", paths, roots, all, wanted)
+	if all := directories.AreAllUnder(paths, roots); all != wanted {
+		t.Errorf("AreAllUnder(%q, %q) = %v, wanted %v", paths, roots, all, wanted)
 	}
 }
 

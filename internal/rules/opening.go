@@ -22,7 +22,7 @@ func (o Opening) At(command commands.Command) int {
 }
 
 func (o Opening) Span(command commands.Command) int {
-	spoken := commands.Command{Text: commands.Spoken(command.Text), Moved: command.Moved}
+	spoken := commands.Command{Text: commands.WithoutAssignments(command.Text), Moved: command.Moved}
 	accounted := o.Rule.Span(spoken)
 	if o.Rule.At(spoken) == 0 && isWordBoundary(spoken.Text, accounted) {
 		return accounted

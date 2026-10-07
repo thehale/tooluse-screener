@@ -24,7 +24,7 @@ func unreadNames(command string, read map[string]string) []string {
 	var names []string
 	for _, assignment := range commands.Assignments(command) {
 		name, _, _ := strings.Cut(assignment, "=")
-		if _, twin := read[name]; commands.Retargets(name) && !twin {
+		if _, twin := read[name]; commands.IsRetargeting(name) && !twin {
 			names = append(names, name)
 		}
 	}

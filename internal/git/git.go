@@ -21,7 +21,7 @@ type Invocation struct {
 }
 
 func Read(command string) Invocation {
-	if words := strings.Fields(commands.Spoken(command)); len(words) == 0 || words[0] != "git" {
+	if words := strings.Fields(commands.WithoutAssignments(command)); len(words) == 0 || words[0] != "git" {
 		return Invocation{Unread: unreadNames(command, nil)}
 	} else {
 		return invocationOf(command, words[1:])

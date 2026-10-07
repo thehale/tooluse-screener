@@ -12,18 +12,18 @@ func Within(here, path string) string {
 	switch {
 	case here == "" || path == "":
 		return ""
-	case here == "." || standsAlone(path):
+	case here == "." || isStandalone(path):
 		return path
 	default:
 		return here + string(filepath.Separator) + path
 	}
 }
 
-func standsAlone(path string) bool {
-	return rooted(path) || filepath.VolumeName(path) != "" || strings.HasPrefix(path, "~")
+func isStandalone(path string) bool {
+	return isRooted(path) || filepath.VolumeName(path) != "" || strings.HasPrefix(path, "~")
 }
 
-func Entered(here, path string) string {
+func Destination(here, path string) string {
 	named := WithHomeExpanded(Within(here, path))
 	if named == "" || strings.HasPrefix(named, "~") {
 		return ""

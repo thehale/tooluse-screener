@@ -31,7 +31,7 @@ func NewGlob(written, reason, name string) (Glob, error) {
 }
 
 func (g Glob) IsMatchFor(file string) bool {
-	return isMatch(g.names, names(file)) || isMatch(g.names, names(directories.Followed(file)))
+	return isMatch(g.names, names(file)) || isMatch(g.names, names(directories.RealPath(file)))
 }
 
 func names(file string) []string {

@@ -17,7 +17,7 @@ type repository struct {
 }
 
 func repositoryAt(dir string) (repository, bool) {
-	path := directories.Followed(dir)
+	path := directories.RealPath(dir)
 	if path == "" {
 		return repository{}, false
 	} else {

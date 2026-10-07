@@ -25,7 +25,7 @@ func (s Scope) isInScope(command commands.Command) bool {
 }
 
 func (s Scope) isInADir(acted []string) bool {
-	return len(s.dirs) == 0 || directories.AllUnder(acted, s.dirs)
+	return len(s.dirs) == 0 || directories.AreAllUnder(acted, s.dirs)
 }
 
 func (s Scope) isOnABranch(invocation git.Invocation, acted []string) bool {

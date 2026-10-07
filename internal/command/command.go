@@ -15,22 +15,22 @@ type Command struct {
 func All(text string) []Command {
 	var found []Command
 	var moved []string
-	for _, written := range split(joinedLines(text)) {
-		if command := tidied(written); command != "" {
+	for _, written := range split(withLinesJoined(text)) {
+		if command := withSpacesCollapsed(written); command != "" {
 			found = append(found, Command{command, moved})
-			moved = movedBy(command, moved)
+			moved = movesAfter(command, moved)
 		}
 	}
 	return found
 }
 
-func joinedLines(text string) string {
+func withLinesJoined(text string) string {
 	return strings.ReplaceAll(text, "\\\n", "")
 }
 
 func split(text string) []string {
 	literal, substituted := withoutSubstitutions(text)
-	found := atSeparators(literal)
+	found := splitAtSeparators(literal)
 	for _, substitution := range substituted {
 		found = append(found, split(substitution)...)
 	}
@@ -83,7 +83,7 @@ func readToClosingBacktick(text string, start int) (contents string, resumed int
 	begins := start + 1
 	end := strings.Index(text[begins:], "`")
 	if end < 0 {
-		return unterminated(text, begins)
+		return restFrom(text, begins)
 	} else {
 		return text[begins : begins+end], begins + end + 1
 	}
@@ -97,7 +97,7 @@ func readToClosingParen(text string, openingParen int) (contents string, resumed
 			return text[begins:index], index + 1
 		}
 	}
-	return unterminated(text, begins)
+	return restFrom(text, begins)
 }
 
 func nesting(letter byte) int {
@@ -111,11 +111,11 @@ func nesting(letter byte) int {
 	}
 }
 
-func unterminated(text string, begins int) (contents string, resumed int) {
+func restFrom(text string, begins int) (contents string, resumed int) {
 	return text[begins:], len(text)
 }
 
-func atSeparators(text string) []string {
+func splitAtSeparators(text string) []string {
 	var found []string
 	start := 0
 	for index := 0; index < len(text); {
@@ -137,19 +137,19 @@ func separatorAt(text string, index int) int {
 		return 2
 	case strings.ContainsRune(";\n|", rune(text[index])):
 		return 1
-	case text[index] == '&' && backgrounds(text, index):
+	case text[index] == '&' && isBackgrounding(text, index):
 		return 1
 	default:
 		return 0
 	}
 }
 
-func backgrounds(text string, index int) bool {
+func isBackgrounding(text string, index int) bool {
 	return !strings.ContainsRune("<>&", letterAt(text, index-1)) &&
 		!strings.ContainsRune("&>", letterAt(text, index+1))
 }
 
-func tidied(command string) string {
+func withSpacesCollapsed(command string) string {
 	return strings.Join(strings.Fields(command), " ")
 }
 

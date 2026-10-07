@@ -11,41 +11,41 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func AllUnder(paths, roots []string) bool {
+func AreAllUnder(paths, roots []string) bool {
 	return lists.Every(paths, func(path string) bool {
-		return lists.Some(roots, func(root string) bool { return contains(root, path) })
+		return lists.Some(roots, func(root string) bool { return isInside(root, path) })
 	})
 }
 
-func contains(root, path string) bool {
-	outer, outerKnown := absolute(root)
-	inner, innerKnown := absolute(path)
+func isInside(root, path string) bool {
+	outer, outerKnown := absolutePath(root)
+	inner, innerKnown := absolutePath(path)
 	switch {
 	case !outerKnown || !innerKnown:
 		return false
 	case inner == outer:
 		return true
 	default:
-		return strings.HasPrefix(inner, endedWithASeparator(outer))
+		return strings.HasPrefix(inner, withTrailingSeparator(outer))
 	}
 }
 
-func endedWithASeparator(root string) string {
+func withTrailingSeparator(root string) string {
 	separator := string(os.PathSeparator)
 	return strings.TrimSuffix(root, separator) + separator
 }
 
-func Followed(path string) string {
-	resolved, _ := absolute(path)
+func RealPath(path string) string {
+	resolved, _ := absolutePath(path)
 	return resolved
 }
 
-func absolute(path string) (string, bool) {
+func absolutePath(path string) (string, bool) {
 	if named := WithHomeExpanded(path); named == "" || strings.HasPrefix(named, "~") {
 		return "", false
 	} else {
 		from, known := workingDirectory(named)
-		return walked(from, strings.TrimPrefix(named, filepath.VolumeName(named))), known
+		return endpoint(from, strings.TrimPrefix(named, filepath.VolumeName(named))), known
 	}
 }
 
@@ -55,7 +55,7 @@ func workingDirectory(path string) (string, bool) {
 	switch {
 	case filepath.IsAbs(path):
 		return volume + string(os.PathSeparator), true
-	case rooted(path):
+	case isRooted(path):
 		return filepath.VolumeName(here) + string(os.PathSeparator), err == nil
 	case volume != "":
 		return "", false
@@ -64,24 +64,24 @@ func workingDirectory(path string) (string, bool) {
 	}
 }
 
-func rooted(path string) bool {
+func isRooted(path string) bool {
 	return path != "" && os.IsPathSeparator(path[0])
 }
 
-func walked(here, path string) string {
+func endpoint(here, path string) string {
 	for _, name := range strings.Split(filepath.ToSlash(path), "/") {
 		switch name {
 		case "", ".":
 		case "..":
 			here = filepath.Dir(here)
 		default:
-			here = followed(filepath.Join(here, name))
+			here = symlinkTarget(filepath.Join(here, name))
 		}
 	}
 	return here
 }
 
-func followed(path string) string {
+func symlinkTarget(path string) string {
 	if leads, err := filepath.EvalSymlinks(path); err == nil {
 		return leads
 	} else {

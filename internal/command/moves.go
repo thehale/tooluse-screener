@@ -11,19 +11,19 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func movedBy(command string, moved []string) []string {
-	words := strings.Fields(Spoken(command))
+func movesAfter(command string, moved []string) []string {
+	words := strings.Fields(WithoutAssignments(command))
 	switch {
 	case len(words) == 0:
-		return retargetedBy(Assignments(command), moved)
+		return retargetsAfter(Assignments(command), moved)
 	case slices.Contains(exporting, words[0]):
-		return retargetedBy(words[1:], moved)
+		return retargetsAfter(words[1:], moved)
 	case words[0] == "cd":
-		return movedTo(moved, destination(words[1:], "~"))
+		return arrivals(moved, destination(words[1:], "~"))
 	case words[0] == "pushd":
-		return movedTo(moved, destination(words[1:], ""))
+		return arrivals(moved, destination(words[1:], ""))
 	case slices.Contains(unseenMoves, words[0]):
-		return movedTo(moved, "")
+		return arrivals(moved, "")
 	default:
 		return moved
 	}
@@ -33,17 +33,17 @@ var unseenMoves = []string{"popd", "source", ".", "eval"}
 
 var exporting = []string{"export", "declare", "typeset", "readonly", "local"}
 
-func retargetedBy(words []string, moved []string) []string {
-	if lists.Some(words, namesARetarget) {
-		return movedTo(moved, "")
+func retargetsAfter(words []string, moved []string) []string {
+	if lists.Some(words, isRetargetAssignment) {
+		return arrivals(moved, "")
 	} else {
 		return moved
 	}
 }
 
-func namesARetarget(word string) bool {
+func isRetargetAssignment(word string) bool {
 	name, _, _ := strings.Cut(word, "=")
-	return Retargets(name)
+	return IsRetargeting(name)
 }
 
 func destination(arguments []string, bare string) string {
@@ -59,10 +59,10 @@ func destination(arguments []string, bare string) string {
 	}
 }
 
-func movedTo(moved []string, destination string) []string {
+func arrivals(moved []string, destination string) []string {
 	arrived := slices.Clone(moved)
 	for _, from := range append([]string{"."}, moved...) {
-		arrived = append(arrived, directories.Entered(from, destination))
+		arrived = append(arrived, directories.Destination(from, destination))
 	}
 	slices.Sort(arrived)
 	return slices.DeleteFunc(slices.Compact(arrived), isHere)

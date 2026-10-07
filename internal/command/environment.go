@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-func Spoken(text string) string {
+func WithoutAssignments(text string) string {
 	words := strings.Fields(text)
 	return strings.Join(words[len(Assignments(text)):], " ")
 }
@@ -23,7 +23,7 @@ func Assignments(text string) []string {
 	return words[:leading]
 }
 
-func Retargets(name string) bool {
+func IsRetargeting(name string) bool {
 	return slices.Contains(retargeting, name) || strings.HasPrefix(name, "GIT_CONFIG")
 }
 
@@ -39,17 +39,17 @@ func isAnAssignment(word string) bool {
 }
 
 func isIdentifier(name string) bool {
-	return name != "" && opensAName(name[0]) && !strings.ContainsFunc(name, isNotPartOfAName)
+	return name != "" && isNameStart(name[0]) && !strings.ContainsFunc(name, isNotPartOfAName)
 }
 
-func opensAName(letter byte) bool {
+func isNameStart(letter byte) bool {
 	return letter == '_' ||
 		('a' <= letter && letter <= 'z') ||
 		('A' <= letter && letter <= 'Z')
 }
 
 func isNotPartOfAName(letter rune) bool {
-	return letter >= utf8.RuneSelf || (!opensAName(byte(letter)) && !isDigit(byte(letter)))
+	return letter >= utf8.RuneSelf || (!isNameStart(byte(letter)) && !isDigit(byte(letter)))
 }
 
 func isDigit(letter byte) bool {
