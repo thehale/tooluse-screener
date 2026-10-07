@@ -13,7 +13,7 @@ import (
 )
 
 type Glob struct {
-	named
+	wording
 	names   []string
 	written string
 }
@@ -26,7 +26,7 @@ func NewGlob(written, reason, name string) (Glob, error) {
 	case err != nil:
 		return Glob{}, fmt.Errorf("%s: %w", written, err)
 	default:
-		return Glob{named{reason, name}, names(expanded), written}, nil
+		return Glob{wording{reason, name}, names(expanded), written}, nil
 	}
 }
 

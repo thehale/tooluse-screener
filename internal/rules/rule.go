@@ -12,19 +12,19 @@ type Rule interface {
 	String() string
 }
 
-type named struct {
+type wording struct {
 	reason string
 	name   string
 }
 
-func (n named) Reason(commands.Command) string {
-	return n.reason
+func (w wording) Reason(commands.Command) string {
+	return w.reason
 }
 
-func (n named) calls(written string) string {
-	if n.name == "" {
+func (w wording) calls(written string) string {
+	if w.name == "" {
 		return written
 	} else {
-		return n.name
+		return w.name
 	}
 }

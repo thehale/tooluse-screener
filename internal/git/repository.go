@@ -58,7 +58,7 @@ func (r repository) landing(remote string) (string, bool) {
 
 func (r repository) onto(remote, ref string) (string, bool) {
 	_, rewritten := r.settings["remote."+remote+".push"]
-	branch, known := onto(remote, named(ref))
+	branch, known := onto(remote, branchIn(ref))
 	return branch, known && !rewritten
 }
 

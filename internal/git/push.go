@@ -61,7 +61,7 @@ func landingIn(dir string, words []string) (string, bool) {
 	case !open:
 		return "", false
 	case len(words) == 2:
-		return onto(words[0], named(repo.branch))
+		return onto(words[0], branchIn(repo.branch))
 	case len(words) == 1:
 		return repo.landing(words[0])
 	default:
@@ -100,13 +100,13 @@ func branchOf(refspec string) string {
 	case source == "":
 		return ""
 	case !paired:
-		return named(source)
+		return branchIn(source)
 	default:
-		return named(destination)
+		return branchIn(destination)
 	}
 }
 
-func named(side string) string {
+func branchIn(side string) string {
 	branch := strings.TrimPrefix(side, "refs/heads/")
 	if isABranchName(branch) {
 		return branch

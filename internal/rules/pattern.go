@@ -10,7 +10,7 @@ import (
 )
 
 type Pattern struct {
-	named
+	wording
 	expression *regexp.Regexp
 	written    string
 }
@@ -20,7 +20,7 @@ func NewPattern(expression, reason, name string) (Rule, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Pattern{named{reason, name}, built, expression}, nil
+	return Pattern{wording{reason, name}, built, expression}, nil
 }
 
 func (p Pattern) At(command commands.Command) int {
