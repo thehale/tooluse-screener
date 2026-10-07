@@ -22,7 +22,7 @@ func (o Opening) At(command commands.Command) int {
 }
 
 func (o Opening) Span(command commands.Command) int {
-	bareCommand := commands.Command{Text: commands.WithoutAssignments(command.Text), Moved: command.Moved}
+	bareCommand := command.WithoutAssignments()
 	span := o.Rule.Span(bareCommand)
 	if o.Rule.At(bareCommand) == 0 && isWordBoundary(bareCommand.Text, span) {
 		return span

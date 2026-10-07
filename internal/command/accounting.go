@@ -8,6 +8,6 @@ type Spanner interface {
 }
 
 func (c Command) IsAccountedForBy(rule Spanner) bool {
-	words := WithoutAssignments(c.Text)
+	words := c.WithoutAssignments().Text
 	return words != "" && rule.Span(c) == len(words)
 }

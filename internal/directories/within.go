@@ -31,3 +31,11 @@ func Destination(here, path string) string {
 		return filepath.Clean(expandedPath)
 	}
 }
+
+func OrHere(paths []string) []string {
+	if len(paths) == 0 {
+		return []string{"."}
+	} else {
+		return paths
+	}
+}
