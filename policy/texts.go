@@ -4,7 +4,6 @@
 package policy
 
 import (
-	"fmt"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -16,7 +15,7 @@ func (t *texts) UnmarshalYAML(node *yaml.Node) error {
 	var values []string
 	for _, item := range nodesIn(node) {
 		if !isText(item) {
-			return fmt.Errorf("a command or expression is written as text, and this is not: %v", item.Value)
+			return refusalAt(item.Line, "a command or expression is written as text, and this is not: %v", item.Value)
 		}
 		values = append(values, item.Value)
 	}

@@ -4,7 +4,6 @@
 package policy
 
 import (
-	"fmt"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -20,26 +19,28 @@ type entry struct {
 	Reason   string          `yaml:"reason"`
 	Only     *onlyBlock      `yaml:"only"`
 	Addendum []addendumBlock `yaml:"addendum"`
+	line     int
 }
 
 func (e *entry) UnmarshalYAML(node *yaml.Node) error {
 	type mapping entry
+	e.line = node.Line
 	if node.Kind == yaml.ScalarNode {
 		return node.Decode(&e.Commands)
-	} else if oldName, hasDescription := description(node); hasDescription {
-		return fmt.Errorf("`description` is now `name`: %s", oldName)
+	} else if oldName, line, hasDescription := description(node); hasDescription {
+		return refusalAt(line, "`description` is now `name`: %s", oldName)
 	} else {
 		return node.Decode((*mapping)(e))
 	}
 }
 
-func description(node *yaml.Node) (string, bool) {
+func description(node *yaml.Node) (oldName string, line int, isPresent bool) {
 	for index := 0; index+1 < len(node.Content); index += 2 {
 		if node.Content[index].Value == "description" {
-			return node.Content[index+1].Value, true
+			return node.Content[index+1].Value, node.Content[index].Line, true
 		}
 	}
-	return "", false
+	return "", 0, false
 }
 
 func (e entry) pathRules() (rules.Globs, error) {
@@ -47,9 +48,9 @@ func (e entry) pathRules() (rules.Globs, error) {
 	case len(e.Paths) == 0:
 		return nil, nil
 	case len(e.Commands) > 0 || len(e.Patterns) > 0:
-		return nil, fmt.Errorf("an entry names `paths` or commands, never both: %+v", e)
+		return nil, refusalAt(e.line, "an entry names `paths` or commands, never both")
 	case e.Only != nil || len(e.Addendum) > 0:
-		return nil, fmt.Errorf("`only` and `addendum` scope commands, and an entry with `paths` has none to scope: %+v", e)
+		return nil, refusalAt(e.line, "`only` and `addendum` scope commands, and an entry with `paths` has none to scope")
 	default:
 		return e.globs()
 	}
@@ -60,7 +61,7 @@ func (e entry) globs() (rules.Globs, error) {
 	for _, text := range e.Paths {
 		glob, err := rules.NewGlob(text)
 		if err != nil {
-			return nil, err
+			return nil, refusalAt(e.line, "%w", err)
 		}
 		glob.Name, glob.Reason = e.Name, e.Reason
 		pathRules = append(pathRules, glob)
@@ -101,7 +102,7 @@ func (e entry) addendums() []rules.Addendum {
 
 func (e entry) expressions() ([]rules.Expression, error) {
 	if len(e.Commands) == 0 && len(e.Patterns) == 0 && len(e.Paths) == 0 {
-		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", e)
+		return nil, refusalAt(e.line, "an entry is a command, or a mapping with `commands`, `patterns` or `paths`")
 	} else {
 		return e.writtenExpressions()
 	}
@@ -115,7 +116,7 @@ func (e entry) writtenExpressions() ([]rules.Expression, error) {
 	for _, text := range e.Patterns {
 		pattern, err := rules.NewPattern(text)
 		if err != nil {
-			return nil, err
+			return nil, refusalAt(e.line, "%w", err)
 		}
 		expressions = append(expressions, pattern)
 	}

@@ -5,7 +5,6 @@ package policy
 
 import (
 	"cmp"
-	"fmt"
 
 	"gopkg.in/yaml.v3"
 
@@ -35,7 +34,7 @@ func (b *branchList) add(item yaml.Node) error {
 		b.Onto = append(b.Onto, item.Value)
 		return nil
 	} else if err := item.Decode(&exclusion); err != nil || len(exclusion.Not) == 0 {
-		return cmp.Or(err, fmt.Errorf("a branch is a name, or a mapping with `not`: %v", item.Value))
+		return cmp.Or(err, refusalAt(item.Line, "a branch is a name, or a mapping with `not`"))
 	} else {
 		b.NotOnto = append(b.NotOnto, exclusion.Not...)
 		return nil

@@ -4,7 +4,6 @@
 package policy
 
 import (
-	"fmt"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -24,7 +23,7 @@ func (a *addendumBlock) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode(&fields); err != nil {
 		return err
 	} else if fields.Only == nil || strings.TrimSpace(fields.Reason) == "" {
-		return fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", fields)
+		return refusalAt(node.Line, "an addendum is a mapping with `only` and `reason`")
 	} else {
 		a.Addendum = rules.Addendum{Only: fields.Only.Scope, Reason: fields.Reason}
 		return nil

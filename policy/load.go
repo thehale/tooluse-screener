@@ -4,6 +4,7 @@
 package policy
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -21,11 +22,13 @@ func Load() (Policy, error) {
 }
 
 func LoadFile(path string) (Policy, error) {
-	contents, err := os.ReadFile(path)
-	if err != nil {
+	if contents, err := os.ReadFile(path); err != nil {
 		return Policy{}, err
+	} else if policy, err := Parse(contents); err != nil {
+		return Policy{}, fmt.Errorf("%s: %w", path, err)
+	} else {
+		return policy, nil
 	}
-	return Parse(contents)
 }
 
 const Variable = "TOOLUSE_SCREENER_POLICY_FILE"

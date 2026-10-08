@@ -356,6 +356,17 @@ func TestReadingAFile(t *testing.T) {
 			t.Error("wanted an error")
 		}
 	})
+
+	t.Run("a refused policy names the file it came from", func(t *testing.T) {
+		path := policyFile(t, "denied:\n  - commands: shutdown\n    paths: /secrets/**\n")
+		_, err := LoadFile(path)
+		wanted := path + ": line "
+		if err == nil {
+			t.Fatal("wanted an error")
+		} else if !strings.HasPrefix(err.Error(), wanted) {
+			t.Errorf("error %q, wanted a prefix of %q", err.Error(), wanted)
+		}
+	})
 }
 
 func TestTheBuiltInPolicy(t *testing.T) {
