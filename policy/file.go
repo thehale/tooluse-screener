@@ -3,15 +3,7 @@
 
 package policy
 
-import (
-	"cmp"
-	"fmt"
-	"strings"
-
-	"gopkg.in/yaml.v3"
-
-	"github.com/thehale/tooluse-screener/internal/rules"
-)
+import "github.com/thehale/tooluse-screener/internal/rules"
 
 type file struct {
 	Trusted []string `yaml:"trusted_git_directories"`
@@ -19,122 +11,21 @@ type file struct {
 	Allowed entries  `yaml:"allowed"`
 }
 
-type entries []entry
-
-type entry struct {
-	Commands      texts `yaml:"commands"`
-	Patterns      texts `yaml:"patterns"`
-	Paths         texts `yaml:"paths"`
-	rules.Wording `yaml:",inline"`
-	Only          *onlyBlock      `yaml:"only"`
-	Addendum      []addendumBlock `yaml:"addendum"`
+func (f file) policy() (Policy, error) {
+	deniedSide, err := f.Denied.side(asWritten)
+	if err != nil {
+		return Policy{}, err
+	}
+	allowedSide, err := f.Allowed.side(allowRuleIn(f.Trusted))
+	return Policy{denied: deniedSide, allowed: allowedSide}, err
 }
 
-func (e *entry) UnmarshalYAML(node *yaml.Node) error {
-	type mapping entry
-	if node.Kind == yaml.ScalarNode {
-		return node.Decode(&e.Commands)
-	} else if oldName, hasDescription := description(node); hasDescription {
-		return fmt.Errorf("`description` is now `name`: %s", oldName)
-	} else {
-		return node.Decode((*mapping)(e))
-	}
+func asWritten(rule rules.Rule) rules.Rule {
+	return rule
 }
 
-func description(node *yaml.Node) (string, bool) {
-	for index := 0; index+1 < len(node.Content); index += 2 {
-		if node.Content[index].Value == "description" {
-			return node.Content[index+1].Value, true
-		}
+func allowRuleIn(trustedDirs []string) func(rules.Rule) rules.Rule {
+	return func(rule rules.Rule) rules.Rule {
+		return rules.NewReaching(rules.NewOpening(rule), trustedDirs)
 	}
-	return "", false
-}
-
-type onlyBlock struct {
-	rules.Scope
-}
-
-func (o *onlyBlock) UnmarshalYAML(node *yaml.Node) error {
-	var fields struct {
-		Dirs     texts      `yaml:"dirs"`
-		Branches branchList `yaml:"branches"`
-	}
-	err := node.Decode(&fields)
-	o.Scope = rules.NewScope(fields.Dirs, rules.Branches(fields.Branches))
-	return err
-}
-
-type branchList rules.Branches
-
-func (b *branchList) UnmarshalYAML(node *yaml.Node) error {
-	var items []yaml.Node
-	if err := node.Decode(&items); err != nil {
-		return err
-	}
-	for _, item := range items {
-		if err := b.add(item); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (b *branchList) add(item yaml.Node) error {
-	var exclusion struct {
-		Not texts `yaml:"not"`
-	}
-	if item.Kind == yaml.ScalarNode {
-		b.Onto = append(b.Onto, item.Value)
-		return nil
-	} else if err := item.Decode(&exclusion); err != nil || len(exclusion.Not) == 0 {
-		return cmp.Or(err, fmt.Errorf("a branch is a name, or a mapping with `not`: %v", item.Value))
-	} else {
-		b.NotOnto = append(b.NotOnto, exclusion.Not...)
-		return nil
-	}
-}
-
-type addendumBlock struct {
-	rules.Addendum
-}
-
-func (a *addendumBlock) UnmarshalYAML(node *yaml.Node) error {
-	var fields struct {
-		Only   *onlyBlock `yaml:"only"`
-		Reason string     `yaml:"reason"`
-	}
-	if err := node.Decode(&fields); err != nil {
-		return err
-	} else if fields.Only == nil || strings.TrimSpace(fields.Reason) == "" {
-		return fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", fields)
-	} else {
-		a.Addendum = rules.NewAddendum(fields.Only.Scope, fields.Reason)
-		return nil
-	}
-}
-
-type texts []string
-
-func (t *texts) UnmarshalYAML(node *yaml.Node) error {
-	var values []string
-	for _, item := range nodesIn(node) {
-		if !isText(item) {
-			return fmt.Errorf("a command or expression is written as text, and this is not: %v", item.Value)
-		}
-		values = append(values, item.Value)
-	}
-	*t = values
-	return nil
-}
-
-func nodesIn(node *yaml.Node) []*yaml.Node {
-	if node.Kind == yaml.SequenceNode {
-		return node.Content
-	} else {
-		return []*yaml.Node{node}
-	}
-}
-
-func isText(node *yaml.Node) bool {
-	return node.Tag == "!!str" && strings.TrimSpace(node.Value) != ""
 }
