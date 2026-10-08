@@ -1,0 +1,15 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands:
+      - shutdown
+    patterns:
+      - '\breboot\b'
+    name: Take the machine down
+--------------------------------------------------------------------------------
+$ROOT % shutdown now
+deny: Command matches a denied rule: Take the machine down
+
+$ROOT % reboot now
+deny: Command matches a denied rule: Take the machine down

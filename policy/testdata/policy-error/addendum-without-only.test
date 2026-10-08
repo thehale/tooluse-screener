@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    addendum:
+      - reason: Anywhere.
+--------------------------------------------------------------------------------
+error: line 7: addendum missing `only`

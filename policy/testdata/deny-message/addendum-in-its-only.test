@@ -1,0 +1,14 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    reason: Ask first.
+    addendum:
+      - only:
+          dirs:
+            - $ROOT
+        reason: Push your own branch by name.
+--------------------------------------------------------------------------------
+$ROOT % git -C $ROOT push
+deny: Command matches a denied rule: git push. Ask first. Push your own branch by name.

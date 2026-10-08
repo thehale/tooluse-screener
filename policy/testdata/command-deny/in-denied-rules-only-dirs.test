@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git status
+    only:
+      dirs:
+        - $ROOT
+--------------------------------------------------------------------------------
+$ROOT % git -C $ROOT status
+deny: Command matches a denied rule: git status

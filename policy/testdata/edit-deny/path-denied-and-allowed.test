@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths: /notes/private/*
+allowed:
+  - paths: /notes/**
+--------------------------------------------------------------------------------
+$ROOT % Edit(/notes/private/diary.md)
+deny: Path matches a denied rule: /notes/private/*

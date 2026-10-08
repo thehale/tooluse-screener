@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - ls
+  - cat
+--------------------------------------------------------------------------------
+# also: a permission names every rule that vouched
+$ROOT % ls && cat foo
+allow: Every command is allowed: ls, cat

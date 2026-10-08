@@ -1,0 +1,14 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+allowed:
+  - git status
+--------------------------------------------------------------------------------
+# A directory the shell has yet to work out could be anywhere
+$ROOT % git -C "$REPO" status
+ask: Command is not in the shared allow list
+
+$ROOT % git -C ~nobody/work status
+ask: Command is not in the shared allow list

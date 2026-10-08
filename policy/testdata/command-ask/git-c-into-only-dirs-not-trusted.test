@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - commands: git status
+    only:
+      dirs:
+        - $ROOT
+--------------------------------------------------------------------------------
+$ROOT % git -C $ROOT status
+ask: Command is not in the shared allow list

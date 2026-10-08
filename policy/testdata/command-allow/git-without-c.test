@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - git status
+--------------------------------------------------------------------------------
+$ROOT % git status
+allow: Every command is allowed: git status

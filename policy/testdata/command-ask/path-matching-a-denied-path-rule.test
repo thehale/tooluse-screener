@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths: /secrets/**
+--------------------------------------------------------------------------------
+$ROOT % cat /secrets/key
+ask: Command is not in the shared allow list
+
+$ROOT % /secrets/key
+ask: Command is not in the shared allow list

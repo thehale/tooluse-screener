@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Write a private key
+    reason: Ask a human first.
+    paths:
+      - '~/**/*.pem'
+--------------------------------------------------------------------------------
+$ROOT % Edit(/home/me/src/tls/client.pem)
+deny: Path matches a denied rule: Write a private key. Ask a human first.

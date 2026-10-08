@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - shutdown
+    reason: Ask a human first.
+--------------------------------------------------------------------------------
+$ROOT % shutdown now
+deny: Command matches a denied rule: shutdown. Ask a human first.

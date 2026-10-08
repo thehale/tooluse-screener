@@ -1,0 +1,12 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - dd
+allowed:
+  - cat
+--------------------------------------------------------------------------------
+# A substitution is extracted out of double quotes, never out of single
+# quotes, but the denied word inside it is still reached
+$ROOT % cat '$(dd if=/dev/zero of=/dev/sda)'
+deny: Command matches a denied rule: dd

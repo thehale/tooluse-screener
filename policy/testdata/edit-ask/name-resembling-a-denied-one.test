@@ -1,0 +1,13 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - '~/.ssh/**'
+      - '~/**/*.pem'
+--------------------------------------------------------------------------------
+$ROOT % Edit(/home/me/src/tls/client.pem.bak)
+ask: Path is not in the shared allow list
+
+$ROOT % Edit(/home/me/.sshd/config)
+ask: Path is not in the shared allow list

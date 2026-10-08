@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - '\bnever\b'
+--------------------------------------------------------------------------------
+$ROOT % never
+deny: Command matches a denied rule: \bnever\b

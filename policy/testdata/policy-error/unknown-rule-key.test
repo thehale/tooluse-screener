@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    colour: red
+--------------------------------------------------------------------------------
+error: line 6: `colour` is not supported. Use one of `commands`, `patterns`, `paths`, `name`, `reason`, `only` or `addendum`.

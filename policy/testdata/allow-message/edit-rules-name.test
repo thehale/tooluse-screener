@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - name: Take notes
+    paths: /notes/**
+--------------------------------------------------------------------------------
+$ROOT % Edit(/notes/today.md)
+allow: Path is allowed: Take notes

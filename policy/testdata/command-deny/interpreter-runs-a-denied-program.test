@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - bin/publish
+--------------------------------------------------------------------------------
+$ROOT % bash bin/publish
+deny: Command matches a denied rule: bin/publish

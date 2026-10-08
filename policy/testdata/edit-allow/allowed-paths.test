@@ -1,0 +1,13 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - paths:
+      - '/notes/*'
+      - '/drafts/*'
+--------------------------------------------------------------------------------
+$ROOT % Edit(/notes/today.md)
+allow: Path is allowed: /notes/*
+
+$ROOT % Edit(/drafts/today.md)
+allow: Path is allowed: /drafts/*

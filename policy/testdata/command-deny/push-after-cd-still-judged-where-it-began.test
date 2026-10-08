@@ -1,0 +1,22 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+denied:
+  - git push
+allowed:
+  - name: Push a branch of the app
+    patterns:
+      - '^git (-C \S+ )?push origin \S+$'
+    only:
+      dirs:
+        - /work/app
+      branches:
+        - not: main
+--------------------------------------------------------------------------------
+# A line that moves is judged everywhere it may be: where it began, and every
+# place each cd could have taken it from there. The place it began is known to
+# no rule, so the allowed rule does not outrank the denial.
+$ROOT % cd /work/app && git push origin topic
+deny: Command matches a denied rule: git push

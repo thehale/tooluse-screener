@@ -1,0 +1,6 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+--------------------------------------------------------------------------------
+$ROOT % anything
+ask: Command is not in the shared allow list

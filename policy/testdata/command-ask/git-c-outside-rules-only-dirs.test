@@ -1,0 +1,14 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - $ROOT
+allowed:
+  - patterns:
+      - '^git -C \S+ status$'
+    only:
+      dirs:
+        - $ROOT
+--------------------------------------------------------------------------------
+$ROOT % git -C /elsewhere status
+ask: Command is not in the shared allow list

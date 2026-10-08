@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - 'secrets/**'
+--------------------------------------------------------------------------------
+/ % Edit($ROOT/secrets/key)
+ask: Path is not in the shared allow list

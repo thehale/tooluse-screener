@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - sudo
+--------------------------------------------------------------------------------
+$ROOT % ls && sudo whoami
+deny: Command matches a denied rule: sudo

@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    only: 5
+--------------------------------------------------------------------------------
+error: line 6: `only` is number 5. Use a mapping with `dirs` or `branches`.

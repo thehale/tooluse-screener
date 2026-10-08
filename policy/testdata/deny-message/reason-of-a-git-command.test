@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    reason: Open a pull request.
+--------------------------------------------------------------------------------
+$ROOT % git push
+deny: Command matches a denied rule: git push. Open a pull request.

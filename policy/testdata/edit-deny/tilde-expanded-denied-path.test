@@ -1,0 +1,12 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Write a private key
+    reason: Ask a human first.
+    paths:
+      - '~/.ssh/**'
+--------------------------------------------------------------------------------
+# A denied path, written under the home it was named from
+$ROOT % Edit(/home/me/.ssh/id_ed25519)
+deny: Path matches a denied rule: Write a private key. Ask a human first.

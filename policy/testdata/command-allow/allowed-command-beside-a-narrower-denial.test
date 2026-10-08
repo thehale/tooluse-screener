@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - rm
+denied:
+  - patterns:
+      - '^rm -(rf|fr) /$'
+--------------------------------------------------------------------------------
+$ROOT % rm ./notes.txt
+allow: Every command is allowed: rm

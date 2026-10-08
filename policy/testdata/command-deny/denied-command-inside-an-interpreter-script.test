@@ -1,0 +1,18 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - dd
+  - git push
+--------------------------------------------------------------------------------
+$ROOT % sh -c 'dd if=/dev/zero of=/dev/sda'
+deny: Command matches a denied rule: dd
+
+$ROOT % sh -c 'ls | dd if=/dev/zero of=/dev/sda'
+deny: Command matches a denied rule: dd
+
+$ROOT % bash -c "ls; dd if=/dev/zero of=/dev/sda"
+deny: Command matches a denied rule: dd
+
+$ROOT % sh -c 'ls; git push origin main'
+deny: Command matches a denied rule: git push

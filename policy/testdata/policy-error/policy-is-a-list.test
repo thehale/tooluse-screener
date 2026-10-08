@@ -1,0 +1,6 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+- commands: ls
+--------------------------------------------------------------------------------
+error: line 4: policy is a list. Use a mapping with `denied`, `allowed` or `trusted_git_directories`.

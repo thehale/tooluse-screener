@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Push
+    commands: git push
+allowed:
+  - git
+--------------------------------------------------------------------------------
+$ROOT % git push origin topic
+deny: Command matches a denied rule: Push

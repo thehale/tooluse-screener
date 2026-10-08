@@ -1,0 +1,12 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths: /secrets/**
+    addendum:
+      - only:
+          dirs:
+            - /work
+        reason: Here.
+--------------------------------------------------------------------------------
+error: line 5: `addendum` does not apply to `paths`. Remove the `addendum`.

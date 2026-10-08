@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - sudo
+allowed:
+  - ls
+--------------------------------------------------------------------------------
+$ROOT % nmap localhost
+ask: Command is not in the shared allow list

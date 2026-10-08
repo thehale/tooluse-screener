@@ -1,0 +1,13 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - patterns:
+      - '^git push origin \S+$'
+    only:
+      branches:
+        - ci-fix
+        - not: ci-fix
+--------------------------------------------------------------------------------
+$ROOT % git push origin ci-fix
+ask: Command is not in the shared allow list

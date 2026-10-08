@@ -1,0 +1,6 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories: ~/src
+--------------------------------------------------------------------------------
+error: line 4: `trusted_git_directories` is text `~/src`. Use a list of directories.

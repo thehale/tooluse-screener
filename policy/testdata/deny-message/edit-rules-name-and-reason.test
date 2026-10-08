@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Write a secret
+    reason: Ask a human first.
+    paths: /secrets/**
+--------------------------------------------------------------------------------
+$ROOT % Edit(/secrets/key)
+deny: Path matches a denied rule: Write a secret. Ask a human first.

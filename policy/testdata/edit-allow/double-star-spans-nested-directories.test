@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - paths:
+      - '/work/**'
+--------------------------------------------------------------------------------
+$ROOT % Edit(/work/repo/main.go)
+allow: Path is allowed: /work/**

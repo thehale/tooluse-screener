@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - '~/.ssh/**'
+--------------------------------------------------------------------------------
+$ROOT % Edit(/home/me/.ssh/../notes.md)
+ask: Path is not in the shared allow list

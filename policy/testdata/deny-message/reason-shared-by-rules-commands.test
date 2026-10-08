@@ -1,0 +1,14 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands:
+      - shutdown
+      - reboot
+    reason: Ask first.
+--------------------------------------------------------------------------------
+$ROOT % shutdown now
+deny: Command matches a denied rule: shutdown. Ask first.
+
+$ROOT % reboot now
+deny: Command matches a denied rule: reboot. Ask first.

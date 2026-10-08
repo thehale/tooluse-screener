@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - commands: git push
+    only:
+      branches:
+        - {}
+--------------------------------------------------------------------------------
+error: line 8: branch missing `not`

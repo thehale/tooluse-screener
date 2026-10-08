@@ -1,0 +1,16 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - patterns:
+      - '^git push origin \S+$'
+    only:
+      branches:
+        - ci-fix
+        - release
+--------------------------------------------------------------------------------
+$ROOT % git push origin ci-fix
+allow: Every command is allowed: ^git push origin \S+$
+
+$ROOT % git push origin release
+allow: Every command is allowed: ^git push origin \S+$

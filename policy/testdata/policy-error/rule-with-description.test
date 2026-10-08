@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: shutdown
+    description: Downtime
+--------------------------------------------------------------------------------
+error: line 6: `description` is no longer supported. Rename it to `name`.

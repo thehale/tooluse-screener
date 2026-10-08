@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - '(['
+--------------------------------------------------------------------------------
+error: line 5: invalid regular expression `([`: missing closing ]: `[`

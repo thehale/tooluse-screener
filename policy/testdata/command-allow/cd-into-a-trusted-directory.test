@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+allowed:
+  - cd
+  - git status
+--------------------------------------------------------------------------------
+$ROOT % cd /work && git status
+allow: Every command is allowed: cd, git status

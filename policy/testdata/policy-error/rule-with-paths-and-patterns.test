@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - '^cat '
+    paths: /secrets/**
+--------------------------------------------------------------------------------
+error: line 5: `paths` and `patterns` in one rule. Move the paths into a rule of their own.

@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - ls
+--------------------------------------------------------------------------------
+# `a-b` is no name a shell would take, so this command is `a-b=1` and not `ls`
+$ROOT % a-b=1 ls -la
+ask: Command is not in the shared allow list

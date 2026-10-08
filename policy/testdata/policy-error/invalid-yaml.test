@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: ls
+  bad indent
+--------------------------------------------------------------------------------
+error: line 6: invalid YAML: could not find expected ':'

@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - commands: ls
+    only:
+      dirs:
+        - $ROOT
+--------------------------------------------------------------------------------
+$ROOT % ls -la
+allow: Every command is allowed: ls

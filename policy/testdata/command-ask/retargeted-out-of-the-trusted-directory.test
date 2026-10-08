@@ -1,0 +1,18 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+allowed:
+  - git status
+--------------------------------------------------------------------------------
+# Git reads GIT_DIR, GIT_WORK_TREE and GIT_COMMON_DIR as the options they stand
+# for, and an assignment is what takes the command out of the trusted directory
+$ROOT % GIT_DIR=/elsewhere/.git git status
+ask: Command is not in the shared allow list
+
+$ROOT % GIT_WORK_TREE=/elsewhere git -C /work status
+ask: Command is not in the shared allow list
+
+$ROOT % GIT_COMMON_DIR=/elsewhere git -C /work status
+ask: Command is not in the shared allow list

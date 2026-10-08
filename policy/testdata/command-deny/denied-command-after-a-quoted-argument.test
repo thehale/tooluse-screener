@@ -1,0 +1,16 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - dd
+allowed:
+  - cat
+--------------------------------------------------------------------------------
+# A denied pattern still matches as it would without the quoting, since a deny
+# verdict never loosens: a quoted separator stays in cat's argument, but the
+# real pipe after it still splits the line and reaches dd
+$ROOT % cat 'a|b' | dd if=/dev/zero of=/dev/sda
+deny: Command matches a denied rule: dd
+
+$ROOT % cat "it's" | dd if=/dev/zero of=/dev/sda
+deny: Command matches a denied rule: dd

@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    addendum:
+      - only:
+          dirs:
+            - /work
+--------------------------------------------------------------------------------
+error: line 7: addendum missing `reason`

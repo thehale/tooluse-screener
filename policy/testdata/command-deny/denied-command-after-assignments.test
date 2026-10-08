@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - dd
+--------------------------------------------------------------------------------
+$ROOT % ENV=1 dd if=/dev/zero of=/dev/sda
+deny: Command matches a denied rule: dd

@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - git config --unset
+--------------------------------------------------------------------------------
+$ROOT % git config --unset user.name
+deny: Command matches a denied rule: git config --unset
+
+$ROOT % git -C /x config --global --unset user.name
+deny: Command matches a denied rule: git config --unset

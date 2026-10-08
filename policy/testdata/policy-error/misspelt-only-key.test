@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    only:
+      dirz:
+        - /work
+--------------------------------------------------------------------------------
+error: line 7: `dirz` is not supported. Did you mean `dirs`?

@@ -1,0 +1,16 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Write a private key
+    reason: Ask a human first.
+    paths:
+      - '~/.ssh/**'
+      - '~/**/*.pem'
+--------------------------------------------------------------------------------
+# A double star spans several directories, or none at all
+$ROOT % Edit(/home/me/.ssh/keys/work/id_rsa)
+deny: Path matches a denied rule: Write a private key. Ask a human first.
+
+$ROOT % Edit(/home/me/server.pem)
+deny: Path matches a denied rule: Write a private key. Ask a human first.

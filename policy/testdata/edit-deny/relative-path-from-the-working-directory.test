@@ -1,0 +1,12 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - 'secrets/**'
+--------------------------------------------------------------------------------
+$ROOT % Edit($ROOT/secrets/key)
+deny: Path matches a denied rule: secrets/**
+
+$ROOT % Edit(secrets/key)
+deny: Path matches a denied rule: secrets/**

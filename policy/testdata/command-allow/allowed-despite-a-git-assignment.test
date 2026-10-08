@@ -1,0 +1,25 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+allowed:
+  - git status
+  - name: Push a branch of the app
+    patterns:
+      - '^git (-C \S+ )?push origin \S+$'
+    only:
+      dirs:
+        - /work/app
+      branches:
+        - not: main
+--------------------------------------------------------------------------------
+# Allowed, pointed into a trusted repository or pointed nowhere
+$ROOT % GIT_DIR=/work/.git git status
+allow: Every command is allowed: git status
+
+$ROOT % GIT_TRACE=1 git -C /work status
+allow: Every command is allowed: git status
+
+$ROOT % GIT_TRACE=1 git -C /work/app push origin topic
+allow: Every command is allowed: Push a branch of the app

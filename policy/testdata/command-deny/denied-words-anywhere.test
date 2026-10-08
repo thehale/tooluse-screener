@@ -1,0 +1,11 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - deploy now
+--------------------------------------------------------------------------------
+$ROOT % deploy now
+deny: Command matches a denied rule: deploy now
+
+$ROOT % RELEASE_CHANNEL=live deploy now
+deny: Command matches a denied rule: deploy now

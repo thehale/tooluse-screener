@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths: /secrets/**
+    only:
+      dirs:
+        - /work
+--------------------------------------------------------------------------------
+error: line 5: `only` does not apply to `paths`. Remove the `only`.

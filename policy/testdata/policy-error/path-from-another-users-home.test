@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - '~nobody/.ssh/**'
+--------------------------------------------------------------------------------
+error: line 5: path `~nobody/.ssh/**` names another user's home. Write it from / instead.

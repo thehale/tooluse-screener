@@ -1,0 +1,20 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - cat
+  - ls
+--------------------------------------------------------------------------------
+# A separator quoted or escaped the way a shell would read it is part of the
+# argument it sits in, not a split between commands
+$ROOT % cat 'a|b' foo
+allow: Every command is allowed: cat
+
+$ROOT % cat "a|b" foo
+allow: Every command is allowed: cat
+
+$ROOT % cat a\|b foo
+allow: Every command is allowed: cat
+
+$ROOT % cat 'a;b' && ls
+allow: Every command is allowed: cat, ls

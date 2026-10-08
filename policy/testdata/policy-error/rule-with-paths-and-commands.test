@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: cat /secrets
+    paths: /secrets/**
+--------------------------------------------------------------------------------
+error: line 5: `paths` and `commands` in one rule. Move the paths into a rule of their own.

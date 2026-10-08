@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - patterns:
+      - 'ls|cat'
+--------------------------------------------------------------------------------
+$ROOT % cat foo
+allow: Every command is allowed: ls|cat

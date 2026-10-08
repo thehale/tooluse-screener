@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - 'git push'
+--------------------------------------------------------------------------------
+$ROOT % grep -rn 'git push' docs
+deny: Command matches a denied rule: git push

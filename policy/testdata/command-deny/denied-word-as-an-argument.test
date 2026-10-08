@@ -1,0 +1,14 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - dd
+  - bin/publish
+--------------------------------------------------------------------------------
+# `cat` accounts for the program and not the file it reads, so it answers for
+# neither of these commands whole and takes neither denial off the table.
+$ROOT % cat bin/publish
+deny: Command matches a denied rule: bin/publish
+
+$ROOT % cat dd
+deny: Command matches a denied rule: dd

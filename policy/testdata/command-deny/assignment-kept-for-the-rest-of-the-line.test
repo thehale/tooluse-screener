@@ -1,0 +1,21 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+denied:
+  - git push
+allowed:
+  - name: Push a branch of the app
+    patterns:
+      - '^git (-C \S+ )?push origin \S+$'
+    only:
+      dirs:
+        - /work/app
+      branches:
+        - not: main
+--------------------------------------------------------------------------------
+# An assignment kept with `export` for the rest of the line points every
+# command after it the same way
+$ROOT % export GIT_DIR=/work/app/.git && git -C /work/app push origin topic
+deny: Command matches a denied rule: git push

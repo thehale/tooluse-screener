@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    reason:
+      - no
+--------------------------------------------------------------------------------
+error: line 7: `reason` is a list. Use text.

@@ -1,0 +1,10 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - name: Match nothing
+    only:
+      dirs:
+        - /approved
+--------------------------------------------------------------------------------
+error: line 5: rule missing `commands`, `patterns` or `paths`

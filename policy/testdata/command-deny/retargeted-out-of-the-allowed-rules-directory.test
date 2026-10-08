@@ -1,0 +1,32 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - /work
+denied:
+  - git push
+allowed:
+  - name: Push a branch of the app
+    patterns:
+      - '^git (-C \S+ )?push origin \S+$'
+    only:
+      dirs:
+        - /work/app
+      branches:
+        - not: main
+--------------------------------------------------------------------------------
+# An assignment that takes a push out of the repository the allowed rule
+# vouches for leaves the bare denial standing: GIT_DIR, HOME and the
+# GIT_CONFIG_* trio each send it somewhere the config can name a different
+# push target.
+$ROOT % GIT_DIR=/elsewhere/.git git -C /work/app push origin topic
+deny: Command matches a denied rule: git push
+
+$ROOT % GIT_DIR=/work/app/.git git -C /work/app push origin topic
+deny: Command matches a denied rule: git push
+
+$ROOT % HOME=/elsewhere git -C /work/app push origin topic
+deny: Command matches a denied rule: git push
+
+$ROOT % GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.pushurl GIT_CONFIG_VALUE_0=/elsewhere git -C /work/app push origin topic
+deny: Command matches a denied rule: git push

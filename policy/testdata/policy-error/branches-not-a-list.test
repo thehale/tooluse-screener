@@ -1,0 +1,9 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    only:
+      branches: main
+--------------------------------------------------------------------------------
+error: line 7: `branches` is text `main`. Use a list of branches.

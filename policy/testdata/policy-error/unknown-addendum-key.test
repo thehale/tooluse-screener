@@ -1,0 +1,13 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - commands: git push
+    addendum:
+      - only:
+          dirs:
+            - /work
+        reason: Here.
+        extra: nope
+--------------------------------------------------------------------------------
+error: line 11: `extra` is not supported. Use one of `only` or `reason`.

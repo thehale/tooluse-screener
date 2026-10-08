@@ -1,0 +1,20 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+trusted_git_directories:
+  - $ROOT
+denied:
+  - name: Push
+    commands: git push
+allowed:
+  - name: Push where CI can run it
+    patterns:
+      - '^git -C \S+ push origin \S+$'
+    only:
+      dirs:
+        - $ROOT
+      branches:
+        - not: main
+--------------------------------------------------------------------------------
+$ROOT % git -C $ROOT push origin topic
+allow: Every command is allowed: Push where CI can run it

@@ -1,0 +1,8 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - patterns:
+      - 7
+--------------------------------------------------------------------------------
+error: line 6: number 7 is not text. Quote it: '7'.

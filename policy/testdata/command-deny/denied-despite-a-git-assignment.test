@@ -1,0 +1,12 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - git push
+--------------------------------------------------------------------------------
+# Denied, as it would be without the assignment
+$ROOT % GIT_DIR=/work/.git git push origin main
+deny: Command matches a denied rule: git push
+
+$ROOT % GIT_TRACE=1 git -C /work/app push origin main
+deny: Command matches a denied rule: git push
