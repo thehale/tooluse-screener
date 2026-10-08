@@ -13,12 +13,13 @@ import (
 )
 
 type entry struct {
-	Commands      texts `yaml:"commands"`
-	Patterns      texts `yaml:"patterns"`
-	Paths         texts `yaml:"paths"`
-	rules.Wording `yaml:",inline"`
-	Only          *onlyBlock      `yaml:"only"`
-	Addendum      []addendumBlock `yaml:"addendum"`
+	Commands texts           `yaml:"commands"`
+	Patterns texts           `yaml:"patterns"`
+	Paths    texts           `yaml:"paths"`
+	Name     string          `yaml:"name"`
+	Reason   string          `yaml:"reason"`
+	Only     *onlyBlock      `yaml:"only"`
+	Addendum []addendumBlock `yaml:"addendum"`
 }
 
 func (e *entry) UnmarshalYAML(node *yaml.Node) error {
@@ -57,68 +58,75 @@ func (e entry) pathRules() (rules.Globs, error) {
 func (e entry) globs() (rules.Globs, error) {
 	var pathRules rules.Globs
 	for _, text := range e.Paths {
-		glob, err := rules.NewGlob(text, e.Wording)
+		glob, err := rules.NewGlob(text)
 		if err != nil {
 			return nil, err
 		}
+		glob.Name, glob.Reason = e.Name, e.Reason
 		pathRules = append(pathRules, glob)
 	}
 	return pathRules, nil
 }
 
-func (e entry) commandRules(wrap func(rules.Rule) rules.Rule) (rules.Group, error) {
-	rulesAsWritten, err := e.unscopedRules()
-	commandRules := make(rules.Group, 0, len(rulesAsWritten))
-	for _, rule := range rulesAsWritten {
-		commandRules = append(commandRules, e.addendedRule(e.scopedRule(wrap(rule))))
+func (e entry) commandRules(base rules.Rule) (rules.Group, error) {
+	expressions, err := e.expressions()
+	commandRules := make(rules.Group, 0, len(expressions))
+	for _, expression := range expressions {
+		commandRule := base
+		commandRule.Name = e.Name
+		commandRule.Reason = e.Reason
+		commandRule.Expression = expression
+		commandRule.Only = e.scope()
+		commandRule.Addendums = e.addendums()
+		commandRules = append(commandRules, commandRule)
 	}
 	return commandRules, err
 }
 
-func (e entry) scopedRule(rule rules.Rule) rules.Rule {
+func (e entry) scope() rules.Scope {
 	if e.Only == nil {
-		return rule
+		return rules.Scope{}
 	} else {
-		return rules.NewScoped(rule, e.Only.Scope)
+		return e.Only.Scope
 	}
 }
 
-func (e entry) addendedRule(rule rules.Rule) rules.Rule {
-	addenda := make([]rules.Addendum, 0, len(e.Addendum))
+func (e entry) addendums() []rules.Addendum {
+	addendums := make([]rules.Addendum, 0, len(e.Addendum))
 	for _, block := range e.Addendum {
-		addenda = append(addenda, block.Addendum)
+		addendums = append(addendums, block.Addendum)
 	}
-	return rules.NewAddended(rule, addenda)
+	return addendums
 }
 
-func (e entry) unscopedRules() (rules.Group, error) {
+func (e entry) expressions() ([]rules.Expression, error) {
 	if len(e.Commands) == 0 && len(e.Patterns) == 0 && len(e.Paths) == 0 {
 		return nil, fmt.Errorf("an entry is a command, or a mapping with `commands`, `patterns` or `paths`: %+v", e)
 	} else {
-		return e.writtenRules()
+		return e.writtenExpressions()
 	}
 }
 
-func (e entry) writtenRules() (rules.Group, error) {
-	var commandRules rules.Group
+func (e entry) writtenExpressions() ([]rules.Expression, error) {
+	var expressions []rules.Expression
 	for _, text := range e.Commands {
-		commandRules = append(commandRules, e.commandRule(text))
+		expressions = append(expressions, e.expression(text))
 	}
-	for _, expression := range e.Patterns {
-		pattern, err := rules.NewPattern(expression, e.Wording)
+	for _, text := range e.Patterns {
+		pattern, err := rules.NewPattern(text)
 		if err != nil {
 			return nil, err
 		}
-		commandRules = append(commandRules, pattern)
+		expressions = append(expressions, pattern)
 	}
-	return commandRules, nil
+	return expressions, nil
 }
 
-func (e entry) commandRule(text string) rules.Rule {
+func (e entry) expression(text string) rules.Expression {
 	if invocation, isGit := gitInvocation(text); isGit {
-		return rules.NewGitSubcommand(invocation[0], invocation[1:], e.Wording)
+		return rules.NewGitSubcommand(invocation[0], invocation[1:])
 	} else {
-		return rules.NewWords(text, e.Wording)
+		return rules.Words(text)
 	}
 }
 

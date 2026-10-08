@@ -26,7 +26,7 @@ func (a *addendumBlock) UnmarshalYAML(node *yaml.Node) error {
 	} else if fields.Only == nil || strings.TrimSpace(fields.Reason) == "" {
 		return fmt.Errorf("an addendum is a mapping with `only` and `reason`: %+v", fields)
 	} else {
-		a.Addendum = rules.NewAddendum(fields.Only.Scope, fields.Reason)
+		a.Addendum = rules.Addendum{Only: fields.Only.Scope, Reason: fields.Reason}
 		return nil
 	}
 }

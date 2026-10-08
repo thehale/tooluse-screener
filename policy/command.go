@@ -32,7 +32,7 @@ func (p Policy) denyReasons(commands []command.Command) []string {
 	var reasons []string
 	for _, one := range commands {
 		for _, rule := range standingDenyRules(p.denied.commandRules.RulesMatching(one), p.allowed.commandRules, one) {
-			reasons = append(reasons, denyReason("Command", rule, rule.Reason(one)))
+			reasons = append(reasons, denyReason("Command", rule, rule.ReasonFor(one)))
 		}
 	}
 	return reasons

@@ -19,6 +19,6 @@ func (o *onlyBlock) UnmarshalYAML(node *yaml.Node) error {
 		Branches branchList `yaml:"branches"`
 	}
 	err := node.Decode(&fields)
-	o.Scope = rules.NewScope(fields.Dirs, rules.Branches(fields.Branches))
+	o.Scope = rules.Scope{Dirs: fields.Dirs, Branches: rules.Branches(fields.Branches)}
 	return err
 }

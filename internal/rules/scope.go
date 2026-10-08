@@ -10,12 +10,8 @@ import (
 )
 
 type Scope struct {
-	dirs     []string
-	branches Branches
-}
-
-func NewScope(dirs []string, branches Branches) Scope {
-	return Scope{dirs, branches}
+	Dirs     []string
+	Branches Branches
 }
 
 func (s Scope) isInScope(command commands.Command) bool {
@@ -25,14 +21,14 @@ func (s Scope) isInScope(command commands.Command) bool {
 }
 
 func (s Scope) isInADir(dirs []string) bool {
-	return len(s.dirs) == 0 || directories.AreAllUnder(dirs, s.dirs)
+	return len(s.Dirs) == 0 || directories.AreAllUnder(dirs, s.Dirs)
 }
 
 func (s Scope) isOnABranch(invocation git.Invocation, dirs []string) bool {
-	if s.branches.isUnsaid() {
+	if s.Branches.isUnsaid() {
 		return true
 	} else {
 		branch, isKnown := invocation.Landing(dirs)
-		return isKnown && s.branches.isListed(branch)
+		return isKnown && s.Branches.isListed(branch)
 	}
 }

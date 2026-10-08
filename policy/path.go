@@ -11,7 +11,7 @@ func (p Policy) CheckPath(path string) Verdict {
 
 	switch {
 	case len(denyingGlobs) > 0:
-		return Verdict{Deny, denyReason("Path", denyingGlobs[0], denyingGlobs[0].Reason())}
+		return Verdict{Deny, denyReason("Path", denyingGlobs[0], denyingGlobs[0].Reason)}
 	case len(allowingGlobs) > 0:
 		return Verdict{Allow, fmt.Sprintf("Path is allowed: %s", allowingGlobs[0])}
 	default:

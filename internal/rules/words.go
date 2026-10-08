@@ -9,19 +9,12 @@ import (
 	commands "github.com/thehale/tooluse-screener/internal/command"
 )
 
-type Words struct {
-	wording Wording
-	text    string
-}
-
-func NewWords(text string, wording Wording) Rule {
-	return Words{wording, text}
-}
+type Words string
 
 func (w Words) At(command commands.Command) int {
 	text := command.Text
-	for from := 0; w.text != "" && from+len(w.text) <= len(text); {
-		index := strings.Index(text[from:], w.text)
+	for from := 0; w != "" && from+len(w) <= len(text); {
+		index := strings.Index(text[from:], string(w))
 		switch {
 		case index < 0:
 			return -1
@@ -39,14 +32,14 @@ func (w Words) isStandaloneAt(command string, at int) bool {
 }
 
 func (w Words) isWordStartAt(command string, at int) bool {
-	return at == 0 || !isWordLetter(command[at-1]) || !isWordLetter(w.text[0])
+	return at == 0 || !isWordLetter(command[at-1]) || !isWordLetter(w[0])
 }
 
 func (w Words) isWordEndAt(command string, at int) bool {
-	after := at + len(w.text)
+	after := at + len(w)
 	return after == len(command) ||
 		!isWordLetter(command[after]) ||
-		!isWordLetter(w.text[len(w.text)-1])
+		!isWordLetter(w[len(w)-1])
 }
 
 func isWordLetter(letter byte) bool {
@@ -58,16 +51,12 @@ func isWordLetter(letter byte) bool {
 
 func (w Words) Span(command commands.Command) int {
 	if w.At(command) >= 0 {
-		return len(w.text)
+		return len(w)
 	} else {
 		return 0
 	}
 }
 
-func (w Words) Reason(commands.Command) string {
-	return w.wording.Reason
-}
-
 func (w Words) String() string {
-	return w.wording.nameOr(w.text)
+	return string(w)
 }

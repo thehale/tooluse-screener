@@ -292,7 +292,7 @@ func TestPaths(t *testing.T) {
 	t.Run("carry their entry's reason and name", func(t *testing.T) {
 		denyRules := policyFrom(t, "denied:\n  - name: Write a secret\n    reason: Ask first.\n    paths: /secrets/**\n").denied.pathRules
 		namesGlobs(t, denyRules, "Write a secret")
-		if reason := denyRules[0].Reason(); reason != "Ask first." {
+		if reason := denyRules[0].Reason; reason != "Ask first." {
 			t.Errorf("reason %q", reason)
 		}
 	})
@@ -482,7 +482,7 @@ func matches(t *testing.T, wanted bool, group rules.Group, command string) {
 
 func reasons(t *testing.T, group rules.Group, command, wanted string) {
 	t.Helper()
-	if got := firstMatch(t, group, command).Reason(commandOf(command)); got != wanted {
+	if got := firstMatch(t, group, command).ReasonFor(commandOf(command)); got != wanted {
 		t.Errorf("%q -> reason %q, wanted %q", command, got, wanted)
 	}
 }

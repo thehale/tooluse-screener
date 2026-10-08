@@ -12,20 +12,11 @@ type file struct {
 }
 
 func (f file) policy() (Policy, error) {
-	deniedSide, err := f.Denied.side(asWritten)
+	deniedSide, err := f.Denied.side(rules.Rule{})
 	if err != nil {
 		return Policy{}, err
 	}
-	allowedSide, err := f.Allowed.side(allowRuleIn(f.Trusted))
+	trusted := rules.TrustedGitDirectories(f.Trusted)
+	allowedSide, err := f.Allowed.side(rules.Rule{AtStart: true, TrustedGitDirectories: &trusted})
 	return Policy{denied: deniedSide, allowed: allowedSide}, err
-}
-
-func asWritten(rule rules.Rule) rules.Rule {
-	return rule
-}
-
-func allowRuleIn(trustedDirs []string) func(rules.Rule) rules.Rule {
-	return func(rule rules.Rule) rules.Rule {
-		return rules.NewReaching(rules.NewOpening(rule), trustedDirs)
-	}
 }

@@ -12,13 +12,12 @@ import (
 )
 
 type GitSubcommand struct {
-	wording       Wording
 	subcommand    string
 	requiredWords []string
 }
 
-func NewGitSubcommand(subcommand string, requiredWords []string, wording Wording) Rule {
-	return GitSubcommand{wording, subcommand, requiredWords}
+func NewGitSubcommand(subcommand string, requiredWords []string) GitSubcommand {
+	return GitSubcommand{subcommand, requiredWords}
 }
 
 func (g GitSubcommand) isMatch(command commands.Command) bool {
@@ -54,10 +53,6 @@ func endOf(command string, words []string) int {
 	return end
 }
 
-func (g GitSubcommand) Reason(commands.Command) string {
-	return g.wording.Reason
-}
-
 func (g GitSubcommand) String() string {
-	return g.wording.nameOr(strings.Join(append([]string{"git", g.subcommand}, g.requiredWords...), " "))
+	return strings.Join(append([]string{"git", g.subcommand}, g.requiredWords...), " ")
 }
