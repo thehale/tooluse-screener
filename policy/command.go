@@ -5,6 +5,7 @@ package policy
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/thehale/tooluse-screener/internal/command"
@@ -14,7 +15,7 @@ import (
 
 func (p Policy) CheckCommand(line string) Verdict {
 	commands := command.All(line)
-	reasons := p.denyReasons(commands)
+	reasons := p.denyReasons(slices.Concat(commands, command.Blind(line)))
 	matchingByCommand := allowRulesByCommand(p.allowed.commandRules, commands)
 
 	switch {

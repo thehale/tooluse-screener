@@ -47,6 +47,34 @@ func TestSeparators(t *testing.T) {
 	t.Run("a line continuation joins two lines", func(t *testing.T) {
 		finds(t, "git \\\nstatus", "git status")
 	})
+
+	t.Run("a quoted separator stays part of its command", func(t *testing.T) {
+		finds(t, "grep -E 'a|b' file", "grep -E 'a|b' file")
+		finds(t, `grep -E "a|b" file`, `grep -E "a|b" file`)
+		finds(t, `grep -E a\|b file`, `grep -E a\|b file`)
+		finds(t, "ls 'a&&b'", "ls 'a&&b'")
+		finds(t, "ls 'a;b'", "ls 'a;b'")
+	})
+
+	t.Run("a real separator after a quoted one still separates", func(t *testing.T) {
+		finds(t, "cat 'a|b' | cat", "cat 'a|b'", "cat")
+	})
+
+	t.Run("a compound command finds the simple commands inside it", func(t *testing.T) {
+		finds(t, "if true; then ls; fi", "true", "ls")
+	})
+
+	t.Run("a backgrounded redirection keeps its redirect and loses its ampersand", func(t *testing.T) {
+		finds(t, "ls 2>&1 &", "ls 2>&1")
+	})
+
+	t.Run("an assignment kept for the rest of the line is still one command", func(t *testing.T) {
+		finds(t, "export GIT_DIR=/x", "export GIT_DIR=/x")
+	})
+
+	t.Run("an unterminated quote falls back to the quote-blind split", func(t *testing.T) {
+		finds(t, "ls 'a;b", "ls 'a", "b")
+	})
 }
 
 func TestSubstitutions(t *testing.T) {
@@ -86,6 +114,22 @@ func TestSubstitutions(t *testing.T) {
 	t.Run("separators inside a substitution still separate", func(t *testing.T) {
 		finds(t, `echo "$(ls && cat foo)"`, `echo "`+placeholder+`"`, "ls", "cat foo")
 	})
+
+	t.Run("a substitution opener inside single quotes is not extracted", func(t *testing.T) {
+		finds(t, "echo '$(cat foo)'", "echo '$(cat foo)'")
+		finds(t, "echo '`cat foo`'", "echo '`cat foo`'")
+	})
+
+	t.Run("an escaped opener is a syntax error that falls back to the quote-blind split", func(t *testing.T) {
+		finds(t, `echo \$(cat foo)`, `echo \`+placeholder, "cat foo")
+	})
+}
+
+func TestBlind(t *testing.T) {
+	wanted := []string{"grep -E 'a", "b' file"}
+	if all := texts(command.Blind("grep -E 'a|b' file")); !slices.Equal(all, wanted) {
+		t.Errorf("Blind split %q, wanted %q", all, wanted)
+	}
 }
 
 func finds(t *testing.T, text string, wanted ...string) {

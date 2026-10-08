@@ -12,10 +12,14 @@ type Command struct {
 	Moved []string
 }
 
-func All(text string) []Command {
+func Blind(text string) []Command {
+	return commandsFrom(split(withLinesJoined(text)))
+}
+
+func commandsFrom(parts []string) []Command {
 	var commands []Command
 	var destinations []string
-	for _, part := range split(withLinesJoined(text)) {
+	for _, part := range parts {
 		if command := withSpacesCollapsed(part); command != "" {
 			commands = append(commands, Command{command, destinations})
 			destinations = movesAfter(command, destinations)

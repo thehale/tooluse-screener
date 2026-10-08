@@ -107,3 +107,22 @@ ask     GIT_COMMON_DIR=/elsewhere git -C /work status
 # An assignment kept for the rest of the line points every command after
 # it the same way.
 deny    export GIT_DIR=/work/app/.git && git -C /work/app push origin topic
+
+# A separator quoted the way a shell would read it is part of the
+# argument it sits in, not a split between commands. A denied pattern
+# still matches as it would without the quoting, since a deny verdict
+# never loosens, and a substitution is still extracted out of double
+# quotes, never out of single quotes.
+allow   cat 'a|b' foo
+allow   cat "a|b" foo
+allow   cat a\|b foo
+allow   cat 'a;b' && ls
+deny    cat 'a|b' | dd if=/dev/zero of=/dev/sda
+deny    cat "it's" | dd if=/dev/zero of=/dev/sda
+deny    sh -c 'dd if=/dev/zero of=/dev/sda'
+deny    sh -c 'ls | dd if=/dev/zero of=/dev/sda'
+deny    bash -c "ls; dd if=/dev/zero of=/dev/sda"
+deny    sh -c 'ls;rm -rf /;ls'
+deny    cat '$(dd if=/dev/zero of=/dev/sda)'
+deny    cat "$(dd if=/dev/zero of=/dev/sda)"
+deny    sh -c 'ls; git push origin main'

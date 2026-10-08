@@ -23,6 +23,10 @@ func TestMoves(t *testing.T) {
 		moves(t, "cd -- /work | git status", "/work")
 	})
 
+	t.Run("cd takes a quoted argument whole rather than splitting it", func(t *testing.T) {
+		moves(t, "cd 'a;b' && git status", "a;b")
+	})
+
 	t.Run("a command before it has not moved", func(t *testing.T) {
 		if first := command.All("git status && cd /work")[0]; len(first.Moved) > 0 {
 			t.Errorf("%q moved to %q", first.Text, first.Moved)
