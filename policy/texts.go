@@ -14,10 +14,11 @@ type texts []string
 func (t *texts) UnmarshalYAML(node *yaml.Node) error {
 	var values []string
 	for _, item := range nodesIn(node) {
-		if !isText(item) {
-			return refusalAt(item.Line, "a command or expression is written as text, and this is not: %v", item.Value)
+		text, err := textOf(item)
+		if err != nil {
+			return err
 		}
-		values = append(values, item.Value)
+		values = append(values, text)
 	}
 	*t = values
 	return nil
@@ -31,6 +32,14 @@ func nodesIn(node *yaml.Node) []*yaml.Node {
 	}
 }
 
-func isText(node *yaml.Node) bool {
-	return node.Tag == "!!str" && strings.TrimSpace(node.Value) != ""
+func textOf(node *yaml.Node) (string, error) {
+	if node.Kind != yaml.ScalarNode {
+		return "", refusalAt(node.Line, "value is %s. Use text.", described(node))
+	} else if node.Tag == "!!null" || strings.TrimSpace(node.Value) == "" {
+		return "", refusalAt(node.Line, "blank value. Fill it in or remove it.")
+	} else if node.Tag != "!!str" {
+		return "", refusalAt(node.Line, "%s is not text. Quote it: '%s'.", described(node), node.Value)
+	} else {
+		return node.Value, nil
+	}
 }

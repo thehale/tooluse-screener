@@ -22,35 +22,55 @@ type entry struct {
 	line     int
 }
 
+var entryShape = shape{yaml.ScalarNode | yaml.MappingNode, "a command, or a mapping with `commands`, `patterns` or `paths`"}
+
+var entryFields = fields{
+	{"commands", shape{yaml.ScalarNode | yaml.SequenceNode, "a command, or a list of them"}},
+	{"patterns", shape{yaml.ScalarNode | yaml.SequenceNode, "a pattern, or a list of them"}},
+	{"paths", shape{yaml.ScalarNode | yaml.SequenceNode, "a path, or a list of them"}},
+	{"name", shape{yaml.ScalarNode, "text"}},
+	{"reason", shape{yaml.ScalarNode, "text"}},
+	{"only", shape{yaml.MappingNode, "a mapping with `dirs` or `branches`"}},
+	{"addendum", shape{yaml.SequenceNode, "a list of addendums, each with `only` and `reason`"}},
+}
+
 func (e *entry) UnmarshalYAML(node *yaml.Node) error {
 	type mapping entry
 	e.line = node.Line
-	if node.Kind == yaml.ScalarNode {
+	if line, hasDescription := descriptionLine(node); hasDescription {
+		return refusalAt(line, "`description` is no longer supported. Rename it to `name`.")
+	} else if err := entryShape.check(node, "rule"); err != nil {
+		return err
+	} else if node.Kind == yaml.ScalarNode {
 		return node.Decode(&e.Commands)
-	} else if oldName, line, hasDescription := description(node); hasDescription {
-		return refusalAt(line, "`description` is now `name`: %s", oldName)
+	} else if err := entryFields.check(node); err != nil {
+		return err
 	} else {
 		return node.Decode((*mapping)(e))
 	}
 }
 
-func description(node *yaml.Node) (oldName string, line int, isPresent bool) {
+func descriptionLine(node *yaml.Node) (line int, isPresent bool) {
 	for index := 0; index+1 < len(node.Content); index += 2 {
 		if node.Content[index].Value == "description" {
-			return node.Content[index+1].Value, node.Content[index].Line, true
+			return node.Content[index].Line, true
 		}
 	}
-	return "", 0, false
+	return 0, false
 }
 
 func (e entry) pathRules() (rules.Globs, error) {
 	switch {
 	case len(e.Paths) == 0:
 		return nil, nil
-	case len(e.Commands) > 0 || len(e.Patterns) > 0:
-		return nil, refusalAt(e.line, "an entry names `paths` or commands, never both")
-	case e.Only != nil || len(e.Addendum) > 0:
-		return nil, refusalAt(e.line, "`only` and `addendum` scope commands, and an entry with `paths` has none to scope")
+	case len(e.Commands) > 0:
+		return nil, refusalAt(e.line, "`paths` and `commands` in one rule. Move the paths into a rule of their own.")
+	case len(e.Patterns) > 0:
+		return nil, refusalAt(e.line, "`paths` and `patterns` in one rule. Move the paths into a rule of their own.")
+	case e.Only != nil:
+		return nil, refusalAt(e.line, "`only` does not apply to `paths`. Remove the `only`.")
+	case len(e.Addendum) > 0:
+		return nil, refusalAt(e.line, "`addendum` does not apply to `paths`. Remove the `addendum`.")
 	default:
 		return e.globs()
 	}
@@ -102,7 +122,7 @@ func (e entry) addendums() []rules.Addendum {
 
 func (e entry) expressions() ([]rules.Expression, error) {
 	if len(e.Commands) == 0 && len(e.Patterns) == 0 && len(e.Paths) == 0 {
-		return nil, refusalAt(e.line, "an entry is a command, or a mapping with `commands`, `patterns` or `paths`")
+		return nil, refusalAt(e.line, "rule missing `commands`, `patterns` or `paths`")
 	} else {
 		return e.writtenExpressions()
 	}

@@ -13,12 +13,22 @@ type onlyBlock struct {
 	rules.Scope
 }
 
+var onlyFields = fields{
+	{"dirs", shape{yaml.ScalarNode | yaml.SequenceNode, "a directory, or a list of them"}},
+	{"branches", shape{yaml.SequenceNode, "a list of branches"}},
+}
+
 func (o *onlyBlock) UnmarshalYAML(node *yaml.Node) error {
-	var fields struct {
+	var decoded struct {
 		Dirs     texts      `yaml:"dirs"`
 		Branches branchList `yaml:"branches"`
 	}
-	err := node.Decode(&fields)
-	o.Scope = rules.Scope{Dirs: fields.Dirs, Branches: rules.Branches(fields.Branches)}
-	return err
+	if err := onlyFields.check(node); err != nil {
+		return err
+	} else if err := node.Decode(&decoded); err != nil {
+		return err
+	} else {
+		o.Scope = rules.Scope{Dirs: decoded.Dirs, Branches: rules.Branches(decoded.Branches)}
+		return nil
+	}
 }

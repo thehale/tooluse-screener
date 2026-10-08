@@ -15,17 +15,30 @@ type addendumBlock struct {
 	rules.Addendum
 }
 
+var addendumShape = shape{yaml.MappingNode, "a mapping with `only` and `reason`"}
+
+var addendumFields = fields{
+	{"only", shape{yaml.MappingNode, "a mapping with `dirs` or `branches`"}},
+	{"reason", shape{yaml.ScalarNode, "text"}},
+}
+
 func (a *addendumBlock) UnmarshalYAML(node *yaml.Node) error {
-	var fields struct {
+	var decoded struct {
 		Only   *onlyBlock `yaml:"only"`
 		Reason string     `yaml:"reason"`
 	}
-	if err := node.Decode(&fields); err != nil {
+	if err := addendumShape.check(node, "addendum"); err != nil {
 		return err
-	} else if fields.Only == nil || strings.TrimSpace(fields.Reason) == "" {
-		return refusalAt(node.Line, "an addendum is a mapping with `only` and `reason`")
+	} else if err := addendumFields.check(node); err != nil {
+		return err
+	} else if err := node.Decode(&decoded); err != nil {
+		return err
+	} else if decoded.Only == nil {
+		return refusalAt(node.Line, "addendum missing `only`")
+	} else if strings.TrimSpace(decoded.Reason) == "" {
+		return refusalAt(node.Line, "addendum missing `reason`")
 	} else {
-		a.Addendum = rules.Addendum{Only: fields.Only.Scope, Reason: fields.Reason}
+		a.Addendum = rules.Addendum{Only: decoded.Only.Scope, Reason: decoded.Reason}
 		return nil
 	}
 }

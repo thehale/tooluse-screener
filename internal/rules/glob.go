@@ -4,6 +4,7 @@
 package rules
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -22,9 +23,10 @@ func NewGlob(text string) (Glob, error) {
 	expandedPath := directories.WithHomeExpanded(text)
 	switch _, err := path.Match(filepath.ToSlash(expandedPath), ""); {
 	case strings.HasPrefix(expandedPath, "~"):
-		return Glob{}, fmt.Errorf("a path starts with ~ only as ~/, and this does not: %s", text)
+		message := fmt.Sprintf("path `%s` names another user's home. Write it from / instead.", text)
+		return Glob{}, errors.New(message)
 	case err != nil:
-		return Glob{}, fmt.Errorf("%s: %w", text, err)
+		return Glob{}, fmt.Errorf("invalid glob `%s`: %s", text, err)
 	default:
 		return Glob{written: text}, nil
 	}

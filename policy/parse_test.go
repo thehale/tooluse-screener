@@ -126,7 +126,7 @@ func TestNames(t *testing.T) {
 	})
 
 	t.Run("the description it was once written with is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - commands: shutdown\n    description: Downtime\n", "`description` is now `name`")
+		refuses(t, "denied:\n  - commands: shutdown\n    description: Downtime\n", "Rename it to `name`")
 	})
 }
 
@@ -240,7 +240,7 @@ func TestOnlyBranches(t *testing.T) {
 	})
 
 	t.Run("a condition saying nothing is refused", func(t *testing.T) {
-		refuses(t, "allowed:\n  - commands: git push\n    only:\n      branches: [{}]\n", "a branch is a name, or a mapping with `not`")
+		refuses(t, "allowed:\n  - commands: git push\n    only:\n      branches: [{}]\n", "branch missing `not`")
 	})
 }
 
@@ -258,8 +258,8 @@ func TestAddendum(t *testing.T) {
 	})
 
 	t.Run("needs both an only and a reason", func(t *testing.T) {
-		refuses(t, "denied:\n  - commands: git push\n    addendum:\n      - reason: Anywhere.\n", "`only` and `reason`")
-		refuses(t, "denied:\n  - commands: git push\n    addendum:\n      - only: {dirs: [/work]}\n", "`only` and `reason`")
+		refuses(t, "denied:\n  - commands: git push\n    addendum:\n      - reason: Anywhere.\n", "addendum missing `only`")
+		refuses(t, "denied:\n  - commands: git push\n    addendum:\n      - only: {dirs: [/work]}\n", "addendum missing `reason`")
 	})
 
 	t.Run("may stand without a reason of its own", func(t *testing.T) {
@@ -278,7 +278,7 @@ func TestAddendum(t *testing.T) {
 	})
 
 	t.Run("is refused beside paths", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: /secrets/**\n    addendum:\n      - only: {dirs: [/work]}\n        reason: Here.\n", "`addendum` scope commands")
+		refuses(t, "denied:\n  - paths: /secrets/**\n    addendum:\n      - only: {dirs: [/work]}\n        reason: Here.\n", "`addendum` does not apply to `paths`")
 	})
 }
 
@@ -302,16 +302,16 @@ func TestPaths(t *testing.T) {
 	})
 
 	t.Run("one from a home other than your own is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: '~nobody/.ssh/**'\n", "only as ~/")
+		refuses(t, "denied:\n  - paths: '~nobody/.ssh/**'\n", "names another user's home")
 	})
 
 	t.Run("one sharing an entry with commands or patterns is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - commands: cat /secrets\n    paths: /secrets/**\n", "never both")
-		refuses(t, "denied:\n  - patterns: ['^cat ']\n    paths: /secrets/**\n", "never both")
+		refuses(t, "denied:\n  - commands: cat /secrets\n    paths: /secrets/**\n", "`paths` and `commands` in one rule")
+		refuses(t, "denied:\n  - patterns: ['^cat ']\n    paths: /secrets/**\n", "`paths` and `patterns` in one rule")
 	})
 
 	t.Run("one scoped by only is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` and `addendum` scope commands")
+		refuses(t, "denied:\n  - paths: /secrets/**\n    only:\n      dirs: [/work]\n", "`only` does not apply to `paths`")
 	})
 }
 
@@ -321,16 +321,27 @@ func TestWhatIsRefused(t *testing.T) {
 	})
 
 	t.Run("a pattern that is not text", func(t *testing.T) {
-		refuses(t, "denied:\n  - patterns: [7]\n", "")
+		refuses(t, "denied:\n  - patterns: [7]\n", "number 7 is not text")
+	})
+
+	t.Run("a value of the wrong shape names what it is and what to use", func(t *testing.T) {
+		refuses(t, "- ls\n", "policy is a list. Use a mapping")
+		refuses(t, "denied: ls\n", "`denied` is text `ls`. Use a list of rules.")
+		refuses(t, "denied:\n  - commands: ls\n    only: 5\n", "`only` is number 5.")
+		refuses(t, "denied:\n  - commands: ls\n    only:\n      branches: main\n", "`branches` is text `main`.")
+	})
+
+	t.Run("YAML that will not parse", func(t *testing.T) {
+		refuses(t, "denied:\n  - commands: ls\n  bad indent\n", "line 3: invalid YAML")
 	})
 
 	t.Run("an expression that will not compile", func(t *testing.T) {
-		refuses(t, "denied:\n  - patterns: ['([']\n", "error parsing regexp")
-		refuses(t, "allowed:\n  - patterns: ['([']\n", "error parsing regexp")
+		refuses(t, "denied:\n  - patterns: ['([']\n", "invalid regular expression")
+		refuses(t, "allowed:\n  - patterns: ['([']\n", "invalid regular expression")
 	})
 
 	t.Run("an empty command", func(t *testing.T) {
-		refuses(t, "allowed:\n  - '  '\n", "written as text")
+		refuses(t, "allowed:\n  - '  '\n", "blank value")
 	})
 }
 
