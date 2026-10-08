@@ -9,10 +9,6 @@ import (
 	"unicode/utf8"
 )
 
-func (c Command) WithoutAssignments() Command {
-	return Command{Text: WithoutAssignments(c.Text), Moved: c.Moved}
-}
-
 func WithoutAssignments(text string) string {
 	words := strings.Fields(text)
 	return strings.Join(words[len(Assignments(text)):], " ")
