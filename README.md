@@ -97,9 +97,13 @@ A rule is a command written plainly, or a mapping naming several:
 ```yaml
 - ls
 - commands: ls
-- commands: [ls, cat]
+- commands:
+    - ls
+    - cat
 - patterns: '^ls\b'
-- patterns: ['^ls\b', '^cat\b']
+- patterns:
+    - '^ls\b'
+    - '^cat\b'
 ```
 
 `commands` are literal text. `patterns` are regexes, specifically
@@ -117,7 +121,8 @@ and a `reason`, which is shown alongside it:
 ```yaml
 - name: Empty a whole tree
   reason: Ask a human first.
-  patterns: ['^rm -(rf|fr) /$']
+  patterns:
+    - '^rm -(rf|fr) /$'
 ```
 
 An `only` block scopes a rule to where it applies. A rule does not
@@ -126,10 +131,14 @@ match at all outside its scope:
 ```yaml
 - commands: git push
   only:
-    dirs: [~/src/one-repo]
+    dirs:
+      - ~/src/one-repo
     branches:
       - ci-fix
-      - not: [main, master, trunk]
+      - not:
+          - main
+          - master
+          - trunk
 ```
 
 `dirs` scopes the rule to those directories, read against every directory
@@ -154,7 +163,8 @@ denied:
     reason: Applying changes real infrastructure, so a human runs it.
     addendum:
       - only:
-          dirs: [~/src/infra]
+          dirs:
+            - ~/src/infra
         reason: Run `terraform plan` here and share its output instead.
 ```
 
@@ -169,7 +179,8 @@ globs.
 denied:
   - name: Write an SSH key
     reason: An SSH key opens other machines, so a human places it.
-    paths: ['~/.ssh/**']
+    paths:
+      - '~/.ssh/**'
 ```
 
 A glob written from neither `/` nor `~/` is read from the directory
@@ -229,7 +240,8 @@ friendly -exec "scary"
 #### Trusted Git Directories
 
 ```yaml
-trusted_git_directories: [~/src]
+trusted_git_directories:
+  - ~/src
 ```
 
 This is where an agent may reach out to a repository other than the one
@@ -256,11 +268,16 @@ allowed:
   - ls
 
   - name: Push where CI can run against the commit
-    patterns: ['^git push origin \S+$']
+    patterns:
+      - '^git push origin \S+$'
     only:
-      dirs: [~/src/one-repo]
+      dirs:
+        - ~/src/one-repo
       branches:
-        - not: [main, master, trunk]
+        - not:
+            - main
+            - master
+            - trunk
 ```
 
 ## Library

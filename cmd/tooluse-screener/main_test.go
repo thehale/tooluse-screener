@@ -12,7 +12,12 @@ import (
 	"testing"
 )
 
-const examplePolicyYAML = "denied: [shutdown]\nallowed: [git status]\n"
+const examplePolicyYAML = `
+denied:
+  - shutdown
+allowed:
+  - git status
+`
 
 func TestCheckingOneCommand(t *testing.T) {
 	policy := policyFile(t, examplePolicyYAML)
