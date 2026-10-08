@@ -172,6 +172,9 @@ denied:
     paths: ['~/.ssh/**']
 ```
 
+A glob written from neither `/` nor `~/` is read from the directory
+tooluse-screener runs in.
+
 A Claude Code hook with a `matcher` has to name every tool that edits:
 
 ```json

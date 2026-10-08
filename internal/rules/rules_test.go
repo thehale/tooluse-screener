@@ -417,11 +417,17 @@ func TestGlob(t *testing.T) {
 		writes(t, true, glob(t, "~/.ssh/**"), "/home/someone/.ssh/config")
 	})
 
-	t.Run("a path from anywhere but / or ~ is refused", func(t *testing.T) {
-		for _, globText := range []string{".ssh/**", "./.ssh/**", "**/.ssh/**"} {
-			if _, err := rules.NewGlob(globText); err == nil {
-				t.Errorf("%s: wanted an error", globText)
-			}
+	t.Run("a relative path is read from the working directory", func(t *testing.T) {
+		here := t.TempDir()
+		t.Chdir(here)
+		keys := glob(t, "**/.ssh/**")
+		writes(t, true, keys, filepath.Join(here, "src", ".ssh", "id_rsa"))
+		writes(t, false, keys, "/elsewhere/.ssh/id_rsa")
+	})
+
+	t.Run("a home other than your own is refused", func(t *testing.T) {
+		if _, err := rules.NewGlob("~nobody/.ssh/**"); err == nil {
+			t.Error("wanted an error")
 		}
 	})
 

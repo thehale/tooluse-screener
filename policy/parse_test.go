@@ -301,8 +301,8 @@ func TestPaths(t *testing.T) {
 		matches(t, false, policyFrom(t, "denied:\n  - paths: /secrets/**\n").denied.commandRules, "cat /secrets/key")
 	})
 
-	t.Run("a relative one is refused", func(t *testing.T) {
-		refuses(t, "denied:\n  - paths: '**/.ssh/**'\n", "written from / or ~")
+	t.Run("one from a home other than your own is refused", func(t *testing.T) {
+		refuses(t, "denied:\n  - paths: '~nobody/.ssh/**'\n", "only as ~/")
 	})
 
 	t.Run("one sharing an entry with commands or patterns is refused", func(t *testing.T) {

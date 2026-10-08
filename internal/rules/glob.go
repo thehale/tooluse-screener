@@ -15,24 +15,29 @@ import (
 type Glob struct {
 	Name    string
 	Reason  string
-	names   []string
 	written string
 }
 
 func NewGlob(text string) (Glob, error) {
 	expandedPath := directories.WithHomeExpanded(text)
 	switch _, err := path.Match(filepath.ToSlash(expandedPath), ""); {
-	case !filepath.IsAbs(expandedPath):
-		return Glob{}, fmt.Errorf("a path is written from / or ~, and this is not: %s", text)
+	case strings.HasPrefix(expandedPath, "~"):
+		return Glob{}, fmt.Errorf("a path starts with ~ only as ~/, and this does not: %s", text)
 	case err != nil:
 		return Glob{}, fmt.Errorf("%s: %w", text, err)
 	default:
-		return Glob{names: names(expandedPath), written: text}, nil
+		return Glob{written: text}, nil
 	}
 }
 
 func (g Glob) IsMatchFor(file string) bool {
-	return isMatch(g.names, names(file)) || isMatch(g.names, names(directories.RealPath(file)))
+	glob := names(g.absolutePath())
+	return isMatch(glob, names(file)) || isMatch(glob, names(directories.RealPath(file)))
+}
+
+func (g Glob) absolutePath() string {
+	absolutePath, _ := filepath.Abs(directories.WithHomeExpanded(g.written))
+	return absolutePath
 }
 
 func names(file string) []string {
