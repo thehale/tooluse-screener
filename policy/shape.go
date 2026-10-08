@@ -5,6 +5,8 @@ package policy
 
 import (
 	"fmt"
+	"math"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -66,11 +68,30 @@ func (f fields) check(node *yaml.Node) error {
 }
 
 func (f fields) checkPair(key, node *yaml.Node) error {
-	if expected, isKnown := f.shapeNamed(key.Value); isKnown {
+	expected, isKnown := f.shapeNamed(key.Value)
+	if isKnown {
 		return expected.check(node, fmt.Sprintf("`%s`", key.Value))
 	} else {
-		return nil
+		return f.unsupported(key)
 	}
+}
+
+func (f fields) unsupported(key *yaml.Node) error {
+	if closest, distance := f.closestTo(key.Value); distance <= 2 {
+		return refusalAt(key.Line, "`%s` is not supported. Did you mean `%s`?", key.Value, closest)
+	} else {
+		return refusalAt(key.Line, "`%s` is not supported. Use %s.", key.Value, f.names())
+	}
+}
+
+func (f fields) closestTo(key string) (closest string, distance int) {
+	distance = math.MaxInt
+	for _, one := range f {
+		if candidate := editDistance(key, one.key); candidate < distance {
+			closest, distance = one.key, candidate
+		}
+	}
+	return closest, distance
 }
 
 func (f fields) shapeNamed(key string) (shape, bool) {
@@ -80,4 +101,20 @@ func (f fields) shapeNamed(key string) (shape, bool) {
 		}
 	}
 	return shape{}, false
+}
+
+func (f fields) names() string {
+	backticked := make([]string, len(f))
+	for index, one := range f {
+		backticked[index] = fmt.Sprintf("`%s`", one.key)
+	}
+	return oneOf(backticked)
+}
+
+func oneOf(items []string) string {
+	if len(items) <= 1 {
+		return strings.Join(items, "")
+	} else {
+		return "one of " + strings.Join(items[:len(items)-1], ", ") + " or " + items[len(items)-1]
+	}
 }

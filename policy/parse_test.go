@@ -331,6 +331,15 @@ func TestWhatIsRefused(t *testing.T) {
 		refuses(t, "denied:\n  - commands: ls\n    only:\n      branches: main\n", "`branches` is text `main`.")
 	})
 
+	t.Run("a misspelt key names the key it is closest to", func(t *testing.T) {
+		refuses(t, "denid:\n  - ls\n", "`denid` is not supported. Did you mean `denied`?")
+		refuses(t, "denied:\n  - commands: ls\n    only:\n      dirz: [/x]\n", "`dirz` is not supported. Did you mean `dirs`?")
+	})
+
+	t.Run("a key like none the policy reads names the keys it does", func(t *testing.T) {
+		refuses(t, "colour: red\n", "`colour` is not supported. Use one of `trusted_git_directories`, `denied` or `allowed`.")
+	})
+
 	t.Run("YAML that will not parse", func(t *testing.T) {
 		refuses(t, "denied:\n  - commands: ls\n  bad indent\n", "line 3: invalid YAML")
 	})
