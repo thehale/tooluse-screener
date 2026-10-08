@@ -4,8 +4,6 @@
 package git
 
 import (
-	"slices"
-
 	"github.com/thehale/tooluse-screener/internal/directories"
 )
 
@@ -46,13 +44,5 @@ func lastOf(dirs []string) string {
 		return "."
 	} else {
 		return dirs[len(dirs)-1]
-	}
-}
-
-func (i Invocation) TargetDirectories() []string {
-	if len(i.Unread) > 0 {
-		return append(slices.Clone(i.Directories), "")
-	} else {
-		return i.Directories
 	}
 }
