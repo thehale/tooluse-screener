@@ -3,11 +3,7 @@
 
 package policy
 
-import (
-	"gopkg.in/yaml.v3"
-
-	"github.com/thehale/tooluse-screener/internal/rules"
-)
+import "gopkg.in/yaml.v3"
 
 type file struct {
 	Trusted texts   `yaml:"trusted_git_directories"`
@@ -35,11 +31,14 @@ func (f *file) UnmarshalYAML(node *yaml.Node) error {
 }
 
 func (f file) policy() (Policy, error) {
-	deniedSide, err := f.Denied.side(rules.Rule{})
+	deniedSide, err := f.Denied.side()
 	if err != nil {
 		return Policy{}, err
 	}
-	trusted := rules.TrustedGitDirectories(f.Trusted)
-	allowedSide, err := f.Allowed.side(rules.Rule{AtStart: true, TrustedGitDirectories: &trusted})
-	return Policy{denied: deniedSide, allowed: allowedSide}, err
+	allowedSide, err := f.Allowed.side()
+	if err != nil {
+		return Policy{}, err
+	}
+	allowedSide.commandRules = allowedSide.commandRules.AsAllowed(f.Trusted)
+	return Policy{denied: deniedSide, allowed: allowedSide}, nil
 }

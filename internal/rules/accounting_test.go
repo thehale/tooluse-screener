@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccounting(t *testing.T) {
-	spanningGitStatus := rules.Rule{AtStart: true, Expression: rules.Words("git status")}
+	spanningGitStatus := rules.Rule{Expression: rules.AtStart{Expression: rules.Words("git status")}}
 
 	t.Run("a rule spanning every spoken word accounts for the command", func(t *testing.T) {
 		accountsFor(t, true, "git status", spanningGitStatus)
@@ -23,7 +23,7 @@ func TestAccounting(t *testing.T) {
 	})
 
 	t.Run("nothing spoken is accounted for by nothing", func(t *testing.T) {
-		accountsFor(t, false, "GIT_PAGER=cat", rules.Rule{AtStart: true, Expression: rules.Words("")})
+		accountsFor(t, false, "GIT_PAGER=cat", rules.Rule{Expression: rules.AtStart{Expression: rules.Words("")}})
 	})
 }
 

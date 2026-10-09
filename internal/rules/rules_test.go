@@ -64,7 +64,7 @@ func TestPattern(t *testing.T) {
 }
 
 func TestAtStart(t *testing.T) {
-	listing := rules.Rule{Expression: rules.Words("ls"), AtStart: true}
+	listing := rules.AtStart{Expression: rules.Words("ls")}
 
 	t.Run("matches the bare command", func(t *testing.T) {
 		matches(t, true, listing, "ls")
@@ -83,11 +83,11 @@ func TestAtStart(t *testing.T) {
 	})
 
 	t.Run("its text is literal", func(t *testing.T) {
-		matches(t, false, rules.Rule{Expression: rules.Words("ls|cat"), AtStart: true}, "cat foo")
+		matches(t, false, rules.AtStart{Expression: rules.Words("ls|cat")}, "cat foo")
 	})
 
 	t.Run("an empty rule matches nothing", func(t *testing.T) {
-		matches(t, false, rules.Rule{Expression: rules.Words(""), AtStart: true}, "anything")
+		matches(t, false, rules.AtStart{Expression: rules.Words("")}, "anything")
 	})
 }
 
@@ -162,13 +162,12 @@ func TestGitSubcommandArguments(t *testing.T) {
 
 func TestTrustedGitDirectories(t *testing.T) {
 	root := t.TempDir()
-	within := func(roots ...string) rules.Rule {
-		trusted := rules.TrustedGitDirectories(roots)
-		return rules.Rule{Expression: rules.NewGitSubcommand("status", nil), TrustedGitDirectories: &trusted}
+	within := func(roots ...string) rules.TrustedGitDirectories {
+		return rules.TrustedGitDirectories{Dirs: roots, Expression: rules.NewGitSubcommand("status", nil)}
 	}
 
 	t.Run("without within it matches wherever it points", func(t *testing.T) {
-		matches(t, true, rules.Rule{Expression: rules.NewGitSubcommand("push", nil)}, "git -C /anywhere/at/all push")
+		matches(t, true, rules.NewGitSubcommand("push", nil), "git -C /anywhere/at/all push")
 	})
 
 	t.Run("with within it matches a trusted directory", func(t *testing.T) {
@@ -252,7 +251,7 @@ func TestTrustedGitDirectories(t *testing.T) {
 	})
 
 	t.Run("a command other than git goes where it likes", func(t *testing.T) {
-		matchesAfterMoving(t, true, rules.Rule{Expression: rules.Words("ls"), TrustedGitDirectories: &rules.TrustedGitDirectories{root}}, "ls", "/elsewhere")
+		matchesAfterMoving(t, true, rules.TrustedGitDirectories{Dirs: []string{root}, Expression: rules.Words("ls")}, "ls", "/elsewhere")
 	})
 
 	t.Run("with within it still matches a command with no directory", func(t *testing.T) {
@@ -446,12 +445,12 @@ func TestGlob(t *testing.T) {
 
 func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 	t.Run("a rule that does not match accounts for nothing", func(t *testing.T) {
-		spans(t, 0, rules.Rule{Expression: rules.Words("ls"), AtStart: true}, "cat foo")
+		spans(t, 0, rules.AtStart{Expression: rules.Words("ls")}, "cat foo")
 		spans(t, 0, pattern(t, `\bnever\b`), "always")
 	})
 
 	t.Run("a text rule accounts for its own text", func(t *testing.T) {
-		spans(t, 2, rules.Rule{Expression: rules.Words("ls"), AtStart: true}, "ls -la")
+		spans(t, 2, rules.AtStart{Expression: rules.Words("ls")}, "ls -la")
 		spans(t, 13, rules.Words("chezmoi apply"), "sudo chezmoi apply --force")
 	})
 
@@ -479,15 +478,15 @@ func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 
 	t.Run("a group accounts for the widest of its rules", func(t *testing.T) {
 		both := rules.Group{
-			rules.Rule{Expression: rules.Words("git"), AtStart: true},
-			rules.Rule{Expression: rules.Words("git push"), AtStart: true},
+			rules.Rule{Expression: rules.AtStart{Expression: rules.Words("git")}},
+			rules.Rule{Expression: rules.AtStart{Expression: rules.Words("git push")}},
 		}
 		spans(t, 8, both, "git push origin topic")
 	})
 }
 
 func TestGroup(t *testing.T) {
-	listing, reading := rules.Rule{Expression: rules.Words("ls"), AtStart: true}, rules.Rule{Expression: rules.Words("cat"), AtStart: true}
+	listing, reading := rules.Rule{Expression: rules.AtStart{Expression: rules.Words("ls")}}, rules.Rule{Expression: rules.AtStart{Expression: rules.Words("cat")}}
 
 	t.Run("matches when one of its rules does", func(t *testing.T) {
 		groupMatches(t, true, rules.Group{listing, reading}, "cat foo")
@@ -506,7 +505,7 @@ func TestGroup(t *testing.T) {
 	})
 
 	t.Run("it lists every rule that matched", func(t *testing.T) {
-		listingLong := rules.Rule{Expression: rules.Words("ls -la"), AtStart: true}
+		listingLong := rules.Rule{Expression: rules.AtStart{Expression: rules.Words("ls -la")}}
 		matchesRules(t, rules.Group{listing, listingLong}, "ls -la", listing, listingLong)
 	})
 
@@ -525,7 +524,7 @@ func TestWhatARuleSaysAboutItself(t *testing.T) {
 	})
 
 	t.Run("a reason is advice, kept apart from the name", func(t *testing.T) {
-		rule := rules.Rule{Expression: rules.Words("ls"), AtStart: true, Reason: "Ask a human first."}
+		rule := rules.Rule{Expression: rules.AtStart{Expression: rules.Words("ls")}, Reason: "Ask a human first."}
 		givesReason(t, rule, "ls", "Ask a human first.")
 		isNamed(t, rule, "ls")
 	})
@@ -540,9 +539,9 @@ func pattern(t *testing.T, expression string) rules.Expression {
 	return regex
 }
 
-func leadingPattern(t *testing.T, expression string) rules.Rule {
+func leadingPattern(t *testing.T, expression string) rules.AtStart {
 	t.Helper()
-	return rules.Rule{Expression: pattern(t, expression), AtStart: true}
+	return rules.AtStart{Expression: pattern(t, expression)}
 }
 
 type spanner interface {

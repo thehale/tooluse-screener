@@ -89,17 +89,17 @@ func (e entry) globs() (rules.Globs, error) {
 	return pathRules, nil
 }
 
-func (e entry) commandRules(base rules.Rule) (rules.Group, error) {
+func (e entry) commandRules() (rules.Group, error) {
 	expressions, err := e.expressions()
 	commandRules := make(rules.Group, 0, len(expressions))
 	for _, expression := range expressions {
-		commandRule := base
-		commandRule.Name = e.Name
-		commandRule.Reason = e.Reason
-		commandRule.Expression = expression
-		commandRule.Only = e.scope()
-		commandRule.Addendums = e.addendums()
-		commandRules = append(commandRules, commandRule)
+		commandRules = append(commandRules, rules.Rule{
+			Name:       e.Name,
+			Reason:     e.Reason,
+			Expression: expression,
+			Only:       e.scope(),
+			Addendums:  e.addendums(),
+		})
 	}
 	return commandRules, err
 }

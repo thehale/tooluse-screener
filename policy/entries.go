@@ -7,8 +7,8 @@ import "github.com/thehale/tooluse-screener/internal/rules"
 
 type entries []entry
 
-func (e entries) side(base rules.Rule) (side, error) {
-	commandRules, err := e.commandRules(base)
+func (e entries) side() (side, error) {
+	commandRules, err := e.commandRules()
 	if err != nil {
 		return side{}, err
 	}
@@ -28,10 +28,10 @@ func (e entries) pathRules() (rules.Globs, error) {
 	return pathRules, nil
 }
 
-func (e entries) commandRules(base rules.Rule) (rules.Group, error) {
+func (e entries) commandRules() (rules.Group, error) {
 	var commandRules rules.Group
 	for _, one := range e {
-		list, err := one.commandRules(base)
+		list, err := one.commandRules()
 		if err != nil {
 			return nil, err
 		}
