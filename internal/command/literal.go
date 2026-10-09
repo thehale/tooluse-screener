@@ -17,7 +17,7 @@ func Literal(word string) string {
 	}
 }
 
-const expansionCharacters = "$`\\\"'*?[]{}" + Unquotable
+const expansionCharacters = "$`\\\"'*?[]{}" + Substitution
 
 func withoutQuotes(word string) (inner string, isQuoted bool) {
 	if len(word) >= 2 && strings.ContainsRune(`'"`, rune(word[0])) && word[0] == word[len(word)-1] {

@@ -77,7 +77,7 @@ func withSubstitutionsHidden(source string, bounds span, cmd syntax.Command) str
 		found, isSubstitution := substitutionSpan(node)
 		if isSubstitution {
 			text.WriteString(source[cursor:found.start])
-			text.WriteString(Unquotable)
+			text.WriteString(Substitution)
 			cursor = found.end
 		}
 		return !isSubstitution

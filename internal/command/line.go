@@ -5,7 +5,7 @@ package command
 
 import "strings"
 
-const Unquotable = "\x00"
+const Substitution = "\x00"
 
 func Blind(text string) []Command {
 	return commandsFrom(split(withLinesJoined(text)))
@@ -46,7 +46,7 @@ func withoutSubstitutions(text string) (outerText string, substitutions []string
 		} else {
 			contents, next := readSubstitution(text, index, opener)
 			substitutions = append(substitutions, contents)
-			runs.WriteString(Unquotable)
+			runs.WriteString(Substitution)
 			index = next
 		}
 	}

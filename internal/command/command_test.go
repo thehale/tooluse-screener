@@ -10,7 +10,7 @@ import (
 	"github.com/thehale/tooluse-screener/internal/command"
 )
 
-const placeholder = command.Unquotable
+const substitution = command.Substitution
 
 func TestSeparators(t *testing.T) {
 	t.Run("one command is one command", func(t *testing.T) {
@@ -79,23 +79,23 @@ func TestSeparators(t *testing.T) {
 
 func TestSubstitutions(t *testing.T) {
 	t.Run("a substitution is its own command", func(t *testing.T) {
-		finds(t, `echo "$(cat foo)"`, `echo "`+placeholder+`"`, "cat foo")
+		finds(t, `echo "$(cat foo)"`, `echo "`+substitution+`"`, "cat foo")
 	})
 
 	t.Run("backticks are too", func(t *testing.T) {
-		finds(t, "echo `cat foo`", "echo "+placeholder, "cat foo")
+		finds(t, "echo `cat foo`", "echo "+substitution, "cat foo")
 	})
 
 	t.Run("process substitutions are too", func(t *testing.T) {
-		finds(t, "diff <(cat a) <(cat b)", "diff "+placeholder+" "+placeholder, "cat a", "cat b")
+		finds(t, "diff <(cat a) <(cat b)", "diff "+substitution+" "+substitution, "cat a", "cat b")
 	})
 
 	t.Run("nested substitutions are found", func(t *testing.T) {
-		finds(t, `echo "$(cat "$(cat foo)")"`, `echo "`+placeholder+`"`, `cat "`+placeholder+`"`, "cat foo")
+		finds(t, `echo "$(cat "$(cat foo)")"`, `echo "`+substitution+`"`, `cat "`+substitution+`"`, "cat foo")
 	})
 
 	t.Run("what is left behind cannot join its neighbours", func(t *testing.T) {
-		finds(t, "ls$(cat foo)blk", "ls"+placeholder+"blk", "cat foo")
+		finds(t, "ls$(cat foo)blk", "ls"+substitution+"blk", "cat foo")
 	})
 
 	t.Run("arithmetic is not a command", func(t *testing.T) {
@@ -107,12 +107,12 @@ func TestSubstitutions(t *testing.T) {
 	})
 
 	t.Run("an unterminated substitution is read to the end", func(t *testing.T) {
-		finds(t, "echo $(cat foo", "echo "+placeholder, "cat foo")
-		finds(t, "echo `cat foo", "echo "+placeholder, "cat foo")
+		finds(t, "echo $(cat foo", "echo "+substitution, "cat foo")
+		finds(t, "echo `cat foo", "echo "+substitution, "cat foo")
 	})
 
 	t.Run("separators inside a substitution still separate", func(t *testing.T) {
-		finds(t, `echo "$(ls && cat foo)"`, `echo "`+placeholder+`"`, "ls", "cat foo")
+		finds(t, `echo "$(ls && cat foo)"`, `echo "`+substitution+`"`, "ls", "cat foo")
 	})
 
 	t.Run("a substitution opener inside single quotes is not extracted", func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestSubstitutions(t *testing.T) {
 	})
 
 	t.Run("an escaped opener is a syntax error that falls back to the quote-blind split", func(t *testing.T) {
-		finds(t, `echo \$(cat foo)`, `echo \`+placeholder, "cat foo")
+		finds(t, `echo \$(cat foo)`, `echo \`+substitution, "cat foo")
 	})
 }
 
