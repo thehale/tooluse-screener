@@ -489,15 +489,15 @@ func TestGroup(t *testing.T) {
 	listing, reading := rules.Rule{Expression: rules.AtStart{Expression: rules.Words("ls")}}, rules.Rule{Expression: rules.AtStart{Expression: rules.Words("cat")}}
 
 	t.Run("matches when one of its rules does", func(t *testing.T) {
-		groupMatches(t, true, rules.Group{listing, reading}, "cat foo")
+		matchesRules(t, rules.Group{listing, reading}, "cat foo", reading)
 	})
 
 	t.Run("does not match when none of them does", func(t *testing.T) {
-		groupMatches(t, false, rules.Group{listing}, "nmap localhost")
+		matchesRules(t, rules.Group{listing}, "nmap localhost")
 	})
 
 	t.Run("an empty group matches nothing", func(t *testing.T) {
-		groupMatches(t, false, rules.Group{}, "anything")
+		matchesRules(t, rules.Group{}, "anything")
 	})
 
 	t.Run("it lists the rules that matched rather than itself", func(t *testing.T) {
@@ -575,13 +575,6 @@ func matchesAfterMoving(t *testing.T, wanted bool, rule rules.Expression, text s
 	t.Helper()
 	if got := rule.At(command.Command{Text: text, Moved: destinations}) >= 0; got != wanted {
 		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, destinations, got, wanted)
-	}
-}
-
-func groupMatches(t *testing.T, wanted bool, group rules.Group, command string) {
-	t.Helper()
-	if got := group.HasMatchFor(commandOf(command)); got != wanted {
-		t.Errorf("%v matching %q = %v, wanted %v", group, command, got, wanted)
 	}
 }
 

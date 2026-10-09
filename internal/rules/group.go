@@ -5,14 +5,9 @@ package rules
 
 import (
 	commands "github.com/thehale/tooluse-screener/internal/command"
-	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
 type Group []Rule
-
-func (g Group) HasMatchFor(command commands.Command) bool {
-	return lists.Some(g, func(rule Rule) bool { return rule.At(command) >= 0 })
-}
 
 func (g Group) RulesMatching(command commands.Command) Group {
 	var matches Group
