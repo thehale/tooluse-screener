@@ -14,15 +14,6 @@ type Command struct {
 	Moved []string
 }
 
-type Spanner interface {
-	Span(command Command) int
-}
-
-func (c Command) IsAccountedForBy(rule Spanner) bool {
-	words := c.WithoutAssignments().Text
-	return words != "" && rule.Span(c) == len(words)
-}
-
 func (c Command) DirectoriesActedIn(targets []string) []string {
 	dirs := slices.Clone(targets)
 	for _, here := range c.Moved {

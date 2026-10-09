@@ -41,7 +41,7 @@ func (p Policy) denyReasons(commands []command.Command) []string {
 func standingDenyRules(denyRules rules.Group, allowRules rules.Group, line command.Command) rules.Group {
 	var standingRules rules.Group
 	for _, rule := range denyRules {
-		if !line.IsAccountedForBy(allowRules) || line.IsAccountedForBy(rule) {
+		if !allowRules.AccountsFor(line) || rule.AccountsFor(line) {
 			standingRules = append(standingRules, rule)
 		}
 	}
