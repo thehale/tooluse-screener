@@ -6,4 +6,4 @@ denied:
       - '~/.ssh/**'
 --------------------------------------------------------------------------------
 $ROOT % Edit(/home/me/.ssh/../notes.md)
-ask: Path is not in the shared allow list
+ask: no automatic policy found for path

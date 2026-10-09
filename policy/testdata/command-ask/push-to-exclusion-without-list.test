@@ -9,4 +9,4 @@ allowed:
         - not: main
 --------------------------------------------------------------------------------
 $ROOT % git push origin main
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

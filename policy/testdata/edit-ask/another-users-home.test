@@ -7,4 +7,4 @@ denied:
 --------------------------------------------------------------------------------
 # Another home's keys are not this one's
 $ROOT % Edit(/home/you/.ssh/id_rsa)
-ask: Path is not in the shared allow list
+ask: no automatic policy found for path

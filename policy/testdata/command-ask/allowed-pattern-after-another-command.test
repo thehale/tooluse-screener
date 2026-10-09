@@ -6,4 +6,4 @@ allowed:
       - 'ls|cat'
 --------------------------------------------------------------------------------
 $ROOT % echo cat
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

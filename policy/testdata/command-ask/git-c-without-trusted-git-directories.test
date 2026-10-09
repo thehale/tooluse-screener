@@ -5,4 +5,4 @@ allowed:
   - git status
 --------------------------------------------------------------------------------
 $ROOT % git -C /anywhere status
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

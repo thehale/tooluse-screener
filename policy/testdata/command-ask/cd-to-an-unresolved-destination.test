@@ -8,7 +8,7 @@ allowed:
 --------------------------------------------------------------------------------
 # A place the shell decides is known to no rule
 $ROOT % cd "$REPO" && git status
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command
 
 $ROOT % cd - && git status
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

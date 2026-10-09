@@ -7,7 +7,7 @@ denied:
       - '~/**/*.pem'
 --------------------------------------------------------------------------------
 $ROOT % Edit(/home/me/src/tls/client.pem.bak)
-ask: Path is not in the shared allow list
+ask: no automatic policy found for path
 
 $ROOT % Edit(/home/me/.sshd/config)
-ask: Path is not in the shared allow list
+ask: no automatic policy found for path

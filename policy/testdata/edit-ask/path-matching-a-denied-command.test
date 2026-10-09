@@ -5,4 +5,4 @@ denied:
   - commands: cat /secrets
 --------------------------------------------------------------------------------
 $ROOT % Edit(cat /secrets)
-ask: Path is not in the shared allow list
+ask: no automatic policy found for path

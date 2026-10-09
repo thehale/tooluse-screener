@@ -3,7 +3,10 @@
 
 package policy
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Decision string
 
@@ -23,7 +26,7 @@ func (v Verdict) String() string {
 }
 
 func unlistedVerdict(subject string) Verdict {
-	return Verdict{Ask, fmt.Sprintf("%s is not in the shared allow list", subject)}
+	return Verdict{Ask, fmt.Sprintf("no automatic policy found for %s", strings.ToLower(subject))}
 }
 
 func denyReason(subject string, rule fmt.Stringer, reason string) string {

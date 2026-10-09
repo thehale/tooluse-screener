@@ -8,7 +8,7 @@ allowed:
 --------------------------------------------------------------------------------
 # A directory the shell has yet to work out could be anywhere
 $ROOT % git -C "$REPO" status
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command
 
 $ROOT % git -C ~nobody/work status
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

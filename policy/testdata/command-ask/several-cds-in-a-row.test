@@ -9,4 +9,4 @@ allowed:
 # A line that moves is judged everywhere it may be: where it began, and every
 # place each cd could have taken it from each of those.
 $ROOT % cd /work; cd ../elsewhere; git status
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

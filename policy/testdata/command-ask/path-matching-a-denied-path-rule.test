@@ -5,7 +5,7 @@ denied:
   - paths: /secrets/**
 --------------------------------------------------------------------------------
 $ROOT % cat /secrets/key
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command
 
 $ROOT % /secrets/key
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

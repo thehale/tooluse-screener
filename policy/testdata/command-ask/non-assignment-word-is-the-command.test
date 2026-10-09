@@ -6,4 +6,4 @@ allowed:
 --------------------------------------------------------------------------------
 # `a-b` is no name a shell would take, so this command is `a-b=1` and not `ls`
 $ROOT % a-b=1 ls -la
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

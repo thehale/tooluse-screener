@@ -10,7 +10,7 @@ allowed:
         - release
 --------------------------------------------------------------------------------
 $ROOT % git push origin main
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command
 
 $ROOT % git push origin anything-else
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command

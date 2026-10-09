@@ -5,4 +5,4 @@ allowed:
   - ls
 --------------------------------------------------------------------------------
 $ROOT % lsblk
-ask: Command is not in the shared allow list
+ask: no automatic policy found for command
