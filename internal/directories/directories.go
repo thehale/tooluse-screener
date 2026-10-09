@@ -41,7 +41,8 @@ func RealPath(path string) string {
 }
 
 func absolutePath(path string) (string, bool) {
-	if expandedPath := WithHomeExpanded(path); expandedPath == "" || strings.HasPrefix(expandedPath, "~") {
+	expandedPath, isHomeKnown := WithHomeExpanded(path)
+	if !isHomeKnown || expandedPath == "" {
 		return "", false
 	} else {
 		from, isKnown := workingDirectory(expandedPath)
@@ -89,16 +90,20 @@ func symlinkTarget(path string) string {
 	}
 }
 
-func WithHomeExpanded(path string) string {
-	home, err := os.UserHomeDir()
-	switch {
-	case err != nil, !strings.HasPrefix(path, "~"):
-		return path
-	case path == "~":
-		return home
-	case strings.HasPrefix(path, "~/"):
-		return home + path[1:]
-	default:
-		return path
+func WithHomeExpanded(path string) (string, bool) {
+	if strings.HasPrefix(path, "~") {
+		home, err := os.UserHomeDir()
+		switch {
+		case err != nil:
+			return path, false
+		case path == "~":
+			return home, true
+		case strings.HasPrefix(path, "~/"):
+			return home + path[1:], true
+		default:
+			return path, false
+		}
+	} else {
+		return path, true
 	}
 }

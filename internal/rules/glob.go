@@ -20,9 +20,9 @@ type Glob struct {
 }
 
 func NewGlob(text string) (Glob, error) {
-	expandedPath := directories.WithHomeExpanded(text)
+	expandedPath, isKnown := directories.WithHomeExpanded(text)
 	switch _, err := path.Match(filepath.ToSlash(expandedPath), ""); {
-	case strings.HasPrefix(expandedPath, "~"):
+	case !isKnown:
 		message := fmt.Sprintf("path `%s` names another user's home. Write it from / instead.", text)
 		return Glob{}, errors.New(message)
 	case err != nil:
@@ -38,7 +38,8 @@ func (g Glob) IsMatchFor(file string) bool {
 }
 
 func (g Glob) absolutePath() string {
-	absolutePath, _ := filepath.Abs(directories.WithHomeExpanded(g.written))
+	expandedPath, _ := directories.WithHomeExpanded(g.written)
+	absolutePath, _ := filepath.Abs(expandedPath)
 	return absolutePath
 }
 

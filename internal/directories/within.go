@@ -24,8 +24,8 @@ func isStandalone(path string) bool {
 }
 
 func Destination(here, path string) string {
-	expandedPath := WithHomeExpanded(Within(here, path))
-	if expandedPath == "" || strings.HasPrefix(expandedPath, "~") {
+	expandedPath, isKnown := WithHomeExpanded(Within(here, path))
+	if !isKnown || expandedPath == "" {
 		return ""
 	} else {
 		return filepath.Clean(expandedPath)
