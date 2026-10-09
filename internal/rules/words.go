@@ -11,20 +11,20 @@ import (
 
 type Words string
 
-func (w Words) At(command commands.Command) int {
+func (w Words) Find(command commands.Command) (Match, bool) {
 	text := command.Text
 	for from := 0; w != "" && from+len(w) <= len(text); {
 		index := strings.Index(text[from:], string(w))
 		switch {
 		case index < 0:
-			return -1
+			return Match{}, false
 		case w.isStandaloneAt(text, from+index):
-			return from + index
+			return Match{from + index, len(w)}, true
 		default:
 			from += index + 1
 		}
 	}
-	return -1
+	return Match{}, false
 }
 
 func (w Words) isStandaloneAt(command string, at int) bool {
@@ -47,14 +47,6 @@ func isWordLetter(letter byte) bool {
 		('a' <= letter && letter <= 'z') ||
 		('A' <= letter && letter <= 'Z') ||
 		('0' <= letter && letter <= '9')
-}
-
-func (w Words) Span(command commands.Command) int {
-	if w.At(command) >= 0 {
-		return len(w)
-	} else {
-		return 0
-	}
 }
 
 func (w Words) String() string {

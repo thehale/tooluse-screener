@@ -14,19 +14,11 @@ type TrustedGitDirectories struct {
 	Expression Expression
 }
 
-func (d TrustedGitDirectories) At(command commands.Command) int {
+func (d TrustedGitDirectories) Find(command commands.Command) (Match, bool) {
 	if d.hasTargetsOf(command) {
-		return d.Expression.At(command)
+		return d.Expression.Find(command)
 	} else {
-		return -1
-	}
-}
-
-func (d TrustedGitDirectories) Span(command commands.Command) int {
-	if d.hasTargetsOf(command) {
-		return d.Expression.Span(command)
-	} else {
-		return 0
+		return Match{}, false
 	}
 }
 

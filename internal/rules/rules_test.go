@@ -481,7 +481,7 @@ func TestHowMuchOfACommandARuleAccountsFor(t *testing.T) {
 			rules.Rule{Expression: rules.AtStart{Expression: rules.Words("git")}},
 			rules.Rule{Expression: rules.AtStart{Expression: rules.Words("git push")}},
 		}
-		spans(t, 8, both, "git push origin topic")
+		groupSpans(t, 8, both, "git push origin topic")
 	})
 }
 
@@ -544,13 +544,10 @@ func leadingPattern(t *testing.T, expression string) rules.AtStart {
 	return rules.AtStart{Expression: pattern(t, expression)}
 }
 
-type spanner interface {
-	Span(command command.Command) int
-}
-
 func matches(t *testing.T, wanted bool, rule rules.Expression, command string) {
 	t.Helper()
-	if got := rule.At(commandOf(command)) >= 0; got != wanted {
+	_, got := rule.Find(commandOf(command))
+	if got != wanted {
 		t.Errorf("%v matching %q = %v, wanted %v", rule, command, got, wanted)
 	}
 }
@@ -573,16 +570,29 @@ func repositoryOn(t *testing.T, branch string) string {
 
 func matchesAfterMoving(t *testing.T, wanted bool, rule rules.Expression, text string, destinations ...string) {
 	t.Helper()
-	if got := rule.At(command.Command{Text: text, Moved: destinations}) >= 0; got != wanted {
+	_, got := rule.Find(command.Command{Text: text, Moved: destinations})
+	if got != wanted {
 		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, destinations, got, wanted)
 	}
 }
 
-func spans(t *testing.T, wanted int, rule spanner, command string) {
+func spans(t *testing.T, wanted int, rule finder, command string) {
 	t.Helper()
-	if got := rule.Span(commandOf(command)); got != wanted {
-		t.Errorf("%v spanning %q = %d, wanted %d", rule, command, got, wanted)
+	match, _ := rule.Find(commandOf(command))
+	if match.Width != wanted {
+		t.Errorf("%v spanning %q = %d, wanted %d", rule, command, match.Width, wanted)
 	}
+}
+
+func groupSpans(t *testing.T, wanted int, group rules.Group, command string) {
+	t.Helper()
+	if got := group.Span(commandOf(command)); got != wanted {
+		t.Errorf("%v spanning %q = %d, wanted %d", group, command, got, wanted)
+	}
+}
+
+type finder interface {
+	Find(command command.Command) (rules.Match, bool)
 }
 
 func isNamed(t *testing.T, subject fmt.Stringer, wanted string) {

@@ -9,21 +9,13 @@ type AtStart struct {
 	Expression Expression
 }
 
-func (a AtStart) At(command commands.Command) int {
-	if a.Span(command) > 0 {
-		return 0
-	} else {
-		return -1
-	}
-}
-
-func (a AtStart) Span(command commands.Command) int {
+func (a AtStart) Find(command commands.Command) (Match, bool) {
 	bareCommand := command.WithoutAssignments()
-	span := a.Expression.Span(bareCommand)
-	if a.Expression.At(bareCommand) == 0 && isWordBoundary(bareCommand.Text, span) {
-		return span
+	match, found := a.Expression.Find(bareCommand)
+	if found && match.Start == 0 && isWordBoundary(bareCommand.Text, match.Width) {
+		return Match{0, match.Width}, true
 	} else {
-		return 0
+		return Match{}, false
 	}
 }
 

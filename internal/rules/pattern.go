@@ -34,27 +34,12 @@ func syntaxMessage(err error) string {
 	}
 }
 
-func (p Pattern) At(command commands.Command) int {
-	return start(p.expression.FindStringIndex(command.Text))
-}
-
-func start(at []int) int {
+func (p Pattern) Find(command commands.Command) (Match, bool) {
+	at := p.expression.FindStringIndex(command.Text)
 	if at == nil {
-		return -1
+		return Match{}, false
 	} else {
-		return at[0]
-	}
-}
-
-func (p Pattern) Span(command commands.Command) int {
-	return width(p.expression.FindStringIndex(command.Text))
-}
-
-func width(at []int) int {
-	if at == nil {
-		return 0
-	} else {
-		return at[1] - at[0]
+		return Match{at[0], at[1] - at[0]}, true
 	}
 }
 

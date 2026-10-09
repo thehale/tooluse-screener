@@ -5,8 +5,11 @@ package rules
 
 import commands "github.com/thehale/tooluse-screener/internal/command"
 
+type Match struct {
+	Start, Width int
+}
+
 type Expression interface {
-	At(command commands.Command) int
-	Span(command commands.Command) int
+	Find(command commands.Command) (Match, bool)
 	String() string
 }

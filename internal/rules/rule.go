@@ -17,19 +17,11 @@ type Rule struct {
 	Addendums  []Addendum
 }
 
-func (r Rule) At(command commands.Command) int {
+func (r Rule) Find(command commands.Command) (Match, bool) {
 	if r.Only.isInScope(command) {
-		return r.Expression.At(command)
+		return r.Expression.Find(command)
 	} else {
-		return -1
-	}
-}
-
-func (r Rule) Span(command commands.Command) int {
-	if r.Only.isInScope(command) {
-		return r.Expression.Span(command)
-	} else {
-		return 0
+		return Match{}, false
 	}
 }
 

@@ -25,19 +25,11 @@ func (g GitSubcommand) isMatch(command commands.Command) bool {
 	return invocation.IsA(g.subcommand) && invocation.HasAll(g.requiredWords)
 }
 
-func (g GitSubcommand) At(command commands.Command) int {
+func (g GitSubcommand) Find(command commands.Command) (Match, bool) {
 	if g.isMatch(command) {
-		return 0
+		return Match{0, endOf(command.Text, append([]string{g.subcommand}, g.requiredWords...))}, true
 	} else {
-		return -1
-	}
-}
-
-func (g GitSubcommand) Span(command commands.Command) int {
-	if g.isMatch(command) {
-		return endOf(command.Text, append([]string{g.subcommand}, g.requiredWords...))
-	} else {
-		return 0
+		return Match{}, false
 	}
 }
 

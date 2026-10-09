@@ -12,7 +12,7 @@ type Group []Rule
 func (g Group) RulesMatching(command commands.Command) Group {
 	var matches Group
 	for _, rule := range g {
-		if rule.At(command) >= 0 {
+		if _, found := rule.Find(command); found {
 			matches = append(matches, rule)
 		}
 	}
@@ -22,7 +22,9 @@ func (g Group) RulesMatching(command commands.Command) Group {
 func (g Group) Span(command commands.Command) int {
 	maxSpan := 0
 	for _, rule := range g {
-		maxSpan = max(maxSpan, rule.Span(command))
+		if match, found := rule.Find(command); found {
+			maxSpan = max(maxSpan, match.Width)
+		}
 	}
 	return maxSpan
 }
