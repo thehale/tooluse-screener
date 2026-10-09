@@ -57,23 +57,6 @@ func (i Invocation) has(word string) bool {
 	}
 }
 
-func (i Invocation) Landing(dirs []string) (branch string, isKnown bool) {
-	words, isReadable := i.pushWords()
-	switch {
-	case !isReadable:
-		return "", false
-	case len(words) == 2 && withoutForce(words[1]) != "HEAD":
-		return onto(words[0], branchOf(withoutForce(words[1])))
-	default:
-		return commonBranch(dirs, func(dir string) (string, bool) { return landingIn(dir, words) })
-	}
-}
-
-func (i Invocation) pushWords() (words []string, isReadable bool) {
-	options, words := optionsAndWords(i.Arguments)
-	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && isLandingKept(options, i.Global)
-}
-
 func (i Invocation) TargetDirectories() []string {
 	if len(i.Unread) > 0 {
 		return append(slices.Clone(i.Directories), "")

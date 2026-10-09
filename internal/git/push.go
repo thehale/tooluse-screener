@@ -12,17 +12,29 @@ import (
 	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
-func isForceOption(option string) bool {
-	forceOptions := []string{"-f", "--force", "--force-with-lease", "--force-if-includes"}
-	return slices.Contains(forceOptions, option) || strings.HasPrefix(option, "--force-with-lease=")
+func (i Invocation) Landing(dirs []string) (branch string, isKnown bool) {
+	words, isReadable := i.pushWords()
+	switch {
+	case !isReadable:
+		return "", false
+	case len(words) == 2 && withoutForce(words[1]) != "HEAD":
+		return onto(words[0], branchOf(withoutForce(words[1])))
+	default:
+		return commonBranch(dirs, func(dir string) (string, bool) { return landingIn(dir, words) })
+	}
 }
 
-func withoutForce(refspec string) string {
-	return strings.TrimPrefix(refspec, "+")
+func (i Invocation) pushWords() (words []string, isReadable bool) {
+	options, words := optionsAndWords(i.Arguments)
+	return words, i.IsA("push") && len(words) <= 2 && len(i.Unread) == 0 && isLandingKept(options, i.Global)
 }
 
 func onto(remote, branch string) (string, bool) {
 	return branch, remoteName.MatchString(remote) && branch != ""
+}
+
+func withoutForce(refspec string) string {
+	return strings.TrimPrefix(refspec, "+")
 }
 
 func commonBranch(dirs []string, landing func(string) (string, bool)) (string, bool) {
@@ -62,6 +74,11 @@ func isLandingKeptBy(option string) bool {
 	return slices.Contains(neutralOptions, option) || isForceOption(option)
 }
 
+func isForceOption(option string) bool {
+	forceOptions := []string{"-f", "--force", "--force-with-lease", "--force-if-includes"}
+	return slices.Contains(forceOptions, option) || strings.HasPrefix(option, "--force-with-lease=")
+}
+
 func isDirectoryOnly(option string) bool {
 	return option == "-C"
 }
@@ -98,13 +115,13 @@ func branchIn(side string) string {
 	}
 }
 
-var (
-	remoteName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
-	branchName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]*$`)
-)
-
 func isABranchName(branch string) bool {
 	return branchName.MatchString(branch) &&
 		!strings.Contains(branch, "..") &&
 		!strings.HasPrefix(branch, "refs/")
 }
+
+var (
+	remoteName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+	branchName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]*$`)
+)
