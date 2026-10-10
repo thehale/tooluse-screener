@@ -60,8 +60,8 @@ select_matching_files() {
 	[[ -n "$files" ]] || return 0
 
 	{
-		printf '%s\n' "$files" | select_by_extension
-		printf '%s\n' "$files" | select_by_shebang
+		select_by_extension <<<"$files"
+		select_by_shebang <<<"$files"
 	} | sort -u
 }
 
