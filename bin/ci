@@ -15,7 +15,7 @@ results=""
 
 function main() {
 	local started
-	started="$(timestamp)"
+	started="$(microseconds_since_epoch)"
 
 	if [[ "${1:-}" == "--fix" ]]; then
 		check "Bash: Shebang" "filelike bash | bin/shebang --fix '#!/usr/bin/env bash'"
@@ -56,7 +56,7 @@ function check() {
 	local cmd="$2"
 
 	local started
-	started="$(timestamp)"
+	started="$(microseconds_since_epoch)"
 
 	echo -e "\n$(yellow "==>") $(blue "$name") $(grey "$cmd")\n"
 	set +e
