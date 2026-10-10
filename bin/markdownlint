@@ -15,6 +15,11 @@ MD033: false
 
 # first-line-heading
 MD041: false
+
+# line-length
+MD013:
+  tables: false
+  code_blocks: false
 '
 
 CONFIG_DIR=""
