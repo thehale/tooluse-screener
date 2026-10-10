@@ -61,6 +61,11 @@ func spanOf(stmt *syntax.Stmt) span {
 	if stmt.Negated {
 		start = stmt.Pos()
 	}
+	for _, redirect := range stmt.Redirs {
+		if start.After(redirect.Pos()) {
+			start = redirect.Pos()
+		}
+	}
 	return span{int(start.Offset()), int(widestEnd(stmt).Offset())}
 }
 

@@ -1,0 +1,13 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+allowed:
+  - name: List notes.txt
+    patterns:
+      - '^ls notes\.txt$'
+--------------------------------------------------------------------------------
+$ROOT % >out.log ls notes.txt
+ask: no automatic policy found for command
+
+$ROOT % ls 2>&1 notes.txt
+ask: no automatic policy found for command

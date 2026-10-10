@@ -125,6 +125,16 @@ func TestSubstitutions(t *testing.T) {
 	})
 }
 
+func TestRedirects(t *testing.T) {
+	t.Run("a redirect interleaved mid-command is left alone", func(t *testing.T) {
+		finds(t, "ls 2>&1 notes.txt", "ls 2>&1 notes.txt")
+	})
+
+	t.Run("a leading redirect is left alone", func(t *testing.T) {
+		finds(t, ">out ls notes.txt", ">out ls notes.txt")
+	})
+}
+
 func TestBlind(t *testing.T) {
 	wanted := []string{"grep -E 'a", "b' file"}
 	if all := texts(command.Blind("grep -E 'a|b' file")); !slices.Equal(all, wanted) {
