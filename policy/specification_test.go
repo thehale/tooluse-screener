@@ -114,8 +114,12 @@ func verdictFor(policy Policy, rest string) Verdict {
 	if path, isEdit := editTarget(rest); isEdit {
 		return policy.CheckPath(path)
 	} else {
-		return policy.CheckCommand(rest)
+		return policy.CheckCommand(withRealNewlines(rest))
 	}
+}
+
+func withRealNewlines(text string) string {
+	return strings.ReplaceAll(text, `\n`, "\n")
 }
 
 func editTarget(rest string) (string, bool) {

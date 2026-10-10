@@ -1,0 +1,13 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Remove
+    patterns:
+      - '^rm\b'
+allowed:
+  - cat
+  - echo
+--------------------------------------------------------------------------------
+$ROOT % echo "$(cat <<'EOF'\nrm -rf notes\nEOF\n)"
+deny: Command matches a denied rule: Remove
