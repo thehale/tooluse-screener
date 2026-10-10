@@ -5,8 +5,19 @@
 # Usage: source bin/lib/timing; elapsed "$started"
 
 microseconds_since_epoch() {
-	local now="$EPOCHREALTIME"
-	echo "${now//[.,]/}"
+	if [[ -n "${EPOCHREALTIME:-}" ]]; then
+		local now="$EPOCHREALTIME"
+		echo "${now//[.,]/}"
+	else
+		local nanoseconds
+		nanoseconds="$(date +%s%N)"
+
+		if [[ "$nanoseconds" =~ ^[0-9]{19}$ ]]; then
+			echo "$((nanoseconds / 1000))"
+		else
+			echo "$(date +%s)000000"
+		fi
+	fi
 }
 
 elapsed() {
