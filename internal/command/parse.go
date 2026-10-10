@@ -4,6 +4,7 @@
 package command
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -22,11 +23,16 @@ func All(text string) []Command {
 
 func partsOf(source string, file *syntax.File) []part {
 	var parts []part
+	var pendingWrites []string
 	syntax.Walk(file, func(node syntax.Node) bool {
 		stmt, isStmt := node.(*syntax.Stmt)
 		if isStmt {
+			writes := slices.Concat(pendingWrites, writesOf(source, stmt))
 			if text, isCommand := textOf(source, stmt); isCommand {
-				parts = append(parts, part{text})
+				parts = append(parts, part{text, writes})
+				pendingWrites = nil
+			} else {
+				pendingWrites = writes
 			}
 		}
 		return true
@@ -37,7 +43,7 @@ func partsOf(source string, file *syntax.File) []part {
 func textOf(source string, stmt *syntax.Stmt) (text string, isCommand bool) {
 	if isSimple(stmt.Cmd) {
 		bounds := spanOf(stmt)
-		return withCutsApplied(source, bounds, cutsIn(stmt.Cmd)), true
+		return withCutsApplied(source, bounds, cutsIn(source, stmt, bounds)), true
 	} else {
 		return "", false
 	}
@@ -61,22 +67,29 @@ func spanOf(stmt *syntax.Stmt) span {
 	if stmt.Negated {
 		start = stmt.Pos()
 	}
+	end := stmt.Cmd.End()
 	for _, redirect := range stmt.Redirs {
 		if start.After(redirect.Pos()) {
 			start = redirect.Pos()
 		}
-	}
-	return span{int(start.Offset()), int(widestEnd(stmt).Offset())}
-}
-
-func widestEnd(stmt *syntax.Stmt) syntax.Pos {
-	end := stmt.Cmd.End()
-	for _, redirect := range stmt.Redirs {
-		if redirect.End().After(end) {
+		if isKept(redirect) && redirect.End().After(end) {
 			end = redirect.End()
 		}
 	}
-	return end
+	return span{int(start.Offset()), int(end.Offset())}
+}
+
+func isKept(redirect *syntax.Redirect) bool {
+	return isHeredocOrHerestring(redirect.Op)
+}
+
+func isHeredocOrHerestring(op syntax.RedirOperator) bool {
+	switch op {
+	case syntax.Hdoc, syntax.DashHdoc, syntax.WordHdoc:
+		return true
+	default:
+		return false
+	}
 }
 
 type cut struct {
@@ -84,9 +97,9 @@ type cut struct {
 	replacement string
 }
 
-func cutsIn(cmd syntax.Command) []cut {
-	var cuts []cut
-	syntax.Walk(cmd, func(node syntax.Node) bool {
+func cutsIn(source string, stmt *syntax.Stmt, bounds span) []cut {
+	cuts := redirectCutsIn(stmt, bounds)
+	syntax.Walk(stmt.Cmd, func(node syntax.Node) bool {
 		found, isSubstitution := substitutionSpan(node)
 		if isSubstitution {
 			cuts = append(cuts, cut{found, Substitution})
@@ -94,6 +107,28 @@ func cutsIn(cmd syntax.Command) []cut {
 		return !isSubstitution
 	})
 	return cuts
+}
+
+func redirectCutsIn(stmt *syntax.Stmt, bounds span) []cut {
+	var cuts []cut
+	for _, redirect := range stmt.Redirs {
+		if found := spanOfRedirect(redirect); trails(redirect, stmt) && !isKept(redirect) && isWithin(found, bounds) {
+			cuts = append(cuts, cut{found, ""})
+		}
+	}
+	return cuts
+}
+
+func trails(redirect *syntax.Redirect, stmt *syntax.Stmt) bool {
+	return !stmt.Cmd.End().After(redirect.Pos())
+}
+
+func spanOfRedirect(redirect *syntax.Redirect) span {
+	return span{int(redirect.Pos().Offset()), int(redirect.End().Offset())}
+}
+
+func isWithin(inner, outer span) bool {
+	return inner.start >= outer.start && inner.end <= outer.end
 }
 
 func withCutsApplied(source string, bounds span, cuts []cut) string {
@@ -116,4 +151,44 @@ func substitutionSpan(node syntax.Node) (found span, isSubstitution bool) {
 	default:
 		return span{}, false
 	}
+}
+
+func writesOf(source string, stmt *syntax.Stmt) []string {
+	var writes []string
+	for _, redirect := range stmt.Redirs {
+		if target, isWrite := writeTarget(source, redirect); isWrite {
+			writes = append(writes, target)
+		}
+	}
+	return writes
+}
+
+func writeTarget(source string, redirect *syntax.Redirect) (target string, isWrite bool) {
+	word := source[redirect.Word.Pos().Offset():redirect.Word.End().Offset()]
+	if isWriteOp(redirect.Op) && !isDuplicationTarget(word) {
+		return Literal(word), true
+	} else {
+		return "", false
+	}
+}
+
+func isWriteOp(op syntax.RedirOperator) bool {
+	switch op {
+	case syntax.RdrOut, syntax.AppOut, syntax.RdrClob, syntax.RdrAll, syntax.AppAll, syntax.RdrInOut, syntax.DplOut:
+		return true
+	default:
+		return false
+	}
+}
+
+func isDuplicationTarget(word string) bool {
+	return word == "-" || isAllDigits(word)
+}
+
+func isAllDigits(word string) bool {
+	return word != "" && !strings.ContainsFunc(word, isNotADigit)
+}
+
+func isNotADigit(letter rune) bool {
+	return letter < '0' || letter > '9'
 }

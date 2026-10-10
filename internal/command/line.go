@@ -11,8 +11,21 @@ func Blind(text string) []Command {
 	return commands(asParts(split(withLinesJoined(text))), nil)
 }
 
+func (c Command) Blind() []Command {
+	return commands(asParts(split(withLinesJoined(c.sourceText()))), c.Moved)
+}
+
+func (c Command) sourceText() string {
+	if c.source == "" {
+		return c.Text
+	} else {
+		return c.source
+	}
+}
+
 type part struct {
-	text string
+	text   string
+	writes []string
 }
 
 func asParts(texts []string) []part {
@@ -28,7 +41,7 @@ func commands(parts []part, startingDestinations []string) []Command {
 	destinations := startingDestinations
 	for _, one := range parts {
 		if text := withSpacesCollapsed(one.text); text != "" {
-			found = append(found, Command{text, destinations})
+			found = append(found, Command{text, destinations, one.writes, one.text})
 			destinations = movesAfter(text, destinations)
 		}
 	}

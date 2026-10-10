@@ -1,0 +1,24 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - secrets/**
+allowed:
+  - echo
+  - cd
+--------------------------------------------------------------------------------
+$ROOT % echo hi > $ROOT/secrets/key
+deny: Path matches a denied rule: secrets/**
+
+$ROOT % echo hi > secrets/key
+deny: Path matches a denied rule: secrets/**
+
+$ROOT % cd secrets && echo hi > key
+deny: Path matches a denied rule: secrets/**
+
+$ROOT % { echo a; echo b; } > secrets/x
+deny: Path matches a denied rule: secrets/**
+
+$ROOT % echo hi &> secrets/key
+deny: Path matches a denied rule: secrets/**

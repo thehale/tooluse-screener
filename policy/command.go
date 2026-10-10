@@ -15,17 +15,54 @@ import (
 
 func (p Policy) CheckCommand(line string) Verdict {
 	commands := command.All(line)
-	reasons := p.denyReasons(slices.Concat(commands, command.Blind(line)))
+	reasons := p.denyReasons(slices.Concat(commands, blindCommandsFor(commands)))
 	matchingByCommand := allowRulesByCommand(p.allowed.commandRules, commands)
+	writeVerdict, hasWriteVerdict := p.writeVerdict(commands)
 
 	switch {
 	case len(reasons) > 0:
 		return Verdict{Deny, reasons[0]}
+	case hasWriteVerdict:
+		return writeVerdict
 	case len(commands) > 0 && lists.Every(matchingByCommand, isAllowed):
 		return Verdict{Allow, allowReason(matchingByCommand)}
 	default:
 		return unlistedVerdict("Command")
 	}
+}
+
+func (p Policy) writeVerdict(commands []command.Command) (Verdict, bool) {
+	if len(p.denied.pathRules) == 0 {
+		return Verdict{}, false
+	} else {
+		return p.writeVerdictForDeniedPaths(commands)
+	}
+}
+
+func (p Policy) writeVerdictForDeniedPaths(commands []command.Command) (Verdict, bool) {
+	hasUnresolvedWrite := false
+	for _, one := range commands {
+		for _, path := range one.PathsWritten() {
+			if path == "" {
+				hasUnresolvedWrite = true
+			} else if denyingGlobs := p.denied.pathRules.GlobsMatching(path); len(denyingGlobs) > 0 {
+				return Verdict{Deny, denyReason("Path", denyingGlobs[0], denyingGlobs[0].Reason)}, true
+			}
+		}
+	}
+	if hasUnresolvedWrite {
+		return Verdict{Ask, "Redirect target is unknown to the denied paths"}, true
+	} else {
+		return Verdict{}, false
+	}
+}
+
+func blindCommandsFor(commands []command.Command) []command.Command {
+	var blind []command.Command
+	for _, one := range commands {
+		blind = append(blind, one.Blind()...)
+	}
+	return blind
 }
 
 func (p Policy) denyReasons(commands []command.Command) []string {

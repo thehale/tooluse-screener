@@ -12,14 +12,14 @@ func Within(here, path string) string {
 	switch {
 	case here == "" || path == "":
 		return ""
-	case here == "." || isStandalone(path):
+	case here == "." || IsStandalone(path):
 		return path
 	default:
 		return here + string(filepath.Separator) + path
 	}
 }
 
-func isStandalone(path string) bool {
+func IsStandalone(path string) bool {
 	return isRooted(path) || filepath.VolumeName(path) != "" || strings.HasPrefix(path, "~")
 }
 

@@ -1,0 +1,15 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - paths:
+      - secrets/**
+allowed:
+  - cd
+  - make
+--------------------------------------------------------------------------------
+$ROOT % cd "$d" && make
+allow: Every command is allowed: cd, make
+
+$ROOT % cd "$d" && make > /dev/null
+allow: Every command is allowed: cd, make

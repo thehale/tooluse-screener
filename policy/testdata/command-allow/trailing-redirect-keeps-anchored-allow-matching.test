@@ -1,0 +1,23 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Remove
+    patterns:
+      - '^rm\b'
+allowed:
+  - name: Remove notes.txt
+    patterns:
+      - '^rm notes\.txt$'
+--------------------------------------------------------------------------------
+$ROOT % rm notes.txt 2>&1
+allow: Every command is allowed: Remove notes.txt
+
+$ROOT % rm notes.txt >/dev/null
+allow: Every command is allowed: Remove notes.txt
+
+$ROOT % rm notes.txt &>/dev/null
+allow: Every command is allowed: Remove notes.txt
+
+$ROOT % rm notes.txt &>>/dev/null
+allow: Every command is allowed: Remove notes.txt

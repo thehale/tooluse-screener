@@ -10,8 +10,10 @@ import (
 )
 
 type Command struct {
-	Text  string
-	Moved []string
+	Text   string
+	Moved  []string
+	Writes []string
+	source string
 }
 
 func (c Command) DirectoriesActedIn(targets []string) []string {
@@ -25,5 +27,18 @@ func (c Command) DirectoriesActedIn(targets []string) []string {
 }
 
 func (c Command) WithoutAssignments() Command {
-	return Command{Text: WithoutAssignments(c.Text), Moved: c.Moved}
+	return Command{Text: WithoutAssignments(c.Text), Moved: c.Moved, Writes: c.Writes}
+}
+
+func (c Command) PathsWritten() []string {
+	var paths []string
+	for _, target := range c.Writes {
+		paths = append(paths, target)
+		if !directories.IsStandalone(target) {
+			for _, here := range c.Moved {
+				paths = append(paths, directories.Within(here, target))
+			}
+		}
+	}
+	return paths
 }

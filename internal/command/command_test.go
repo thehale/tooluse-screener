@@ -29,9 +29,9 @@ func TestSeparators(t *testing.T) {
 	})
 
 	t.Run("an ampersand in a redirection separates nothing", func(t *testing.T) {
-		finds(t, "ls 2>&1", "ls 2>&1")
-		finds(t, "ls >&2", "ls >&2")
-		finds(t, "ls &> out", "ls &> out")
+		finds(t, "ls 2>&1", "ls")
+		finds(t, "ls >&2", "ls")
+		finds(t, "ls &> out", "ls")
 	})
 
 	t.Run("whitespace is tidied up", func(t *testing.T) {
@@ -64,8 +64,8 @@ func TestSeparators(t *testing.T) {
 		finds(t, "if true; then ls; fi", "true", "ls")
 	})
 
-	t.Run("a backgrounded redirection keeps its redirect and loses its ampersand", func(t *testing.T) {
-		finds(t, "ls 2>&1 &", "ls 2>&1")
+	t.Run("a backgrounded redirection loses its ampersand", func(t *testing.T) {
+		finds(t, "ls 2>&1 &", "ls")
 	})
 
 	t.Run("an assignment kept for the rest of the line is still one command", func(t *testing.T) {
@@ -126,12 +126,26 @@ func TestSubstitutions(t *testing.T) {
 }
 
 func TestRedirects(t *testing.T) {
+	t.Run("a trailing redirect is cut", func(t *testing.T) {
+		finds(t, "ls notes.txt 2>&1", "ls notes.txt")
+		finds(t, "ls notes.txt >/dev/null", "ls notes.txt")
+	})
+
 	t.Run("a redirect interleaved mid-command is left alone", func(t *testing.T) {
 		finds(t, "ls 2>&1 notes.txt", "ls 2>&1 notes.txt")
 	})
 
 	t.Run("a leading redirect is left alone", func(t *testing.T) {
 		finds(t, ">out ls notes.txt", ">out ls notes.txt")
+	})
+
+	t.Run("several redirects on one command are all cut", func(t *testing.T) {
+		finds(t, "ls notes.txt 2>&1 >/dev/null", "ls notes.txt")
+	})
+
+	t.Run("a trailing &> or &>> redirect is cut", func(t *testing.T) {
+		finds(t, "ls notes.txt &>/dev/null", "ls notes.txt")
+		finds(t, "ls notes.txt &>>/dev/null", "ls notes.txt")
 	})
 }
 
@@ -140,6 +154,25 @@ func TestBlind(t *testing.T) {
 	if all := texts(command.Blind("grep -E 'a|b' file")); !slices.Equal(all, wanted) {
 		t.Errorf("Blind split %q, wanted %q", all, wanted)
 	}
+}
+
+func TestCommandBlind(t *testing.T) {
+	t.Run("splits a parsed command's own text quote-blindly", func(t *testing.T) {
+		parsed := command.All("sh -c 'ls;rm -rf /'")[0]
+		wanted := []string{"sh -c 'ls", "rm -rf /'"}
+		if all := texts(parsed.Blind()); !slices.Equal(all, wanted) {
+			t.Errorf("Blind() = %q, wanted %q", all, wanted)
+		}
+	})
+
+	t.Run("seeds the split with where the command moved", func(t *testing.T) {
+		parsed := command.Command{Text: "sh -c 'a;b'", Moved: []string{"/work"}}
+		for _, one := range parsed.Blind() {
+			if !slices.Equal(one.Moved, []string{"/work"}) {
+				t.Errorf("Blind() moved %q, wanted %q", one.Moved, []string{"/work"})
+			}
+		}
+	})
 }
 
 func finds(t *testing.T, text string, wanted ...string) {
