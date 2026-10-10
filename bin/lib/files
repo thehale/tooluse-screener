@@ -78,9 +78,17 @@ select_by_shebang() {
 
 	local pattern
 	pattern="$(printf '%s|' "${SHEBANGS[@]}")"
-	xargs --no-run-if-empty --delimiter='\n' \
-		sed --separate --quiet --regexp-extended \
-		"1 { /^#!.*[ /](${pattern%|})$/ F }"
+
+	local file
+	while IFS= read -r file; do
+		if first_line "$file" | grep --quiet --extended-regexp "^#!.*[ /](${pattern%|})$"; then
+			echo "$file"
+		fi
+	done
+}
+
+first_line() {
+	[[ -f "$1" ]] && head --lines 1 "$1" 2>/dev/null
 }
 
 omit_excluded_paths() {
