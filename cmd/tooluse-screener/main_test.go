@@ -6,7 +6,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -174,6 +176,62 @@ func TestAnsweringAFileWrite(t *testing.T) {
 			t.Errorf("wrote %q and exited %d", out, code)
 		}
 	})
+}
+
+func TestAnsweringAHookInAnotherDirectory(t *testing.T) {
+	t.Run("a command is judged from the payload's cwd, not the process's", func(t *testing.T) {
+		repo := gitRepoOn(t, "feature")
+		policy := policyFile(t, fmt.Sprintf(`
+allowed:
+  - name: Push here
+    patterns: ['^git push origin \S+$']
+    only:
+      dirs: [%s]
+      branches: [{not: [main]}]
+`, repo))
+		t.Chdir(t.TempDir())
+
+		out, code := hookOutcomeIn(t, policy, repo, "git push origin feature")
+
+		if code != 0 {
+			t.Errorf("exit %d, wanted 0", code)
+		}
+		decision, _ := envelopeIn(t, out)["hookSpecificOutput"].(map[string]any)
+		if decision["permissionDecision"] != "allow" {
+			t.Errorf("wrote %q", out)
+		}
+	})
+}
+
+func gitRepoOn(t *testing.T, branch string) string {
+	t.Helper()
+	repo := t.TempDir()
+	gitCommand(t, repo, "init", "-q", "-b", branch)
+	gitCommand(t, repo, "-c", "user.name=x", "-c", "user.email=x", "commit", "-q", "--allow-empty", "-m", "start")
+	return repo
+}
+
+func gitCommand(t *testing.T, dir string, arguments ...string) {
+	t.Helper()
+	command := exec.Command("git", arguments...)
+	command.Dir = dir
+	if combined, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v: %s", strings.Join(arguments, " "), err, combined)
+	}
+}
+
+func hookOutcomeIn(t *testing.T, policy, cwd, command string) (string, int) {
+	t.Helper()
+	payload := map[string]any{
+		"tool_name":       "Bash",
+		"hook_event_name": "PreToolUse",
+		"cwd":             cwd,
+		"tool_input":      map[string]any{"command": command},
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	var out bytes.Buffer
+	code := run([]string{"--hook", "--config-file", policy}, bytes.NewReader(payloadJSON), &out, &bytes.Buffer{})
+	return out.String(), code
 }
 
 func outcomeOf(t *testing.T, arguments ...string) (string, int) {

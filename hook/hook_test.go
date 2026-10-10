@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -49,11 +51,26 @@ func (echoing) CheckPath(path string) policy.Verdict {
 	return policy.Verdict{Decision: policy.Deny, Reason: path}
 }
 
-func writeCall(tool, key, path string) toolCall {
+type wherever struct{}
+
+func (wherever) CheckCommand(string) policy.Verdict {
+	return policy.Verdict{Decision: policy.Deny, Reason: here()}
+}
+
+func (wherever) CheckPath(string) policy.Verdict {
+	return policy.Verdict{Decision: policy.Deny, Reason: here()}
+}
+
+func here() string {
+	wd, _ := os.Getwd()
+	return wd
+}
+
+func writeCall(t *testing.T, tool, key, path string) toolCall {
 	return toolCall{
 		"tool_name":       tool,
 		"hook_event_name": "PreToolUse",
-		"cwd":             "/work/repo",
+		"cwd":             t.TempDir(),
 		"tool_input":      map[string]any{key: path, "content": "hi"},
 	}
 }
@@ -115,35 +132,36 @@ func TestWhatIsAsked(t *testing.T) {
 	})
 
 	t.Run("a tool that writes a file is asked about its path", func(t *testing.T) {
-		asks(t, writeCall("Write", "file_path", "/work/notes.md"), "/work/notes.md")
-		asks(t, writeCall("Edit", "file_path", "/work/notes.md"), "/work/notes.md")
-		asks(t, writeCall("MultiEdit", "file_path", "/work/notes.md"), "/work/notes.md")
-		asks(t, writeCall("NotebookEdit", "notebook_path", "/work/a.ipynb"), "/work/a.ipynb")
+		asks(t, writeCall(t, "Write", "file_path", "/work/notes.md"), "/work/notes.md")
+		asks(t, writeCall(t, "Edit", "file_path", "/work/notes.md"), "/work/notes.md")
+		asks(t, writeCall(t, "MultiEdit", "file_path", "/work/notes.md"), "/work/notes.md")
+		asks(t, writeCall(t, "NotebookEdit", "notebook_path", "/work/a.ipynb"), "/work/a.ipynb")
 	})
 
 	t.Run("a relative path is read from where the agent is working", func(t *testing.T) {
-		asks(t, writeCall("Write", "file_path", "docs/../notes.md"), "/work/repo/notes.md")
+		call := writeCall(t, "Write", "file_path", "docs/../notes.md")
+		asks(t, call, filepath.Join(call.text("cwd"), "notes.md"))
 	})
 
 	t.Run("a path is read as cleaned", func(t *testing.T) {
-		asks(t, writeCall("Write", "file_path", "/work//repo/./notes.md"), "/work/repo/notes.md")
+		asks(t, writeCall(t, "Write", "file_path", "/work//repo/./notes.md"), "/work/repo/notes.md")
 	})
 
 	t.Run("a tool that writes, with no path, is not asked about", func(t *testing.T) {
-		leavesUndecided(t, writeCall("Write", "file_path", ""))
-		leavesUndecided(t, writeCall("NotebookEdit", "file_path", "/work/a.ipynb"))
+		leavesUndecided(t, writeCall(t, "Write", "file_path", ""))
+		leavesUndecided(t, writeCall(t, "NotebookEdit", "file_path", "/work/a.ipynb"))
 	})
 
 	t.Run("a path the policy says nothing about gets no envelope", func(t *testing.T) {
 		var out bytes.Buffer
-		code := Main(inputOf(writeCall("Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, always(ask))
+		code := Main(inputOf(writeCall(t, "Write", "file_path", "/work/notes.md")), &out, &bytes.Buffer{}, always(ask))
 		if code != 0 || out.String() != "" {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
 	})
 
 	t.Run("a denied path gets a block envelope and a blocking exit", func(t *testing.T) {
-		output, code := outcomeOf(t, inputOf(writeCall("Edit", "file_path", "/work/notes.md")), deny)
+		output, code := outcomeOf(t, inputOf(writeCall(t, "Edit", "file_path", "/work/notes.md")), deny)
 		if code != 2 {
 			t.Errorf("exit %d, wanted 2", code)
 		}
@@ -169,6 +187,52 @@ func TestAPolicyThatFails(t *testing.T) {
 			t.Errorf("stderr said %q", complaints.String())
 		}
 	})
+}
+
+func TestJudgingFromTheSessionDirectory(t *testing.T) {
+	t.Run("a bash call is judged from the payload's cwd, not the process's", func(t *testing.T) {
+		t.Chdir(t.TempDir())
+		there := t.TempDir()
+		payload := claude("ls", "PreToolUse")
+		payload["cwd"] = there
+		judgedAt(t, payload, there)
+	})
+
+	t.Run("no cwd still judges from the process's directory", func(t *testing.T) {
+		t.Chdir(t.TempDir())
+		judgedAt(t, claude("ls", "PreToolUse"), here())
+	})
+
+	t.Run("a cwd that does not exist asks, without consulting the checker", func(t *testing.T) {
+		payload := claude("ls", "PreToolUse")
+		payload["cwd"] = filepath.Join(t.TempDir(), "gone")
+		var out, complaints bytes.Buffer
+		code := Main(inputOf(payload), &out, &complaints, panics{})
+		if code != 0 || out.String() != "" || complaints.String() != "" {
+			t.Errorf("exit %d wrote %q and %q, wanted a quiet ask", code, out.String(), complaints.String())
+		}
+	})
+
+	t.Run("a cwd that does not exist leaves a call it does not judge alone", func(t *testing.T) {
+		payload := toolCall{"tool_name": "Read", "cwd": filepath.Join(t.TempDir(), "gone"), "tool_input": map[string]any{"file_path": "a"}}
+		leavesUndecided(t, payload)
+	})
+}
+
+func judgedAt(t *testing.T, payload toolCall, dir string) {
+	t.Helper()
+	var out, complaints bytes.Buffer
+	Main(inputOf(payload), &out, &complaints, wherever{})
+	output := section(t, envelopeIn(t, out.String()), "hookSpecificOutput")
+	reason, _ := output["permissionDecisionReason"].(string)
+	if resolved(reason) != resolved(dir) {
+		t.Errorf("judged from %q, wanted %q", reason, dir)
+	}
+}
+
+func resolved(path string) string {
+	target, _ := filepath.EvalSymlinks(path)
+	return target
 }
 
 func TestWhatEachEventAnswersWith(t *testing.T) {

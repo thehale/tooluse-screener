@@ -18,7 +18,7 @@ func (call toolCall) verdict(checker Checker) (policy.Verdict, bool) {
 	if query, isPosed := call.posedQuestion(); !isPosed {
 		return policy.Verdict{}, false
 	} else {
-		return query(checker), true
+		return inDirectory(call.text("cwd"), query)(checker), true
 	}
 }
 
