@@ -8,19 +8,31 @@ import "strings"
 const Substitution = "\x00"
 
 func Blind(text string) []Command {
-	return commandsFrom(split(withLinesJoined(text)))
+	return commands(asParts(split(withLinesJoined(text))), nil)
 }
 
-func commandsFrom(parts []string) []Command {
-	var commands []Command
-	var destinations []string
-	for _, part := range parts {
-		if command := withSpacesCollapsed(part); command != "" {
-			commands = append(commands, Command{command, destinations})
-			destinations = movesAfter(command, destinations)
+type part struct {
+	text string
+}
+
+func asParts(texts []string) []part {
+	parts := make([]part, len(texts))
+	for index, text := range texts {
+		parts[index] = part{text: text}
+	}
+	return parts
+}
+
+func commands(parts []part, startingDestinations []string) []Command {
+	var found []Command
+	destinations := startingDestinations
+	for _, one := range parts {
+		if text := withSpacesCollapsed(one.text); text != "" {
+			found = append(found, Command{text, destinations})
+			destinations = movesAfter(text, destinations)
 		}
 	}
-	return commands
+	return found
 }
 
 func withLinesJoined(text string) string {
