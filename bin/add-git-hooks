@@ -2,11 +2,10 @@
 # Copyright (c) 2026 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
 
-# Usage: bin/install-git-hooks
+# Usage: bin/add-git-hooks
 
 set -euo pipefail
 
-# Relative, so it resolves against the top of the working tree in any clone.
 HOOKS="bin/.hooks"
 
 main() {
@@ -16,7 +15,7 @@ main() {
 	fi
 
 	git config core.hooksPath "$HOOKS"
-	echo "Hooks installed from $HOOKS"
+	echo "Hooks added from $HOOKS"
 }
 
 main "$@"
