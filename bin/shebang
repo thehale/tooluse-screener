@@ -40,7 +40,7 @@ find_wrong_shebangs() {
 	local file first
 	while IFS= read -r file; do
 		if [[ -f "$file" ]]; then
-			first="$(head --lines 1 "$file" 2>/dev/null)"
+			first="$(head -n 1 "$file" 2>/dev/null)"
 			case "$first" in
 			"$1") ;;
 			'#!'*) echo "$file" ;;
@@ -58,7 +58,7 @@ rewrite_shebangs() {
 
 rewrite_first_line() {
 	local rest
-	rest="$(tail --lines +2 "$1")"
+	rest="$(tail -n +2 "$1")"
 	printf '%s\n' "$2" ${rest:+"$rest"} >"$1"
 }
 
