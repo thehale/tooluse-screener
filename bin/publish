@@ -71,7 +71,7 @@ confirm_release_tag() {
 }
 
 release_tag() {
-	git tag --points-at HEAD | grep --extended-regexp "$RELEASE_TAG" | head --lines 1 || true
+	git tag --points-at HEAD | grep -E "$RELEASE_TAG" | head -n 1 || true
 }
 
 confirm_declared_origin() {
@@ -94,7 +94,7 @@ origin_path() {
 }
 
 module_path() {
-	sed --quiet --regexp-extended 's%^module (.*)$%\1%p' go.mod
+	sed -n -E 's%^module (.*)$%\1%p' go.mod
 }
 
 confirm_pushed_branch() {
@@ -111,7 +111,7 @@ confirm_pushed_branch() {
 }
 
 remote_object() {
-	git ls-remote origin "$1" | cut --fields 1 | tail --lines 1
+	git ls-remote origin "$1" | cut -f 1 | tail -n 1
 }
 
 confirm_pushed_tag() {
