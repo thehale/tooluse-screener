@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) Joseph Hale, 2026
+# Copyright (c) 2026 Joseph Hale
 # SPDX-License-Identifier: MPL-2.0
 
 set -euo pipefail
@@ -23,7 +23,7 @@ function main() {
 		check "Bash: Order" "filelike bash | bashorder check --fix"
 		check "YAML: Format" "bin/yamlformat --fix"
 		check "Markdown: Lint" "bin/markdownlint --fix"
-		check "License" "bin/lawyer --fix"
+		check "License" "bin/copyright --fix"
 		check "Go: Format" "gofmt -w ."
 		check "Go: Lint" "golangci-lint run --fix"
 	else
@@ -37,7 +37,7 @@ function main() {
 		check "Actions: Audit" "zizmor --quiet .github"
 		check "YAML: Format" "bin/yamlformat"
 		check "Markdown: Lint" "bin/markdownlint"
-		check "License" "bin/lawyer"
+		check "License" "bin/copyright"
 		check "Secrets" "gitleaks git --no-banner --redact"
 		check "Dependencies" "osv-scanner scan source --recursive --allow-no-lockfiles ."
 		check "Go: Format" "bin/gofmtcheck"

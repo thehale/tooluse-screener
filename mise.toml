@@ -1,9 +1,12 @@
+# Copyright (c) 2026 Joseph Hale
+# SPDX-License-Identifier: MPL-2.0
+
 [tools]
 go = "1.26.8"
 "aqua:golangci/golangci-lint" = "2.13.2"
 "aqua:goreleaser/goreleaser" = "2.18.1"
-"aqua:hashicorp/copywrite" = "0.25.3"
 "github:thehale/bashorder" = "0.1.0"
+"github:thehale/lawyer" = "0.1.1"
 actionlint = "1.7.12"
 bats = "1.14.0"
 gh = "2.100.0"
