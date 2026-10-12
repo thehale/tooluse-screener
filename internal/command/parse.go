@@ -80,16 +80,7 @@ func spanOf(stmt *syntax.Stmt) span {
 }
 
 func isKept(redirect *syntax.Redirect) bool {
-	return isHeredocOrHerestring(redirect.Op)
-}
-
-func isHeredocOrHerestring(op syntax.RedirOperator) bool {
-	switch op {
-	case syntax.Hdoc, syntax.DashHdoc, syntax.WordHdoc:
-		return true
-	default:
-		return false
-	}
+	return isHeredoc(redirect) || redirect.Op == syntax.WordHdoc
 }
 
 type cut struct {
