@@ -6,17 +6,10 @@ denied:
     patterns:
       - '^rm\b'
 allowed:
-  - cat
   - tee
 --------------------------------------------------------------------------------
 $ROOT % bash <<'EOF'\nrm -rf notes\nEOF
 deny: Command matches a denied rule: Remove
 
-$ROOT % cat > notes.txt <<'EOF'\nrm -rf notes\nEOF
-deny: Command matches a denied rule: Remove
-
 $ROOT % tee notes.txt <<'EOF'\nrm -rf notes\nEOF
-deny: Command matches a denied rule: Remove
-
-$ROOT % cat <<'EOF' >> ~/.bashrc\nrm -rf notes\nEOF
 deny: Command matches a denied rule: Remove

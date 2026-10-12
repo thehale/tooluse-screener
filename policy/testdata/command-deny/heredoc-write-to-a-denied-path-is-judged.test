@@ -1,0 +1,12 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Shell profile
+    paths:
+      - '~/.bashrc'
+allowed:
+  - cat
+--------------------------------------------------------------------------------
+$ROOT % cat <<'EOF' >> ~/.bashrc\nrm -rf notes\nEOF
+deny: Path matches a denied rule: Shell profile

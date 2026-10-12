@@ -1,0 +1,33 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Remove
+    patterns:
+      - '^rm\b'
+  - name: Post in public
+    patterns:
+      - '(?:^|[\s/])tool(?:\s+\S+)*?\s+thread\s+(?:post|close)\b'
+allowed:
+  - cat
+--------------------------------------------------------------------------------
+$ROOT % cat > /tmp/note.md <<'EOF'\nNext: tool thread post, then hand off.\nEOF
+allow: Every command is allowed: cat
+
+$ROOT % cat > notes.md <<'EOF'\ntool thread post 12\nEOF
+allow: Every command is allowed: cat
+
+$ROOT % cat > notes.md <<'EOF'\nrm -rf notes\nEOF
+allow: Every command is allowed: cat
+
+$ROOT % cat <<'EOF' >> notes.md\nrm -rf notes\nEOF
+allow: Every command is allowed: cat
+
+$ROOT % cat <<-'EOF' > notes.md\n	rm -rf notes\n	EOF
+allow: Every command is allowed: cat
+
+$ROOT % cat > notes.md <<"EOF"\nrm -rf notes\nEOF
+allow: Every command is allowed: cat
+
+$ROOT % cat > notes.md <<\EOF\nrm -rf notes\nEOF
+allow: Every command is allowed: cat

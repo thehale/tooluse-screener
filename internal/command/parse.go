@@ -15,7 +15,7 @@ func All(text string) []Command {
 	source := withLinesJoined(text)
 	file, err := syntax.NewParser().Parse(strings.NewReader(source), "")
 	if err == nil {
-		return commands(partsOf(source, file), nil)
+		return commands(partsOf(source, withInertHeredocDropped(file)), nil)
 	} else {
 		return Blind(text)
 	}
