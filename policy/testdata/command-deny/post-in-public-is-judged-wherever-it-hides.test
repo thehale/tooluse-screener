@@ -1,0 +1,40 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Post in public
+    patterns:
+      - '(?:^|[\s/])tool(?:\s+\S+)*?\s+thread\s+(?:post|close)\b'
+--------------------------------------------------------------------------------
+$ROOT % tool thread post 12
+deny: Command matches a denied rule: Post in public
+
+$ROOT % cd x && tool thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % echo b | tool thread post 1 -F -
+deny: Command matches a denied rule: Post in public
+
+$ROOT % sudo tool thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % env X=y tool thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % timeout 30 tool thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % xargs tool thread close
+deny: Command matches a denied rule: Post in public
+
+$ROOT % /usr/bin/tool thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % tool -R o/r thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % mise exec -- tool thread post
+deny: Command matches a denied rule: Post in public
+
+$ROOT % find . -exec tool thread post 1 \;
+deny: Command matches a denied rule: Post in public

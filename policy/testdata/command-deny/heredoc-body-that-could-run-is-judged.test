@@ -1,0 +1,49 @@
+# Copyright (c) Joseph Hale, 2026
+# SPDX-License-Identifier: MPL-2.0
+
+denied:
+  - name: Remove
+    patterns:
+      - '^rm\b'
+--------------------------------------------------------------------------------
+$ROOT % cat <<EOF > notes.md\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat <<EOF > notes.md\n$(rm -rf notes)\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat > notes.md <<'EOF' && sh notes.md\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat > notes.md <<'EOF'\nrm -rf notes\nEOF\nsh notes.md
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat() { sh; }; cat > notes.md <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat > >(sh) <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat > /dev/fd/3 <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat >&3 <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat 2> notes.md <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat - > notes.md <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % X=1 cat > notes.md <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % /bin/cat > notes.md <<'EOF'\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
+
+$ROOT % cat > notes.md <<'EOF' &\nrm -rf notes\nEOF
+deny: Command matches a denied rule: Remove
