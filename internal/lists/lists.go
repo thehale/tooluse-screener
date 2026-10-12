@@ -12,3 +12,14 @@ func Every[T any](items []T, ok func(T) bool) bool {
 func Some[T any](items []T, ok func(T) bool) bool {
 	return slices.ContainsFunc(items, ok)
 }
+
+func Partition[T any](items []T, isFirst func(T) bool) (first, rest []T) {
+	for _, item := range items {
+		if isFirst(item) {
+			first = append(first, item)
+		} else {
+			rest = append(rest, item)
+		}
+	}
+	return first, rest
+}

@@ -36,23 +36,12 @@ func isBareCat(stmt *syntax.Stmt) bool {
 }
 
 func heredocWrittenToFiles(redirects []*syntax.Redirect) (*syntax.Redirect, bool) {
-	heredocs, writes := partitioned(redirects, isHeredoc)
+	heredocs, writes := lists.Partition(redirects, isHeredoc)
 	if len(heredocs) == 1 && hasQuotedDelimiter(heredocs[0]) && len(writes) > 0 && lists.Every(writes, isStdoutToFile) {
 		return heredocs[0], true
 	} else {
 		return nil, false
 	}
-}
-
-func partitioned[T any](items []T, isFirst func(T) bool) (first, rest []T) {
-	for _, item := range items {
-		if isFirst(item) {
-			first = append(first, item)
-		} else {
-			rest = append(rest, item)
-		}
-	}
-	return first, rest
 }
 
 func isHeredoc(redirect *syntax.Redirect) bool {
