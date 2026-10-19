@@ -307,6 +307,11 @@ verdict := defaultPolicy.CheckCommand("rm -rf /")
 fmt.Println(verdict) // deny: Command matches a denied rule: Empty a whole tree
 
 verdict = defaultPolicy.CheckPath("/home/me/.ssh/id_ed25519")
+
+specs, err := policy.ReadSpecs("policy-tests/")
+for _, result := range specs.Test(defaultPolicy) {
+    fmt.Println(result.Outcome, result.Case.Prompt)
+}
 ```
 
 `github.com/thehale/tooluse-screener/hook` answers an agent's hook
