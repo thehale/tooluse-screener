@@ -19,18 +19,22 @@ One Bash command policy, shared by every coding agent.
 ## Quickstart
 
 ```console
-$ tooluse-screener 'rm -rf /'          # prints `allow|deny|ask: reason`
+$ tooluse-screener check 'rm -rf /'          # prints `allow|deny|ask: reason`
 deny: Command matches a denied rule: Empty a whole tree
 ```
 
 The exit code carries the same answer: 0 allowed, 1 denied, 2 to ask.
 
 ```bash
-echo "$payload" | tooluse-screener --hook   # answers the agent that asked
+echo "$payload" | tooluse-screener check --hook   # answers the agent that asked
 ```
 
 Each command is checked against a [policy](#configuration), and one
 `deny` blocks the whole line it was written on.
+
+> [!NOTE]
+> Prior to v0.7.0, use `tooluse-screener <command>` and
+> `tooluse-screener --hook` instead.
 
 ## Installation
 
@@ -38,15 +42,15 @@ Each command is checked against a [policy](#configuration), and one
 mise use github:thehale/tooluse-screener
 ```
 
-Point the agent's pre-tool hook at `tooluse-screener --hook`, which
-reads the tool-use payload on stdin and answers in the envelope that
-agent expects.
+Point the agent's pre-tool hook at `tooluse-screener check --hook`,
+which reads the tool-use payload on stdin and answers in the envelope
+that agent expects.
 
 ```json
 {
   "hooks": {
     "PreToolUse": [
-      { "hooks": [{ "type": "command", "command": "tooluse-screener --hook" }] }
+      { "hooks": [{ "type": "command", "command": "tooluse-screener check --hook" }] }
     ]
   }
 }
@@ -86,7 +90,7 @@ A policy that will not parse enforces nothing and says why on stderr.
 Check one after editing it:
 
 ```bash
-tooluse-screener --config-file PATH ls
+tooluse-screener --config-file PATH check ls
 ```
 
 ### Syntax
@@ -199,7 +203,7 @@ A Claude Code hook with a `matcher` has to name every tool that edits:
     "PreToolUse": [
       {
         "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
-        "hooks": [{ "type": "command", "command": "tooluse-screener --hook" }]
+        "hooks": [{ "type": "command", "command": "tooluse-screener check --hook" }]
       }
     ]
   }

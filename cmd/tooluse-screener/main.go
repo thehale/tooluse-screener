@@ -4,7 +4,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,7 +11,6 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/thehale/tooluse-screener/hook"
 	"github.com/thehale/tooluse-screener/policy"
 )
 
@@ -22,12 +20,9 @@ func main() {
 
 func run(arguments []string, in io.Reader, out, complaints io.Writer) int {
 	cliOptions := optionsFor(complaints)
-	flagWords := asFlags(arguments)
-	if badFlag := misspelling(flagWords); badFlag != "" {
-		return cliOptions.complainOfMisspelling(complaints, badFlag)
-	} else {
-		return cliOptions.answer(flagWords, in, out, complaints)
-	}
+	return cliOptions.withParsedFlags(asFlags(arguments), out, complaints, func(args []string) int {
+		return cliOptions.answer(args, in, out, complaints)
+	})
 }
 
 type options struct {
@@ -50,21 +45,12 @@ func optionsFor(complaints io.Writer) options {
 	}
 }
 
-func (o options) answer(flagWords []string, in io.Reader, out, complaints io.Writer) int {
-	switch err := o.flags.Parse(flagWords); {
-	case errors.Is(err, flag.ErrHelp):
-		o.printUsage(out)
-		return 0
-	case err != nil:
-		o.printUsage(complaints)
-		return usageError
-	case *o.reporting:
+func (o options) answer(args []string, in io.Reader, out, complaints io.Writer) int {
+	if *o.reporting {
 		_, _ = fmt.Fprintln(out, name, version())
 		return 0
-	case *o.answering:
-		return hook.Main(in, out, complaints, lazyPolicy(*o.path))
-	default:
-		return o.checkOne(out, complaints)
+	} else {
+		return o.dispatch(args, in, out, complaints)
 	}
 }
 
@@ -92,6 +78,11 @@ func (o options) complainOfMisspelling(complaints io.Writer, badFlag string) int
 	return usageError
 }
 
+func complain(complaints io.Writer, err error) int {
+	_, _ = fmt.Fprintf(complaints, "%s: %v\n", name, err)
+	return usageError
+}
+
 func asFlags(arguments []string) []string {
 	if len(arguments) > 0 && arguments[0] == "help" {
 		return []string{"-h"}
@@ -109,31 +100,9 @@ func version() string {
 	}
 }
 
-var exitCodes = map[policy.Decision]int{policy.Allow: 0, policy.Deny: 1, policy.Ask: 2}
-
-func (o options) checkOne(out, complaints io.Writer) int {
-	if o.flags.NArg() != 1 {
-		o.flags.Usage()
-		return usageError
-	} else {
-		return o.checkLine(o.flags.Arg(0), out, complaints)
-	}
-}
-
-func (o options) checkLine(line string, out, complaints io.Writer) int {
-	activePolicy, err := policyAt(*o.path)
-	if err != nil {
-		_, _ = fmt.Fprintf(complaints, "tooluse-screener: %v\n", err)
-		return usageError
-	}
-	verdict := activePolicy.CheckCommand(line)
-	_, _ = fmt.Fprintln(out, verdict)
-	return exitCodes[verdict.Decision]
-}
-
 func (o options) printUsage(writer io.Writer) {
 	_, _ = fmt.Fprintln(writer, "Check a Bash command against the shared agent permission policy.")
-	_, _ = fmt.Fprintln(writer, "\nUsage: tooluse-screener [flags] <command>\n       tooluse-screener --hook [flags]\n       tooluse-screener help\n\nFlags:")
+	_, _ = fmt.Fprintln(writer, "\nUsage: tooluse-screener [flags] check <command>\n       tooluse-screener [flags] check --hook\n       tooluse-screener help\n\nFlags:")
 	o.printFlags(writer)
 }
 

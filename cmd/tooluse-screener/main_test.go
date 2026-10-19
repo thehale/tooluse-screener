@@ -25,36 +25,68 @@ func TestCheckingOneCommand(t *testing.T) {
 	policy := policyFile(t, examplePolicyYAML)
 
 	t.Run("an allowed command prints its verdict and exits 0", func(t *testing.T) {
-		out, code := outcomeOf(t, "--config-file", policy, "git status")
+		out, code := outcomeOf(t, "--config-file", policy, "check", "git status")
 		if code != 0 || !strings.HasPrefix(out, "allow: ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
 	})
 
 	t.Run("a denied command exits 1", func(t *testing.T) {
-		out, code := outcomeOf(t, "--config-file", policy, "shutdown now")
+		out, code := outcomeOf(t, "--config-file", policy, "check", "shutdown now")
 		if code != 1 || !strings.HasPrefix(out, "deny: ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
 	})
 
 	t.Run("an unknown command exits 2", func(t *testing.T) {
-		out, code := outcomeOf(t, "--config-file", policy, "nmap localhost")
+		out, code := outcomeOf(t, "--config-file", policy, "check", "nmap localhost")
 		if code != 2 || !strings.HasPrefix(out, "ask: ") {
 			t.Errorf("exit %d said %q", code, out)
 		}
 	})
 
-	t.Run("no command at all is a usage error", func(t *testing.T) {
-		if _, code := outcomeOf(t, "--config-file", policy); code != usageError {
+	t.Run("check with no command is a usage error that shows the usage", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := run([]string{"--config-file", policy, "check"}, strings.NewReader(""), &out, &complaints)
+		if code != usageError || !strings.Contains(complaints.String(), "Usage: tooluse-screener") {
+			t.Errorf("exit %d wrote %q to stderr", code, complaints.String())
+		}
+	})
+
+	t.Run("check with two commands is a usage error", func(t *testing.T) {
+		if _, code := outcomeOf(t, "--config-file", policy, "check", "git status", "shutdown now"); code != usageError {
 			t.Errorf("exit %d, wanted %d", code, usageError)
 		}
 	})
 
 	t.Run("a policy that will not read is an error, not a verdict", func(t *testing.T) {
-		out, code := outcomeOf(t, "--config-file", missingFile(t), "ls")
+		out, code := outcomeOf(t, "--config-file", missingFile(t), "check", "ls")
 		if code != usageError || out != "" {
 			t.Errorf("exit %d said %q", code, out)
+		}
+	})
+
+	t.Run("a bare command no longer judges, and is told to write check", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := run([]string{"ls -la"}, strings.NewReader(""), &out, &complaints)
+		named := strings.Contains(complaints.String(), `"ls -la" is not a subcommand`) &&
+			strings.Contains(complaints.String(), "tooluse-screener check 'ls -la'")
+		if code != usageError || out.String() != "" || !named {
+			t.Errorf("exit %d wrote %q to stdout and %q to stderr", code, out.String(), complaints.String())
+		}
+	})
+
+	t.Run("an unknown subcommand is a usage error", func(t *testing.T) {
+		if _, code := outcomeOf(t, "cat"); code != usageError {
+			t.Errorf("exit %d, wanted %d", code, usageError)
+		}
+	})
+
+	t.Run("--config-file works whether it comes before or after check", func(t *testing.T) {
+		before, beforeCode := outcomeOf(t, "--config-file", policy, "check", "git status")
+		after, afterCode := outcomeOf(t, "check", "--config-file", policy, "git status")
+		if beforeCode != 0 || afterCode != 0 || before != after {
+			t.Errorf("before: exit %d said %q; after: exit %d said %q", beforeCode, before, afterCode, after)
 		}
 	})
 }
@@ -72,11 +104,11 @@ func TestSayingWhatItIs(t *testing.T) {
 		}
 	})
 
-	t.Run("help lists every flag it takes", func(t *testing.T) {
+	t.Run("help lists every subcommand and flag", func(t *testing.T) {
 		out, _ := outcomeOf(t, "help")
-		for _, flag := range []string{"--hook", "--version", "--config-file"} {
-			if !strings.Contains(out, flag) {
-				t.Errorf("help does not mention %s", flag)
+		for _, word := range []string{"check", "--hook", "--version", "--config-file"} {
+			if !strings.Contains(out, word) {
+				t.Errorf("help does not mention %s", word)
 			}
 		}
 	})
@@ -91,6 +123,17 @@ func TestSayingWhatItIs(t *testing.T) {
 			if !strings.Contains(complaints.String(), "Write -"+badFlag) {
 				t.Errorf("%s was not told how to spell it: %q", badFlag, complaints.String())
 			}
+		}
+	})
+
+	t.Run("one dash is not how a flag is spelled, after the subcommand either", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := run([]string{"check", "-config-file", "P", "ls"}, strings.NewReader(""), &out, &complaints)
+		if code != usageError {
+			t.Errorf("exited %d, wanted %d", code, usageError)
+		}
+		if !strings.Contains(complaints.String(), "Write --config-file") {
+			t.Errorf("was not told how to spell it: %q", complaints.String())
 		}
 	})
 
@@ -148,11 +191,22 @@ func TestAnsweringAHook(t *testing.T) {
 
 	t.Run("a policy that will not read enforces nothing, and says so", func(t *testing.T) {
 		var out, complaints bytes.Buffer
-		code := run([]string{"--hook", "--config-file", missingFile(t)}, payloadFor("shutdown now"), &out, &complaints)
+		code := run([]string{"check", "--hook", "--config-file", missingFile(t)}, payloadFor("shutdown now"), &out, &complaints)
 		if out.String() != "" || code != 0 {
 			t.Errorf("wrote %q and exited %d, wanted nothing and 0", out.String(), code)
 		}
 		if !strings.Contains(complaints.String(), "the policy failed") {
+			t.Errorf("stderr said %q", complaints.String())
+		}
+	})
+
+	t.Run("a bare --hook is a usage error naming the new spelling", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := run([]string{"--hook"}, strings.NewReader(""), &out, &complaints)
+		if code != usageError || out.String() != "" {
+			t.Errorf("exit %d wrote %q to stdout", code, out.String())
+		}
+		if !strings.Contains(complaints.String(), "tooluse-screener check --hook") {
 			t.Errorf("stderr said %q", complaints.String())
 		}
 	})
@@ -230,7 +284,7 @@ func hookOutcomeIn(t *testing.T, policy, cwd, command string) (string, int) {
 	}
 	payloadJSON, _ := json.Marshal(payload)
 	var out bytes.Buffer
-	code := run([]string{"--hook", "--config-file", policy}, bytes.NewReader(payloadJSON), &out, &bytes.Buffer{})
+	code := run([]string{"check", "--hook", "--config-file", policy}, bytes.NewReader(payloadJSON), &out, &bytes.Buffer{})
 	return out.String(), code
 }
 
@@ -244,7 +298,7 @@ func outcomeOf(t *testing.T, arguments ...string) (string, int) {
 func hookOutcome(t *testing.T, policy, command string) (string, int) {
 	t.Helper()
 	var out bytes.Buffer
-	code := run([]string{"--hook", "--config-file", policy}, payloadFor(command), &out, &bytes.Buffer{})
+	code := run([]string{"check", "--hook", "--config-file", policy}, payloadFor(command), &out, &bytes.Buffer{})
 	return out.String(), code
 }
 
@@ -252,7 +306,7 @@ func hookOutcomeForWrite(t *testing.T, policy, path string) (string, int) {
 	t.Helper()
 	payload, _ := json.Marshal(map[string]any{"tool_name": "Write", "tool_input": map[string]any{"file_path": path}})
 	var out bytes.Buffer
-	code := run([]string{"--hook", "--config-file", policy}, bytes.NewReader(payload), &out, &bytes.Buffer{})
+	code := run([]string{"check", "--hook", "--config-file", policy}, bytes.NewReader(payload), &out, &bytes.Buffer{})
 	return out.String(), code
 }
 
