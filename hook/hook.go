@@ -55,21 +55,25 @@ func write(envelope map[string]any, out io.Writer) {
 	}
 }
 
-type toolCall map[string]any
-
-func payloadOn(in io.Reader) (toolCall, bool) {
-	var payload map[string]any
-	decoder := json.NewDecoder(in)
-	if err := decoder.Decode(&payload); err != nil {
-		return nil, false
-	}
-	if _, err := decoder.Token(); err != io.EOF {
-		return nil, false
-	}
-	return payload, payload != nil
+type toolCall struct {
+	Directory string    `json:"cwd"`
+	Event     string    `json:"hook_event_name"`
+	Tool      string    `json:"tool_name"`
+	Input     toolInput `json:"tool_input"`
 }
 
-func (call toolCall) text(key string) string {
-	value, _ := call[key].(string)
-	return value
+type toolInput struct {
+	Command      string `json:"command"`
+	FilePath     string `json:"file_path"`
+	NotebookPath string `json:"notebook_path"`
+}
+
+func payloadOn(in io.Reader) (toolCall, bool) {
+	var payload toolCall
+	decoder := json.NewDecoder(in)
+	if err := decoder.Decode(&payload); err != nil {
+		return toolCall{}, false
+	}
+	_, err := decoder.Token()
+	return payload, err == io.EOF
 }

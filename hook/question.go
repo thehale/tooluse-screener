@@ -22,25 +22,19 @@ func (call toolCall) verdict(p Policy) (policy.Verdict, bool) {
 	if query, isPosed := call.posedQuestion(); !isPosed {
 		return policy.Verdict{}, false
 	} else {
-		return query(p.InDir(call.text("cwd"))), true
+		return query(p.InDir(call.Directory)), true
 	}
 }
 
 type question func(checker Checker) policy.Verdict
 
 func (call toolCall) posedQuestion() (question, bool) {
-	arguments, hasInput := call["tool_input"].(map[string]any)
-	tool := call.text("tool_name")
-	target, isWrite := targets[tool]
+	path, isWrite := call.Input.pathFor(call.Tool)
 	switch {
-	case !hasInput:
-		return nil, false
-	case tool == "Bash":
-		command := toolCall(arguments).text("command")
-		return commandQuestion(command), command != ""
+	case call.Tool == "Bash":
+		return commandQuestion(call.Input.Command), call.Input.Command != ""
 	case isWrite:
-		path := toolCall(arguments).text(target)
-		return pathQuestion(absolutePath(call.text("cwd"), path)), path != ""
+		return pathQuestion(absolutePath(call.Directory, path)), path != ""
 	default:
 		return nil, false
 	}
@@ -58,11 +52,15 @@ func pathQuestion(path string) question {
 	}
 }
 
-var targets = map[string]string{
-	"Write":        "file_path",
-	"Edit":         "file_path",
-	"MultiEdit":    "file_path",
-	"NotebookEdit": "notebook_path",
+func (input toolInput) pathFor(tool string) (string, bool) {
+	switch tool {
+	case "Write", "Edit", "MultiEdit":
+		return input.FilePath, true
+	case "NotebookEdit":
+		return input.NotebookPath, true
+	default:
+		return "", false
+	}
 }
 
 func absolutePath(cwd, path string) string {

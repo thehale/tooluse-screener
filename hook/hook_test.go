@@ -69,8 +69,10 @@ func (wherever) InDir(directory string) Checker {
 	return always{Decision: policy.Deny, Reason: directory}
 }
 
-func writeCall(t *testing.T, tool, key, path string) toolCall {
-	return toolCall{
+type payload map[string]any
+
+func writeCall(t *testing.T, tool, key, path string) payload {
+	return payload{
 		"tool_name":       tool,
 		"hook_event_name": "PreToolUse",
 		"cwd":             t.TempDir(),
@@ -78,29 +80,28 @@ func writeCall(t *testing.T, tool, key, path string) toolCall {
 	}
 }
 
-func claude(command, event string) toolCall {
-	return toolCall{
+func claude(command, event string) payload {
+	return payload{
 		"tool_name":       "Bash",
 		"hook_event_name": event,
 		"tool_input":      map[string]any{"command": command},
 	}
 }
 
-func codex(command, event string) toolCall {
-	payload := claude(command, event)
-	payload["model"] = "gpt-5.6-sol"
-	payload["tool_use_id"] = "exec-0e2a"
-	return payload
+func codex(command, event string) payload {
+	codexPayload := claude(command, event)
+	codexPayload["model"] = "gpt-5.6-sol"
+	codexPayload["tool_use_id"] = "exec-0e2a"
+	return codexPayload
 }
 
 func TestNotOurBusiness(t *testing.T) {
 	t.Run("a tool that is not bash", func(t *testing.T) {
-		payload := toolCall{"tool_name": "Read", "tool_input": map[string]any{"file_path": "/etc/passwd"}}
-		leavesUndecided(t, payload)
+		leavesUndecided(t, payload{"tool_name": "Read", "tool_input": map[string]any{"file_path": "/etc/passwd"}})
 	})
 
 	t.Run("a bash call with no command", func(t *testing.T) {
-		leavesUndecided(t, toolCall{"tool_name": "Bash", "tool_input": map[string]any{}})
+		leavesUndecided(t, payload{"tool_name": "Bash", "tool_input": map[string]any{}})
 	})
 
 	t.Run("a bash call with an empty command", func(t *testing.T) {
@@ -108,19 +109,34 @@ func TestNotOurBusiness(t *testing.T) {
 	})
 
 	t.Run("a payload with no tool at all", func(t *testing.T) {
-		leavesUndecided(t, toolCall{})
+		leavesUndecided(t, payload{})
 	})
 
 	t.Run("a tool input that is not an object", func(t *testing.T) {
 		for _, input := range []any{nil, []any{}, "ls", 7} {
-			leavesUndecided(t, toolCall{"tool_name": "Bash", "tool_input": input})
+			leavesUndecided(t, payload{"tool_name": "Bash", "tool_input": input})
 		}
 	})
 
 	t.Run("a command that is not a string", func(t *testing.T) {
 		for _, input := range []any{nil, []any{}, map[string]any{}, 7} {
-			payload := toolCall{"tool_name": "Bash", "tool_input": map[string]any{"command": input}}
-			leavesUndecided(t, payload)
+			leavesUndecided(t, payload{"tool_name": "Bash", "tool_input": map[string]any{"command": input}})
+		}
+	})
+
+	t.Run("a cwd that is not a string", func(t *testing.T) {
+		for _, cwd := range []any{[]any{}, map[string]any{}, 7} {
+			call := claude("ls", "PreToolUse")
+			call["cwd"] = cwd
+			leavesUndecided(t, call)
+		}
+	})
+
+	t.Run("an event name that is not a string", func(t *testing.T) {
+		for _, event := range []any{[]any{}, map[string]any{}, 7} {
+			call := claude("ls", "PreToolUse")
+			call["hook_event_name"] = event
+			leavesUndecided(t, call)
 		}
 	})
 
@@ -143,7 +159,7 @@ func TestWhatIsAsked(t *testing.T) {
 
 	t.Run("a relative path is read from where the agent is working", func(t *testing.T) {
 		call := writeCall(t, "Write", "file_path", "docs/../notes.md")
-		asks(t, call, filepath.Join(call.text("cwd"), "notes.md"))
+		asks(t, call, filepath.Join(call["cwd"].(string), "notes.md"))
 	})
 
 	t.Run("a path is read as cleaned", func(t *testing.T) {
@@ -172,10 +188,10 @@ func TestWhatIsAsked(t *testing.T) {
 	})
 }
 
-func asks(t *testing.T, payload toolCall, wanted string) {
+func asks(t *testing.T, sent payload, wanted string) {
 	t.Helper()
-	if verdict, _ := payload.verdict(echoing{}); verdict.Reason != wanted {
-		t.Errorf("%v asked about %q, wanted %q", payload, verdict.Reason, wanted)
+	if verdict, _ := callOf(t, sent).verdict(echoing{}); verdict.Reason != wanted {
+		t.Errorf("%v asked about %q, wanted %q", sent, verdict.Reason, wanted)
 	}
 }
 
@@ -194,9 +210,9 @@ func TestAPolicyThatFails(t *testing.T) {
 
 func TestJudgingFromTheSessionDirectory(t *testing.T) {
 	t.Run("a bash call is judged in the payload's cwd", func(t *testing.T) {
-		payload := claude("ls", "PreToolUse")
-		payload["cwd"] = "/path/to/workdir"
-		judgedIn(t, payload, "/path/to/workdir")
+		call := claude("ls", "PreToolUse")
+		call["cwd"] = "/path/to/workdir"
+		judgedIn(t, call, "/path/to/workdir")
 	})
 
 	t.Run("no cwd leaves the policy in the process's directory", func(t *testing.T) {
@@ -205,19 +221,19 @@ func TestJudgingFromTheSessionDirectory(t *testing.T) {
 
 	t.Run("the process stays where it was", func(t *testing.T) {
 		before, _ := os.Getwd()
-		payload := claude("ls", "PreToolUse")
-		payload["cwd"] = t.TempDir()
-		judgedIn(t, payload, payload.text("cwd"))
+		call := claude("ls", "PreToolUse")
+		call["cwd"] = t.TempDir()
+		judgedIn(t, call, call["cwd"].(string))
 		if after, _ := os.Getwd(); after != before {
 			t.Errorf("working directory moved from %s to %s", before, after)
 		}
 	})
 }
 
-func judgedIn(t *testing.T, payload toolCall, directory string) {
+func judgedIn(t *testing.T, sent payload, directory string) {
 	t.Helper()
 	var out, complaints bytes.Buffer
-	Main(inputOf(payload), &out, &complaints, wherever{})
+	Main(inputOf(sent), &out, &complaints, wherever{})
 	output := section(t, envelopeIn(t, out.String()), "hookSpecificOutput")
 	if reason, _ := output["permissionDecisionReason"].(string); reason != directory {
 		t.Errorf("judged in %q, wanted %q", reason, directory)
@@ -241,11 +257,11 @@ func TestWhatEachEventAnswersWith(t *testing.T) {
 
 	for _, wanted := range answers {
 		t.Run(wanted.event+" "+string(wanted.verdict.Decision), func(t *testing.T) {
-			payload := claude("git status", wanted.event)
+			call := claude("git status", wanted.event)
 			if wanted.envelope == "" {
-				staysQuiet(t, payload, wanted.verdict, wanted.code)
+				staysQuiet(t, call, wanted.verdict, wanted.code)
 			} else {
-				envelope, code := responseTo(t, payload, wanted.verdict)
+				envelope, code := responseTo(t, call, wanted.verdict)
 				speaks(t, envelope, wanted.envelope)
 				if code != wanted.code {
 					t.Errorf("exit %d, wanted %d", code, wanted.code)
@@ -291,8 +307,7 @@ func TestClaudePreToolUse(t *testing.T) {
 	})
 
 	t.Run("the event defaults to PreToolUse when absent", func(t *testing.T) {
-		payload := toolCall{"tool_name": "Bash", "tool_input": map[string]any{"command": "ls"}}
-		envelope, _ := responseTo(t, payload, deny)
+		envelope, _ := responseTo(t, payload{"tool_name": "Bash", "tool_input": map[string]any{"command": "ls"}}, deny)
 		says(t, section(t, envelope, "hookSpecificOutput"), "hookEventName", "PreToolUse")
 	})
 }
@@ -332,7 +347,7 @@ func TestCodexPermissionRequest(t *testing.T) {
 
 	t.Run("never blocks by exit code, because the envelope says everything", func(t *testing.T) {
 		for _, verdict := range []policy.Verdict{allow, deny, ask} {
-			if _, code := codex("ls", "PermissionRequest").response(verdict); code != 0 {
+			if _, code := callOf(t, codex("ls", "PermissionRequest")).response(verdict); code != 0 {
 				t.Errorf("%s -> exit %d, wanted 0", verdict, code)
 			}
 		}
@@ -397,27 +412,36 @@ func TestStdinToStdout(t *testing.T) {
 	})
 }
 
-func leavesUndecided(t *testing.T, payload toolCall) {
+func callOf(t *testing.T, sent payload) toolCall {
 	t.Helper()
-	if verdict, isAsked := payload.verdict(always(deny)); isAsked {
-		t.Errorf("%v -> %s, wanted no opinion", payload, verdict)
+	call, isRead := payloadOn(inputOf(sent))
+	if !isRead {
+		t.Fatalf("%v did not read as a tool call", sent)
+	}
+	return call
+}
+
+func leavesUndecided(t *testing.T, sent payload) {
+	t.Helper()
+	for _, verdict := range []policy.Verdict{allow, deny} {
+		writesNothing(t, inputOf(sent), verdict)
 	}
 }
 
-func responseTo(t *testing.T, payload toolCall, verdict policy.Verdict) (map[string]any, int) {
+func responseTo(t *testing.T, sent payload, verdict policy.Verdict) (map[string]any, int) {
 	t.Helper()
-	envelope, code := payload.response(verdict)
+	envelope, code := callOf(t, sent).response(verdict)
 	if envelope == nil {
-		t.Fatalf("%v -> nothing, wanted an envelope", payload)
+		t.Fatalf("%v -> nothing, wanted an envelope", sent)
 	}
 	return envelope, code
 }
 
-func staysQuiet(t *testing.T, payload toolCall, verdict policy.Verdict, wanted int) {
+func staysQuiet(t *testing.T, sent payload, verdict policy.Verdict, wanted int) {
 	t.Helper()
-	envelope, code := payload.response(verdict)
+	envelope, code := callOf(t, sent).response(verdict)
 	if envelope != nil || code != wanted {
-		t.Errorf("%v -> %v, exit %d, wanted nothing and %d", payload, envelope, code, wanted)
+		t.Errorf("%v -> %v, exit %d, wanted nothing and %d", sent, envelope, code, wanted)
 	}
 }
 
@@ -447,8 +471,8 @@ func inputWithTrailer(command, after string) io.Reader {
 	return strings.NewReader(string(payloadJSON) + after)
 }
 
-func inputOf(payload toolCall) *bytes.Reader {
-	payloadJSON, _ := json.Marshal(payload)
+func inputOf(sent payload) *bytes.Reader {
+	payloadJSON, _ := json.Marshal(sent)
 	return bytes.NewReader(payloadJSON)
 }
 

@@ -3,10 +3,14 @@
 
 package hook
 
-import "github.com/thehale/tooluse-screener/policy"
+import (
+	"cmp"
+
+	"github.com/thehale/tooluse-screener/policy"
+)
 
 func (call toolCall) response(verdict policy.Verdict) (envelope map[string]any, code int) {
-	switch call.event() {
+	switch cmp.Or(call.Event, "PreToolUse") {
 	case "PermissionRequest":
 		return permissionRequestEnvelope(verdict), 0
 	case "PreToolUse":
@@ -17,14 +21,6 @@ func (call toolCall) response(verdict policy.Verdict) (envelope map[string]any, 
 }
 
 const blockingExitCode = 2
-
-func (call toolCall) event() string {
-	if eventName := call.text("hook_event_name"); eventName == "" {
-		return "PreToolUse"
-	} else {
-		return eventName
-	}
-}
 
 func preToolUseEnvelope(verdict policy.Verdict) (map[string]any, int) {
 	switch verdict.Decision {
