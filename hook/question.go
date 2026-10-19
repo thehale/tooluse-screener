@@ -10,20 +10,12 @@ import (
 )
 
 type Policy interface {
-	InDir(directory string) Checker
+	InDir(directory string) (Checker, error)
 }
 
 type Checker interface {
 	CheckCommand(line string) policy.Verdict
 	CheckPath(path string) policy.Verdict
-}
-
-func (call toolCall) verdict(p Policy) (policy.Verdict, bool) {
-	if query, isPosed := call.posedQuestion(); !isPosed {
-		return policy.Verdict{}, false
-	} else {
-		return query(p.InDir(call.Directory)), true
-	}
 }
 
 type question func(checker Checker) policy.Verdict

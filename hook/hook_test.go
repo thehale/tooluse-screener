@@ -6,6 +6,7 @@ package hook
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -23,8 +24,8 @@ var (
 
 type always policy.Verdict
 
-func (a always) InDir(string) Checker {
-	return a
+func (a always) InDir(string) (Checker, error) {
+	return a, nil
 }
 
 func (a always) CheckCommand(string) policy.Verdict {
@@ -37,7 +38,7 @@ func (a always) CheckPath(string) policy.Verdict {
 
 type panics struct{}
 
-func (panics) InDir(string) Checker {
+func (panics) InDir(string) (Checker, error) {
 	panic("something went sideways")
 }
 
@@ -49,11 +50,13 @@ func (panics) CheckPath(string) policy.Verdict {
 	panic("something went sideways")
 }
 
-type echoing struct{}
+type unreadable struct{}
 
-func (echoing) InDir(string) Checker {
-	return echoing{}
+func (unreadable) InDir(string) (Checker, error) {
+	return nil, errors.New("line 3 is not a rule")
 }
+
+type echoing struct{}
 
 func (echoing) CheckCommand(line string) policy.Verdict {
 	return policy.Verdict{Decision: policy.Deny, Reason: line}
@@ -65,8 +68,8 @@ func (echoing) CheckPath(path string) policy.Verdict {
 
 type wherever struct{}
 
-func (wherever) InDir(directory string) Checker {
-	return always{Decision: policy.Deny, Reason: directory}
+func (wherever) InDir(directory string) (Checker, error) {
+	return always{Decision: policy.Deny, Reason: directory}, nil
 }
 
 type payload map[string]any
@@ -190,8 +193,10 @@ func TestWhatIsAsked(t *testing.T) {
 
 func asks(t *testing.T, sent payload, wanted string) {
 	t.Helper()
-	if verdict, _ := callOf(t, sent).verdict(echoing{}); verdict.Reason != wanted {
-		t.Errorf("%v asked about %q, wanted %q", sent, verdict.Reason, wanted)
+	if query, isPosed := callOf(t, sent).posedQuestion(); !isPosed {
+		t.Errorf("%v asked nothing, wanted %q", sent, wanted)
+	} else if reason := query(echoing{}).Reason; reason != wanted {
+		t.Errorf("%v asked about %q, wanted %q", sent, reason, wanted)
 	}
 }
 
@@ -203,6 +208,17 @@ func TestAPolicyThatFails(t *testing.T) {
 			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
 		}
 		if !strings.Contains(complaints.String(), "the policy failed") {
+			t.Errorf("stderr said %q", complaints.String())
+		}
+	})
+
+	t.Run("to read is treated as ask, and its error said on stderr", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := Main(inputOf(claude("ls", "PreToolUse")), &out, &complaints, unreadable{})
+		if code != 0 || out.String() != "" {
+			t.Errorf("exit %d wrote %q, wanted a quiet 0", code, out.String())
+		}
+		if !strings.Contains(complaints.String(), "line 3 is not a rule") {
 			t.Errorf("stderr said %q", complaints.String())
 		}
 	})

@@ -200,6 +200,14 @@ func TestAnsweringAHook(t *testing.T) {
 		}
 	})
 
+	t.Run("a policy that will not read is not read for a call it is not asked about", func(t *testing.T) {
+		var out, complaints bytes.Buffer
+		code := run([]string{"check", "--hook", "--config-file", missingFile(t)}, payloadFor(""), &out, &complaints)
+		if out.String() != "" || complaints.String() != "" || code != 0 {
+			t.Errorf("wrote %q and %q and exited %d, wanted nothing and 0", out.String(), complaints.String(), code)
+		}
+	})
+
 	t.Run("a bare --hook is a usage error naming the new spelling", func(t *testing.T) {
 		var out, complaints bytes.Buffer
 		code := run([]string{"--hook"}, strings.NewReader(""), &out, &complaints)

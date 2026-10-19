@@ -20,10 +20,10 @@ func Main(in io.Reader, out, complaints io.Writer, p Policy) int {
 }
 
 func (call toolCall) answer(p Policy, out, complaints io.Writer) int {
-	if verdict, isAsked := call.safeVerdict(p, complaints); !isAsked {
+	if query, isPosed := call.posedQuestion(); !isPosed {
 		return 0
 	} else {
-		return call.reply(verdict, out, complaints)
+		return call.reply(call.safeVerdict(query, p, complaints), out, complaints)
 	}
 }
 
@@ -36,17 +36,23 @@ func (call toolCall) reply(verdict policy.Verdict, out, complaints io.Writer) in
 	return code
 }
 
-func (call toolCall) safeVerdict(p Policy, complaints io.Writer) (verdict policy.Verdict, isAsked bool) {
+func (call toolCall) safeVerdict(query question, p Policy, complaints io.Writer) (verdict policy.Verdict) {
 	defer func() {
 		if failure := recover(); failure != nil {
-			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
-			verdict, isAsked = failOpenVerdict, true
+			verdict = failOpen(complaints, failure)
 		}
 	}()
-	return call.verdict(p)
+	if checker, err := p.InDir(call.Directory); err != nil {
+		return failOpen(complaints, err)
+	} else {
+		return query(checker)
+	}
 }
 
-var failOpenVerdict = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
+func failOpen(complaints io.Writer, failure any) policy.Verdict {
+	_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
+	return policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
+}
 
 func write(envelope map[string]any, out io.Writer) {
 	if envelope != nil {

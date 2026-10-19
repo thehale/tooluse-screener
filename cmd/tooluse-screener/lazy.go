@@ -12,14 +12,10 @@ import (
 
 type lazyPolicy string
 
-func (c lazyPolicy) InDir(directory string) hook.Checker {
-	return c.policy().InDir(directory)
-}
-
-func (c lazyPolicy) policy() policy.Policy {
-	activePolicy, err := policy.Load(string(c))
-	if err != nil {
-		panic(fmt.Sprintf("the policy will not read: %v", err))
+func (c lazyPolicy) InDir(directory string) (hook.Checker, error) {
+	if activePolicy, err := policy.Load(string(c)); err != nil {
+		return nil, fmt.Errorf("the policy will not read: %w", err)
+	} else {
+		return activePolicy.InDir(directory), nil
 	}
-	return activePolicy
 }
