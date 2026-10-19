@@ -5,9 +5,15 @@ package rules
 
 import (
 	commands "github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/directories"
+	"github.com/thehale/tooluse-screener/internal/lists"
 )
 
 type Group []Rule
+
+func (g Group) InDir(workingDir directories.WorkingDir) Group {
+	return lists.Map(g, func(rule Rule) Rule { return rule.InDir(workingDir) })
+}
 
 func (g Group) RulesMatching(command commands.Command) Group {
 	var matches Group

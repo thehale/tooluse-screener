@@ -11,22 +11,16 @@ import (
 
 type TrustedGitDirectories struct {
 	Dirs       []string
-	Expression Expression
+	workingDir directories.WorkingDir
 }
 
-func (d TrustedGitDirectories) Find(command commands.Command) (Match, bool) {
-	if d.hasTargetsOf(command) {
-		return d.Expression.Find(command)
-	} else {
-		return Match{}, false
-	}
-}
-
-func (d TrustedGitDirectories) String() string {
-	return d.Expression.String()
+func (d TrustedGitDirectories) InDir(workingDir directories.WorkingDir) TrustedGitDirectories {
+	d.workingDir = workingDir
+	return d
 }
 
 func (d TrustedGitDirectories) hasTargetsOf(command commands.Command) bool {
 	invocation := git.Read(command.Text)
-	return !invocation.Git || directories.AreAllUnder(command.DirectoriesActedIn(invocation.TargetDirectories()), d.Dirs)
+	dirs := d.workingDir.ResolveAll(command.DirectoriesActedIn(invocation.TargetDirectories()))
+	return !invocation.Git || directories.AreAllUnder(dirs, d.workingDir.ResolveAll(d.Dirs))
 }

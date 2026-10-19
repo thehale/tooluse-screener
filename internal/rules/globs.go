@@ -3,7 +3,16 @@
 
 package rules
 
+import (
+	"github.com/thehale/tooluse-screener/internal/directories"
+	"github.com/thehale/tooluse-screener/internal/lists"
+)
+
 type Globs []Glob
+
+func (g Globs) InDir(workingDir directories.WorkingDir) Globs {
+	return lists.Map(g, func(glob Glob) Glob { return glob.InDir(workingDir) })
+}
 
 func (g Globs) GlobsMatching(path string) Globs {
 	var matches Globs

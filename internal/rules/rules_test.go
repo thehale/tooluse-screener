@@ -162,8 +162,8 @@ func TestGitSubcommandArguments(t *testing.T) {
 
 func TestTrustedGitDirectories(t *testing.T) {
 	root := t.TempDir()
-	within := func(roots ...string) rules.TrustedGitDirectories {
-		return rules.TrustedGitDirectories{Dirs: roots, Expression: rules.NewGitSubcommand("status", nil)}
+	within := func(roots ...string) rules.Rule {
+		return rules.Rule{Expression: rules.NewGitSubcommand("status", nil), Trusted: &rules.TrustedGitDirectories{Dirs: roots}}
 	}
 
 	t.Run("without within it matches wherever it points", func(t *testing.T) {
@@ -251,7 +251,7 @@ func TestTrustedGitDirectories(t *testing.T) {
 	})
 
 	t.Run("a command other than git goes where it likes", func(t *testing.T) {
-		matchesAfterMoving(t, true, rules.TrustedGitDirectories{Dirs: []string{root}, Expression: rules.Words("ls")}, "ls", "/elsewhere")
+		matchesAfterMoving(t, true, rules.Rule{Expression: rules.Words("ls"), Trusted: &rules.TrustedGitDirectories{Dirs: []string{root}}}, "ls", "/elsewhere")
 	})
 
 	t.Run("with within it still matches a command with no directory", func(t *testing.T) {

@@ -14,9 +14,10 @@ import (
 )
 
 type Glob struct {
-	Name    string
-	Reason  string
-	written string
+	Name       string
+	Reason     string
+	written    string
+	workingDir directories.WorkingDir
 }
 
 func NewGlob(text string) (Glob, error) {
@@ -32,14 +33,20 @@ func NewGlob(text string) (Glob, error) {
 	}
 }
 
+func (g Glob) InDir(workingDir directories.WorkingDir) Glob {
+	g.workingDir = workingDir
+	return g
+}
+
 func (g Glob) IsMatchFor(file string) bool {
 	glob := names(g.absolutePath())
-	return isMatch(glob, names(file)) || isMatch(glob, names(directories.RealPath(file)))
+	path := g.workingDir.Resolve(file)
+	return isMatch(glob, names(path)) || isMatch(glob, names(directories.RealPath(path)))
 }
 
 func (g Glob) absolutePath() string {
 	expandedPath, _ := directories.WithHomeExpanded(g.written)
-	absolutePath, _ := filepath.Abs(expandedPath)
+	absolutePath, _ := filepath.Abs(g.workingDir.Resolve(expandedPath))
 	return absolutePath
 }
 

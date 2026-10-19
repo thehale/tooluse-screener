@@ -23,3 +23,11 @@ func Partition[T any](items []T, isFirst func(T) bool) (first, rest []T) {
 	}
 	return first, rest
 }
+
+func Map[T, U any](items []T, change func(T) U) []U {
+	changed := make([]U, len(items))
+	for index, item := range items {
+		changed[index] = change(item)
+	}
+	return changed
+}

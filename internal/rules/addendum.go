@@ -3,7 +3,14 @@
 
 package rules
 
+import "github.com/thehale/tooluse-screener/internal/directories"
+
 type Addendum struct {
 	Only   Scope
 	Reason string
+}
+
+func (a Addendum) InDir(workingDir directories.WorkingDir) Addendum {
+	a.Only = a.Only.InDir(workingDir)
+	return a
 }
