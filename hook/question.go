@@ -9,16 +9,20 @@ import (
 	"github.com/thehale/tooluse-screener/policy"
 )
 
+type Policy interface {
+	InDir(directory string) Checker
+}
+
 type Checker interface {
 	CheckCommand(line string) policy.Verdict
 	CheckPath(path string) policy.Verdict
 }
 
-func (call toolCall) verdict(checker Checker) (policy.Verdict, bool) {
+func (call toolCall) verdict(p Policy) (policy.Verdict, bool) {
 	if query, isPosed := call.posedQuestion(); !isPosed {
 		return policy.Verdict{}, false
 	} else {
-		return inDirectory(call.text("cwd"), query)(checker), true
+		return query(p.InDir(call.text("cwd"))), true
 	}
 }
 

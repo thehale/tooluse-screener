@@ -6,17 +6,14 @@ package main
 import (
 	"fmt"
 
+	"github.com/thehale/tooluse-screener/hook"
 	"github.com/thehale/tooluse-screener/policy"
 )
 
 type lazyPolicy string
 
-func (c lazyPolicy) CheckCommand(line string) policy.Verdict {
-	return c.policy().CheckCommand(line)
-}
-
-func (c lazyPolicy) CheckPath(path string) policy.Verdict {
-	return c.policy().CheckPath(path)
+func (c lazyPolicy) InDir(directory string) hook.Checker {
+	return c.policy().InDir(directory)
 }
 
 func (c lazyPolicy) policy() policy.Policy {

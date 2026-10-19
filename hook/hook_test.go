@@ -23,6 +23,10 @@ var (
 
 type always policy.Verdict
 
+func (a always) InDir(string) Checker {
+	return a
+}
+
 func (a always) CheckCommand(string) policy.Verdict {
 	return policy.Verdict(a)
 }
@@ -32,6 +36,10 @@ func (a always) CheckPath(string) policy.Verdict {
 }
 
 type panics struct{}
+
+func (panics) InDir(string) Checker {
+	panic("something went sideways")
+}
 
 func (panics) CheckCommand(string) policy.Verdict {
 	panic("something went sideways")
@@ -43,6 +51,10 @@ func (panics) CheckPath(string) policy.Verdict {
 
 type echoing struct{}
 
+func (echoing) InDir(string) Checker {
+	return echoing{}
+}
+
 func (echoing) CheckCommand(line string) policy.Verdict {
 	return policy.Verdict{Decision: policy.Deny, Reason: line}
 }
@@ -53,17 +65,8 @@ func (echoing) CheckPath(path string) policy.Verdict {
 
 type wherever struct{}
 
-func (wherever) CheckCommand(string) policy.Verdict {
-	return policy.Verdict{Decision: policy.Deny, Reason: here()}
-}
-
-func (wherever) CheckPath(string) policy.Verdict {
-	return policy.Verdict{Decision: policy.Deny, Reason: here()}
-}
-
-func here() string {
-	wd, _ := os.Getwd()
-	return wd
+func (wherever) InDir(directory string) Checker {
+	return always{Decision: policy.Deny, Reason: directory}
 }
 
 func writeCall(t *testing.T, tool, key, path string) toolCall {
@@ -190,49 +193,35 @@ func TestAPolicyThatFails(t *testing.T) {
 }
 
 func TestJudgingFromTheSessionDirectory(t *testing.T) {
-	t.Run("a bash call is judged from the payload's cwd, not the process's", func(t *testing.T) {
-		t.Chdir(t.TempDir())
-		there := t.TempDir()
+	t.Run("a bash call is judged in the payload's cwd", func(t *testing.T) {
 		payload := claude("ls", "PreToolUse")
-		payload["cwd"] = there
-		judgedAt(t, payload, there)
+		payload["cwd"] = "/path/to/workdir"
+		judgedIn(t, payload, "/path/to/workdir")
 	})
 
-	t.Run("no cwd still judges from the process's directory", func(t *testing.T) {
-		t.Chdir(t.TempDir())
-		judgedAt(t, claude("ls", "PreToolUse"), here())
+	t.Run("no cwd leaves the policy in the process's directory", func(t *testing.T) {
+		judgedIn(t, claude("ls", "PreToolUse"), "")
 	})
 
-	t.Run("a cwd that does not exist asks, without consulting the checker", func(t *testing.T) {
+	t.Run("the process stays where it was", func(t *testing.T) {
+		before, _ := os.Getwd()
 		payload := claude("ls", "PreToolUse")
-		payload["cwd"] = filepath.Join(t.TempDir(), "gone")
-		var out, complaints bytes.Buffer
-		code := Main(inputOf(payload), &out, &complaints, panics{})
-		if code != 0 || out.String() != "" || complaints.String() != "" {
-			t.Errorf("exit %d wrote %q and %q, wanted a quiet ask", code, out.String(), complaints.String())
+		payload["cwd"] = t.TempDir()
+		judgedIn(t, payload, payload.text("cwd"))
+		if after, _ := os.Getwd(); after != before {
+			t.Errorf("working directory moved from %s to %s", before, after)
 		}
-	})
-
-	t.Run("a cwd that does not exist leaves a call it does not judge alone", func(t *testing.T) {
-		payload := toolCall{"tool_name": "Read", "cwd": filepath.Join(t.TempDir(), "gone"), "tool_input": map[string]any{"file_path": "a"}}
-		leavesUndecided(t, payload)
 	})
 }
 
-func judgedAt(t *testing.T, payload toolCall, dir string) {
+func judgedIn(t *testing.T, payload toolCall, directory string) {
 	t.Helper()
 	var out, complaints bytes.Buffer
 	Main(inputOf(payload), &out, &complaints, wherever{})
 	output := section(t, envelopeIn(t, out.String()), "hookSpecificOutput")
-	reason, _ := output["permissionDecisionReason"].(string)
-	if resolved(reason) != resolved(dir) {
-		t.Errorf("judged from %q, wanted %q", reason, dir)
+	if reason, _ := output["permissionDecisionReason"].(string); reason != directory {
+		t.Errorf("judged in %q, wanted %q", reason, directory)
 	}
-}
-
-func resolved(path string) string {
-	target, _ := filepath.EvalSymlinks(path)
-	return target
 }
 
 func TestWhatEachEventAnswersWith(t *testing.T) {

@@ -11,16 +11,16 @@ import (
 	"github.com/thehale/tooluse-screener/policy"
 )
 
-func Main(in io.Reader, out, complaints io.Writer, checker Checker) int {
+func Main(in io.Reader, out, complaints io.Writer, p Policy) int {
 	if payload, isRead := payloadOn(in); !isRead {
 		return 0
 	} else {
-		return payload.answer(checker, out, complaints)
+		return payload.answer(p, out, complaints)
 	}
 }
 
-func (call toolCall) answer(checker Checker, out, complaints io.Writer) int {
-	if verdict, isAsked := call.safeVerdict(checker, complaints); !isAsked {
+func (call toolCall) answer(p Policy, out, complaints io.Writer) int {
+	if verdict, isAsked := call.safeVerdict(p, complaints); !isAsked {
 		return 0
 	} else {
 		return call.reply(verdict, out, complaints)
@@ -36,14 +36,14 @@ func (call toolCall) reply(verdict policy.Verdict, out, complaints io.Writer) in
 	return code
 }
 
-func (call toolCall) safeVerdict(checker Checker, complaints io.Writer) (verdict policy.Verdict, isAsked bool) {
+func (call toolCall) safeVerdict(p Policy, complaints io.Writer) (verdict policy.Verdict, isAsked bool) {
 	defer func() {
 		if failure := recover(); failure != nil {
 			_, _ = fmt.Fprintf(complaints, "tooluse-screener: the policy failed: %v\n", failure)
 			verdict, isAsked = failOpenVerdict, true
 		}
 	}()
-	return call.verdict(checker)
+	return call.verdict(p)
 }
 
 var failOpenVerdict = policy.Verdict{Decision: policy.Ask, Reason: "The policy could not answer"}
