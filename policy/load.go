@@ -9,7 +9,15 @@ import (
 	"path/filepath"
 )
 
-func Load() (Policy, error) {
+func Load(path string) (Policy, error) {
+	if path == "" {
+		return loadConfigured()
+	} else {
+		return loadFile(path)
+	}
+}
+
+func loadConfigured() (Policy, error) {
 	path, err := configuredPath()
 	switch {
 	case err != nil:
@@ -17,11 +25,11 @@ func Load() (Policy, error) {
 	case path == "":
 		return Default(), nil
 	default:
-		return LoadFile(path)
+		return loadFile(path)
 	}
 }
 
-func LoadFile(path string) (Policy, error) {
+func loadFile(path string) (Policy, error) {
 	if contents, err := os.ReadFile(path); err != nil {
 		return Policy{}, err
 	} else if policy, err := Parse(contents); err != nil {

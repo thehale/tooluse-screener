@@ -42,7 +42,7 @@ func (o options) checkOne(args []string, out, complaints io.Writer) int {
 }
 
 func (o options) checkLine(line string, out, complaints io.Writer) int {
-	activePolicy, err := policyAt(*o.path)
+	activePolicy, err := policy.Load(*o.path)
 	if err == nil {
 		verdict := activePolicy.CheckCommand(line)
 		_, _ = fmt.Fprintln(out, verdict)

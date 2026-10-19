@@ -355,9 +355,9 @@ The command line is built on a Go library you can import yourself:
 import "github.com/thehale/tooluse-screener/policy"
 
 // as the command line finds it
-defaultPolicy, err := policy.Load()
-// a file named outright
-teamPolicy, err := policy.LoadFile("team-policy.yaml")
+defaultPolicy, err := policy.Load("")
+// a file named outright, as --config-file names it
+teamPolicy, err := policy.Load("team-policy.yaml")
 // YAML already in hand
 parsedPolicy, err := policy.Parse(policyYAML)
 

@@ -32,7 +32,7 @@ func (o options) runSpecs(paths []string, out, complaints io.Writer) int {
 }
 
 func (o options) testSpecs(paths []string, out, complaints io.Writer) int {
-	activePolicy, policyErr := policyAt(*o.path)
+	activePolicy, policyErr := policy.Load(*o.path)
 	specs, specsErr := policy.ReadSpecs(paths...)
 	if err := errors.Join(policyErr, specsErr); err == nil {
 		return runResults(specs.Test(activePolicy), out)

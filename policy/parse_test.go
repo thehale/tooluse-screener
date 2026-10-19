@@ -22,14 +22,14 @@ func TestReadingAFile(t *testing.T) {
 	})
 
 	t.Run("a file that is not there is an error", func(t *testing.T) {
-		if _, err := LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		if _, err := Load(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
 			t.Error("wanted an error")
 		}
 	})
 
 	t.Run("a refused policy names the file it came from", func(t *testing.T) {
 		path := policyPath("refused.yaml")
-		_, err := LoadFile(path)
+		_, err := Load(path)
 		wanted := path + ": line "
 		if err == nil {
 			t.Fatal("wanted an error")
@@ -82,7 +82,7 @@ func TestWhichPolicyAnswers(t *testing.T) {
 	})
 
 	t.Run("one that is named and not there is an error, not a fallback", func(t *testing.T) {
-		if _, err := LoadFile(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
+		if _, err := Load(filepath.Join(t.TempDir(), "missing.yaml")); err == nil {
 			t.Error("wanted an error")
 		}
 	})
@@ -90,7 +90,7 @@ func TestWhichPolicyAnswers(t *testing.T) {
 
 func defaultPolicy(t *testing.T) Policy {
 	t.Helper()
-	policy, err := Load()
+	policy, err := Load("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func decides(t *testing.T, policy Policy, command string, wanted Decision) {
 
 func policyFrom(t *testing.T, name string) Policy {
 	t.Helper()
-	policy, err := LoadFile(policyPath(name))
+	policy, err := Load(policyPath(name))
 	if err != nil {
 		t.Fatal(err)
 	}

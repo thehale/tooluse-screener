@@ -17,17 +17,9 @@ func (c lazyPolicy) InDir(directory string) hook.Checker {
 }
 
 func (c lazyPolicy) policy() policy.Policy {
-	activePolicy, err := policyAt(string(c))
+	activePolicy, err := policy.Load(string(c))
 	if err != nil {
 		panic(fmt.Sprintf("the policy will not read: %v", err))
 	}
 	return activePolicy
-}
-
-func policyAt(path string) (policy.Policy, error) {
-	if path == "" {
-		return policy.Load()
-	} else {
-		return policy.LoadFile(path)
-	}
 }
