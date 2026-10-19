@@ -106,7 +106,7 @@ func TestSayingWhatItIs(t *testing.T) {
 
 	t.Run("help lists every subcommand and flag", func(t *testing.T) {
 		out, _ := outcomeOf(t, "help")
-		for _, word := range []string{"check", "--hook", "--version", "--config-file"} {
+		for _, word := range []string{"check", "test", "--hook", "--version", "--config-file"} {
 			if !strings.Contains(out, word) {
 				t.Errorf("help does not mention %s", word)
 			}

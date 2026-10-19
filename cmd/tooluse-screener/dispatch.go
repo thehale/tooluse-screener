@@ -18,6 +18,8 @@ func (o options) dispatch(arguments []string, in io.Reader, out, complaints io.W
 		return usageError
 	case subcommand == "check":
 		return o.runCheck(tail, in, out, complaints)
+	case subcommand == "test":
+		return o.runTests(tail, out, complaints)
 	default:
 		return o.complainOfUnknownSubcommand(subcommand, complaints)
 	}

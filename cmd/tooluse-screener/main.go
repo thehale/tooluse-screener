@@ -102,7 +102,7 @@ func version() string {
 
 func (o options) printUsage(writer io.Writer) {
 	_, _ = fmt.Fprintln(writer, "Check a Bash command against the shared agent permission policy.")
-	_, _ = fmt.Fprintln(writer, "\nUsage: tooluse-screener [flags] check <command>\n       tooluse-screener [flags] check --hook\n       tooluse-screener help\n\nFlags:")
+	_, _ = fmt.Fprintln(writer, "\nUsage: tooluse-screener [flags] check <command>\n       tooluse-screener [flags] test <path>...\n       tooluse-screener [flags] check --hook\n       tooluse-screener help\n\nFlags:")
 	o.printFlags(writer)
 }
 

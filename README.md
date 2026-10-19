@@ -262,7 +262,7 @@ It is not the same question as `only.dirs`, and a git command has to get
 past both. This names the repositories an agent may touch at all.
 `only.dirs` names where a single rule applies.
 
-#### Example
+**Example:**
 
 ```yaml
 trusted_git_directories:
@@ -287,6 +287,64 @@ allowed:
             - main
             - master
             - trunk
+```
+
+### Testing a policy
+
+```bash
+tooluse-screener test PATH...
+```
+
+`test` checks the configured policy against `.test` files, or every one
+under a directory. A case is two lines: a directory and a command, then
+the verdict wanted.
+
+**Example:**
+
+<details>
+
+<summary><code>~/.config/tooluse-screener/policy.yaml</code></summary>
+
+```yaml
+denied:
+  - name: Empty a whole tree
+    reason: Ask a human first.
+    patterns:
+      - '^rm -(rf|fr) /$'
+  - name: Write an SSH key
+    reason: An SSH key opens other machines, so a human places it.
+    paths:
+      - '~/.ssh/**'
+allowed:
+  - ls
+```
+
+</details>
+
+<details open>
+
+<summary><code>policy-tests/basics.test</code></summary>
+
+```text
+/path/to/project % ls -la
+allow: Every command is allowed: ls
+
+/path/to/scratch % rm -rf /
+deny: Command matches a denied rule: Empty a whole tree. Ask a human first.
+
+# Edit(path) checks a file write instead of a command.
+/path/to/notes % Edit(~/.ssh/id_ed25519)
+deny: Path matches a denied rule: Write an SSH key. An SSH key opens other machines, so a human places it.
+```
+
+</details>
+
+```console
+$ tooluse-screener test policy-tests/
+ok   policy-tests/basics.test:1  /path/to/project % ls -la
+ok   policy-tests/basics.test:4  /path/to/scratch % rm -rf /
+ok   policy-tests/basics.test:8  /path/to/notes % Edit(~/.ssh/id_ed25519)
+3 cases. 3 passed. 0 failed
 ```
 
 ## Library
