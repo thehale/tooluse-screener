@@ -12,7 +12,6 @@ import (
 )
 
 type Invocation struct {
-	Git         bool
 	Subcommand  string
 	Arguments   []string
 	Directories []string
@@ -20,24 +19,23 @@ type Invocation struct {
 	Unread      []string
 }
 
-func Read(command string) Invocation {
+func Read(command string) *Invocation {
 	if words := strings.Fields(shell.WithoutAssignments(command)); len(words) == 0 || words[0] != "git" {
-		return Invocation{Unread: unreadNames(command, nil)}
+		return nil
 	} else {
 		return invocationOf(command, words[1:])
 	}
 }
 
-func invocationOf(command string, words []string) Invocation {
+func invocationOf(command string, words []string) *Invocation {
 	directories, global, rest := afterGlobalOptions(append(twinOptions(command), words...))
 	subcommand, arguments := subcommandAndArguments(rest)
-	return Invocation{
-		Git:         true,
+	return &Invocation{
 		Subcommand:  subcommand,
 		Arguments:   arguments,
 		Directories: directories,
 		Global:      global,
-		Unread:      unreadNames(command, twins),
+		Unread:      unreadNames(command),
 	}
 }
 

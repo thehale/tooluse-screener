@@ -6,6 +6,7 @@ package command
 import (
 	"strings"
 
+	"github.com/thehale/tooluse-screener/internal/git"
 	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
@@ -43,7 +44,7 @@ func commands(parts []part, startingDestinations []string) []Command {
 	destinations := startingDestinations
 	for _, one := range parts {
 		if text := withSpacesCollapsed(one.text); text != "" {
-			found = append(found, Command{text, destinations, one.writes, one.text})
+			found = append(found, Command{text, destinations, one.writes, git.Read(text), one.text})
 			destinations = movesAfter(text, destinations)
 		}
 	}

@@ -12,9 +12,9 @@ import (
 
 func TestReading(t *testing.T) {
 	t.Run("a command that is not git", func(t *testing.T) {
-		hasSubcommand(t, "ls -la", "")
-		hasSubcommand(t, "github status", "")
-		hasSubcommand(t, "", "")
+		isNotGit(t, "ls -la")
+		isNotGit(t, "github status")
+		isNotGit(t, "")
 	})
 
 	t.Run("a bare subcommand", func(t *testing.T) {
@@ -34,14 +34,14 @@ func TestReading(t *testing.T) {
 	})
 
 	t.Run("something that only looks like an assignment is not", func(t *testing.T) {
-		hasSubcommand(t, "a-b=1 git status", "")
-		hasSubcommand(t, "1a=1 git status", "")
-		hasSubcommand(t, "=1 git status", "")
+		isNotGit(t, "a-b=1 git status")
+		isNotGit(t, "1a=1 git status")
+		isNotGit(t, "=1 git status")
 	})
 
 	t.Run("an assignment a shell would not accept is not one", func(t *testing.T) {
-		hasSubcommand(t, "café=1 git status", "")
-		hasSubcommand(t, "\u0e33=1 git status", "")
+		isNotGit(t, "café=1 git status")
+		isNotGit(t, "\u0e33=1 git status")
 	})
 }
 
@@ -159,6 +159,13 @@ func TestHasAll(t *testing.T) {
 	t.Run("nothing asked for is always carried", func(t *testing.T) {
 		hasAll(t, true, "git status")
 	})
+}
+
+func isNotGit(t *testing.T, command string) {
+	t.Helper()
+	if invocation := git.Read(command); invocation != nil {
+		t.Errorf("Read(%q) = %+v, wanted nil", command, *invocation)
+	}
 }
 
 func hasSubcommand(t *testing.T, command, wanted string) {

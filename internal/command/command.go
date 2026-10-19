@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/thehale/tooluse-screener/internal/directories"
+	"github.com/thehale/tooluse-screener/internal/git"
 	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
@@ -14,6 +15,7 @@ type Command struct {
 	Text   string
 	Moved  []string
 	Writes []string
+	Git    *git.Invocation
 	source string
 }
 
@@ -28,7 +30,7 @@ func (c Command) DirectoriesActedIn(targets []string) []string {
 }
 
 func (c Command) WithoutAssignments() Command {
-	return Command{Text: shell.WithoutAssignments(c.Text), Moved: c.Moved, Writes: c.Writes}
+	return Command{Text: shell.WithoutAssignments(c.Text), Moved: c.Moved, Writes: c.Writes, Git: c.Git}
 }
 
 func (c Command) PathsWritten() []string {

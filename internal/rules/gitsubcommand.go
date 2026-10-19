@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	commands "github.com/thehale/tooluse-screener/internal/command"
-	"github.com/thehale/tooluse-screener/internal/git"
 )
 
 type GitSubcommand struct {
@@ -21,8 +20,7 @@ func NewGitSubcommand(subcommand string, requiredWords []string) GitSubcommand {
 }
 
 func (g GitSubcommand) isMatch(command commands.Command) bool {
-	invocation := git.Read(command.Text)
-	return invocation.IsA(g.subcommand) && invocation.HasAll(g.requiredWords)
+	return command.Git != nil && command.Git.IsA(g.subcommand) && command.Git.HasAll(g.requiredWords)
 }
 
 func (g GitSubcommand) Find(command commands.Command) (Match, bool) {

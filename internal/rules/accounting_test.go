@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/git"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
@@ -29,7 +30,7 @@ func TestAccounting(t *testing.T) {
 
 func accountsFor(t *testing.T, wanted bool, text string, rule rules.Rule) {
 	t.Helper()
-	if got := rule.AccountsFor(command.Command{Text: text}); got != wanted {
+	if got := rule.AccountsFor(command.Command{Text: text, Git: git.Read(text)}); got != wanted {
 		t.Errorf("%q accounted for = %v, wanted %v", text, got, wanted)
 	}
 }

@@ -98,7 +98,7 @@ func TestWhereAPushIsUnread(t *testing.T) {
 	t.Run("another subcommand, or none", func(t *testing.T) {
 		isUnread(t, "git status")
 		isUnread(t, "git pushy origin topic")
-		isUnread(t, "ls origin topic")
+		isNotGit(t, "ls origin topic")
 	})
 }
 

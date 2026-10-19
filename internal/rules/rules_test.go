@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/git"
 	"github.com/thehale/tooluse-screener/internal/rules"
 )
 
@@ -570,7 +571,7 @@ func repositoryOn(t *testing.T, branch string) string {
 
 func matchesAfterMoving(t *testing.T, wanted bool, rule rules.Expression, text string, destinations ...string) {
 	t.Helper()
-	_, got := rule.Find(command.Command{Text: text, Moved: destinations})
+	_, got := rule.Find(command.Command{Text: text, Moved: destinations, Git: git.Read(text)})
 	if got != wanted {
 		t.Errorf("%s matching %q moved to %q = %v, wanted %v", rule, text, destinations, got, wanted)
 	}
@@ -630,5 +631,5 @@ func writes(t *testing.T, wanted bool, rule rules.Glob, file string) {
 }
 
 func commandOf(text string) command.Command {
-	return command.Command{Text: text}
+	return command.Command{Text: text, Git: git.Read(text)}
 }

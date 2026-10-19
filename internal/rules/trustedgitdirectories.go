@@ -6,7 +6,6 @@ package rules
 import (
 	commands "github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/directories"
-	"github.com/thehale/tooluse-screener/internal/git"
 )
 
 type TrustedGitDirectories struct {
@@ -20,7 +19,6 @@ func (d TrustedGitDirectories) InDir(workingDir directories.WorkingDir) TrustedG
 }
 
 func (d TrustedGitDirectories) hasTargetsOf(command commands.Command) bool {
-	invocation := git.Read(command.Text)
-	dirs := d.workingDir.ResolveAll(command.DirectoriesActedIn(invocation.TargetDirectories()))
-	return !invocation.Git || directories.AreAllUnder(dirs, d.workingDir.ResolveAll(d.Dirs))
+	dirs := d.workingDir.ResolveAll(command.DirectoriesActedIn(command.TargetDirectories()))
+	return command.Git == nil || directories.AreAllUnder(dirs, d.workingDir.ResolveAll(d.Dirs))
 }

@@ -20,11 +20,11 @@ func twinOptions(command string) []string {
 	return options
 }
 
-func unreadNames(command string, twinsByName map[string]string) []string {
+func unreadNames(command string) []string {
 	var names []string
 	for _, assignment := range shell.Assignments(command) {
 		name, _, _ := strings.Cut(assignment, "=")
-		if _, twin := twinsByName[name]; shell.IsRetargeting(name) && !twin {
+		if _, twin := twins[name]; shell.IsRetargeting(name) && !twin {
 			names = append(names, name)
 		}
 	}

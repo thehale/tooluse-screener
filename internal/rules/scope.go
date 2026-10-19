@@ -21,19 +21,21 @@ func (s Scope) InDir(workingDir directories.WorkingDir) Scope {
 }
 
 func (s Scope) isInScope(command commands.Command) bool {
-	invocation := git.Read(command.Text)
-	dirs := s.workingDir.ResolveAll(command.DirectoriesActedIn(directories.OrHere(invocation.TargetDirectories())))
-	return s.isInADir(dirs) && s.isOnABranch(invocation, dirs)
+	dirs := s.workingDir.ResolveAll(command.DirectoriesActedIn(directories.OrHere(command.TargetDirectories())))
+	return s.isInADir(dirs) && s.isOnABranch(command.Git, dirs)
 }
 
 func (s Scope) isInADir(dirs []string) bool {
 	return len(s.Dirs) == 0 || directories.AreAllUnder(dirs, s.workingDir.ResolveAll(s.Dirs))
 }
 
-func (s Scope) isOnABranch(invocation git.Invocation, dirs []string) bool {
-	if s.Branches.isUnsaid() {
+func (s Scope) isOnABranch(invocation *git.Invocation, dirs []string) bool {
+	switch {
+	case s.Branches.isUnsaid():
 		return true
-	} else {
+	case invocation == nil:
+		return false
+	default:
 		branch, isKnown := invocation.Landing(dirs)
 		return isKnown && s.Branches.isListed(branch)
 	}
