@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	commands "github.com/thehale/tooluse-screener/internal/command"
 	"github.com/thehale/tooluse-screener/internal/lists"
+	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
 type Invocation struct {
@@ -21,7 +21,7 @@ type Invocation struct {
 }
 
 func Read(command string) Invocation {
-	if words := strings.Fields(commands.WithoutAssignments(command)); len(words) == 0 || words[0] != "git" {
+	if words := strings.Fields(shell.WithoutAssignments(command)); len(words) == 0 || words[0] != "git" {
 		return Invocation{Unread: unreadNames(command, nil)}
 	} else {
 		return invocationOf(command, words[1:])
@@ -70,7 +70,7 @@ func afterGlobalOptions(words []string) (directories, global, rest []string) {
 	for len(words) > 0 && strings.HasPrefix(words[0], "-") {
 		option := globalOptionAt(words)
 		if isDirectoryOption(option.name) {
-			pointings = append(pointings, pointing{option.name, commands.Literal(option.value)})
+			pointings = append(pointings, pointing{option.name, shell.Literal(option.value)})
 		}
 		global = append(global, option.name)
 		words = words[option.width:]

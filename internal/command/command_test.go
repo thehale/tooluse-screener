@@ -8,9 +8,10 @@ import (
 	"testing"
 
 	"github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
-const substitution = command.Substitution
+const substitution = shell.Substitution
 
 func TestSeparators(t *testing.T) {
 	t.Run("one command is one command", func(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/thehale/tooluse-screener/internal/shell"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -93,7 +94,7 @@ func cutsIn(source string, stmt *syntax.Stmt, bounds span) []cut {
 	syntax.Walk(stmt.Cmd, func(node syntax.Node) bool {
 		found, isSubstitution := substitutionSpan(node)
 		if isSubstitution {
-			cuts = append(cuts, cut{found, Substitution})
+			cuts = append(cuts, cut{found, shell.Substitution})
 		}
 		return !isSubstitution
 	})
@@ -157,7 +158,7 @@ func writesOf(source string, stmt *syntax.Stmt) []string {
 func writeTarget(source string, redirect *syntax.Redirect) (target string, isWrite bool) {
 	word := source[redirect.Word.Pos().Offset():redirect.Word.End().Offset()]
 	if isWriteOp(redirect.Op) && !isDuplicationTarget(word) {
-		return Literal(word), true
+		return shell.Literal(word), true
 	} else {
 		return "", false
 	}

@@ -3,9 +3,11 @@
 
 package command
 
-import "strings"
+import (
+	"strings"
 
-const Substitution = "\x00"
+	"github.com/thehale/tooluse-screener/internal/shell"
+)
 
 func Blind(text string) []Command {
 	return commands(asParts(split(withLinesJoined(text))), nil)
@@ -71,7 +73,7 @@ func withoutSubstitutions(text string) (outerText string, substitutions []string
 		} else {
 			contents, next := readSubstitution(text, index, opener)
 			substitutions = append(substitutions, contents)
-			runs.WriteString(Substitution)
+			runs.WriteString(shell.Substitution)
 			index = next
 		}
 	}

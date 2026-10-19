@@ -6,12 +6,12 @@ package git
 import (
 	"strings"
 
-	commands "github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
 func twinOptions(command string) []string {
 	var options []string
-	for _, assignment := range commands.Assignments(command) {
+	for _, assignment := range shell.Assignments(command) {
 		name, value, _ := strings.Cut(assignment, "=")
 		if option, twin := twins[name]; twin {
 			options = append(options, option+"="+value)
@@ -22,9 +22,9 @@ func twinOptions(command string) []string {
 
 func unreadNames(command string, twinsByName map[string]string) []string {
 	var names []string
-	for _, assignment := range commands.Assignments(command) {
+	for _, assignment := range shell.Assignments(command) {
 		name, _, _ := strings.Cut(assignment, "=")
-		if _, twin := twinsByName[name]; commands.IsRetargeting(name) && !twin {
+		if _, twin := twinsByName[name]; shell.IsRetargeting(name) && !twin {
 			names = append(names, name)
 		}
 	}

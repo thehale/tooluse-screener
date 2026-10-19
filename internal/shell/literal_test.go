@@ -1,12 +1,12 @@
 // Copyright (c) 2026 Joseph Hale
 // SPDX-License-Identifier: MPL-2.0
 
-package command_test
+package shell_test
 
 import (
 	"testing"
 
-	"github.com/thehale/tooluse-screener/internal/command"
+	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
 func TestLiteral(t *testing.T) {
@@ -21,7 +21,7 @@ func TestLiteral(t *testing.T) {
 	})
 
 	t.Run("a word the shell would expand is no literal", func(t *testing.T) {
-		for _, word := range []string{`"$REPO"`, "$REPO", "${REPO}", "/work/*", "/work/{a,b}", `/work\ app`, "`pwd`", substitution} {
+		for _, word := range []string{`"$REPO"`, "$REPO", "${REPO}", "/work/*", "/work/{a,b}", `/work\ app`, "`pwd`", shell.Substitution} {
 			readsLiterally(t, word, "")
 		}
 	})
@@ -38,7 +38,7 @@ func TestLiteral(t *testing.T) {
 
 func readsLiterally(t *testing.T, word, wanted string) {
 	t.Helper()
-	if got := command.Literal(word); got != wanted {
+	if got := shell.Literal(word); got != wanted {
 		t.Errorf("Literal(%q) = %q, wanted %q", word, got, wanted)
 	}
 }

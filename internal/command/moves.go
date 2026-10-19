@@ -9,13 +9,14 @@ import (
 
 	"github.com/thehale/tooluse-screener/internal/directories"
 	"github.com/thehale/tooluse-screener/internal/lists"
+	"github.com/thehale/tooluse-screener/internal/shell"
 )
 
 func movesAfter(command string, destinations []string) []string {
-	words := strings.Fields(WithoutAssignments(command))
+	words := strings.Fields(shell.WithoutAssignments(command))
 	switch {
 	case len(words) == 0:
-		return retargetsAfter(Assignments(command), destinations)
+		return retargetsAfter(shell.Assignments(command), destinations)
 	case slices.Contains(exportCommands, words[0]):
 		return retargetsAfter(words[1:], destinations)
 	case words[0] == "cd":
@@ -43,7 +44,7 @@ func retargetsAfter(words []string, destinations []string) []string {
 
 func isRetargetAssignment(word string) bool {
 	name, _, _ := strings.Cut(word, "=")
-	return IsRetargeting(name)
+	return shell.IsRetargeting(name)
 }
 
 func destination(arguments []string, bareDestination string) string {
@@ -51,9 +52,9 @@ func destination(arguments []string, bareDestination string) string {
 	case len(arguments) == 0:
 		return bareDestination
 	case len(arguments) == 2 && arguments[0] == "--":
-		return Literal(arguments[1])
+		return shell.Literal(arguments[1])
 	case len(arguments) == 1 && !strings.ContainsRune("-+", rune(arguments[0][0])):
-		return Literal(arguments[0])
+		return shell.Literal(arguments[0])
 	default:
 		return ""
 	}
